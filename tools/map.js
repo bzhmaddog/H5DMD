@@ -1,23 +1,17 @@
 var fs = require('fs');
 
-var col = 0;
 var index = 0;
-
 var pixels = [];
 
-for (var c = 0 ; c < 19840 ; c++) {
+for (var row = 0 ; row < 62 ; row++) {
+	var newRow = [];
 	
-	pixels.push(index);
-	
-
-	col++;
-	
-	if (col > 320) {
-		col = 0;
-		index += 1280*4;
-	} else {
+	for (var col = 0 ; col < 320 ; col++) {
+		newRow.push(index);
 		index += 16;
 	}
+	pixels.push(newRow);
+	index += 1280*4 + 4;
 }
 
 
