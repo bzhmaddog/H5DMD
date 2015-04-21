@@ -1,0 +1,16 @@
+body {
+	background: #000;
+}
+
+#dmd {
+	position: absolute;
+	top: 0;
+	left: 0;
+	font-family: Arial;
+}
+
+#video {
+	position: absolute;
+	top: 350px;
+	left: 0;
+}
