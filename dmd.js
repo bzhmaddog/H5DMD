@@ -34,21 +34,34 @@
 		video,
 		dmdBuffer,
 		videoBuffer,
+		server,
 		score = 0;
 
 	// When dom is loaded create the objects and bind the events
 	document.addEventListener('DOMContentLoaded', function () {
 
+		server = new WebSocket('ws://127.0.0.1:1337', ['soap', 'xmpp']);
+		server.onmessage = processMessage;
+		// Log errors
+		server.onerror = function (error) {
+		  console.log('WebSocket Error ' + error);
+		};
+		
+		//setInterval(pingServer, 5000);
+
+	
 		// when the bg image is loaded then render background only
 		DMDBackgroundImage.addEventListener('load', function () {
 			renderBackground(true);
 		});
 		
 		// Load the background image
-		DMDBackgroundImage.src = 'img/dmd3x3bg.png';
+		DMDBackgroundImage.src = 'img/dmd-bg-empty.png';
 	
 		// Get the video element where we will play the video
-		video = document.getElementById('video');
+		//video = document.getElementById('video');
+		video = document.createElement('video');
+		video.loop = true;
 	
 		// Create the buffers we need
 		dmdBuffer = new Buffer(dmd.width, dmd.height);
@@ -66,20 +79,46 @@
 		// also start increasing the score randomly
 		video.addEventListener('play', function(){
 			renderFrame();
-			increaseScore();
+			//increaseScore();
 		},false);
 	
 	},false);
 
-/**
- * Increase the score from a random value and automaticaly set another call at a random delay
- */
-function increaseScore() {
-	var n = Math.random() * 2000 + 100;
+
+function pingServer() {
+	try {
+		server.send('ping');
+	} catch (ee) {
+		console.log('hello');
+	}
+}
 	
-	score = Math.round(score + Math.random() * 1000000 + 500);
+
+function processMessage(e) {
+	var message = JSON.parse(e.data);
+	//console.log(message);
+
+	switch(message.type) {
+		case 'updateScore' :
+			score = message.data.score
+			break;
+		case 'loadVideo' :
+			video.src = message.data.file;
+			if (!!message.data.play === true) {
+				video.play();
+			}
+			break;
+		case 'playVideo' :
+			video.play();
+			break;
+		case 'pauseVideo' :
+			video.pause();
+			break;
+		case 'stopVideo' :
+			video.stop();
+			break;
+	}
 	
-	setTimeout(increaseScore, n);
 }
 
 /**
@@ -136,14 +175,14 @@ function renderBackground() {
  */ 
 function renderFrame() {
 	if(video.paused || video.ended) {
-		return false;
+		//return false;
 	}
 
 	// Get current frame (just an alias)
 	var frame = video;
 
 	// draw the background image in the buffering canvas
-	dmdBuffer.context.drawImage(DMDBackgroundImage, 0, 0,dmdBuffer.width, dmdBuffer.height);
+	//dmdBuffer.context.drawImage(DMDBackgroundImage, 0, 0,dmdBuffer.width, dmdBuffer.height);
 
 	// draw the current video image in the frame buffer
 	videoBuffer.context.drawImage(frame, 0, 0, Video.width, Video.height);
@@ -206,7 +245,7 @@ function renderFrame() {
 	dmd.context.putImageData(backImageData, 0, 0);
 
 	// Render nextFrame
-	setTimeout(renderFrame, 50);
+	setTimeout(renderFrame, 20);
 }
 
 })();
