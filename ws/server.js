@@ -43,7 +43,8 @@ server.on('connection', function connection(_client) {
   client = _client;
 
   sendMessage('loadVideo', {
-	file : 'medias/dmd-error.webm',
+	file : 'medias/test3.webm',
+	type : 'video/webm',
 	play : true
   });
   

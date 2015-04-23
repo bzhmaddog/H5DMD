@@ -2,84 +2,67 @@
 	//'use strict';
 	
 	var DMDBackgroundImage = new Image(),	// The DMD Background image
-		dmd = {
-			width : 1280,
-			height : 248,
-			canvas : undefined,
-			context : undefined
-		},
-		// Helper class to create an image buffer
-		Buffer = function (width, height) {
-			var _canvas = document.createElement('canvas'),
-				_context = _canvas.getContext('2d');
-		
-			_canvas.width = width;
-			_canvas.height = height;
-		
-			return {
-				width : width,
-				height : height,
-				canvas : _canvas,
-				context : _context
-			}
-		},
-		Pixel = {
-			width : 3,
-			height : 3
-		},
-		Video = {
-			width : 320,
-			height : 62
-		},
-		video,
+		DMDErrorBackgroundImage = new Image(),
+		messagesHandler = DMD.messagesHandler,
+		dmd,
+		video = new DMD.Video(320, 62),
 		dmdBuffer,
 		videoBuffer,
 		server,
 		score = 0;
 
+		video.loop = true;
+		//video.controls = true;
+		
 	// When dom is loaded create the objects and bind the events
 	document.addEventListener('DOMContentLoaded', function () {
 
-		server = new WebSocket('ws://127.0.0.1:1337', ['soap', 'xmpp']);
-		server.onmessage = processMessage;
-		// Log errors
-		server.onerror = function (error) {
-		  console.log('WebSocket Error ' + error);
-		};
-		
-		//setInterval(pingServer, 5000);
-
-	
 		// when the bg image is loaded then render background only
 		DMDBackgroundImage.addEventListener('load', function () {
-			renderBackground(true);
+			renderBackground(DMDBackgroundImage);
 		});
 		
 		// Load the background image
-		DMDBackgroundImage.src = 'img/dmd-bg-empty.png';
+		DMDBackgroundImage.src = 'img/dmd-3x3.png';
+		DMDErrorBackgroundImage.src = 'img/dmd-3x3-error.png';
 	
-		// Get the video element where we will play the video
-		//video = document.getElementById('video');
-		video = document.createElement('video');
-		video.loop = true;
-	
-		// Create the buffers we need
-		dmdBuffer = new Buffer(dmd.width, dmd.height);
-		videoBuffer = new Buffer(Video.width, Video.height);
-	
-		// Get the visible canvas and its context
-		dmd.canvas = document.getElementById('dmd');
-		dmd.context = dmd.canvas.getContext('2d');
-		
-		// set the correct width and height
-		dmd.canvas.width = dmd.width;
-		dmd.canvas.height = dmd.height;
+		//document.body.appendChild(video);
+		PubSub.subscribe('video.load', function (ev, data) {
+			var sToken;
+			
+			if (data.play) {
+				sToken = PubSub.subscribe('video.loaded', function () {
+					video.play();
+					PubSub.unsubscribe(sToken);
+				});
+			}
+			video.load(data.file, data.type);
+		});
 
+		// Connect to the server via a websocket
+		server = new WebSocket('ws://127.0.0.1:1337', ['soap', 'xmpp']);
+		
+		// bind onmessage event
+		server.onmessage = messagesHandler.processMessage;
+
+		// Bind error event to display it on the DMD
+		server.onerror = function (error) {
+		  console.log('WebSocket Error ' + error);
+		  renderBackground(DMDErrorBackgroundImage);
+		};
+		
+		dmd = new DMD(1280, 248, document.getElementById('dmd'));
+		// Get the visible canvas and its context
+
+		// Create the buffers we need
+		dmdBuffer = new DMD.Buffer(dmd.width, dmd.height);
+		videoBuffer = new DMD.Buffer(video.width, video.height);
+		
+		
 		// start rendering frames when play is pressed
 		// also start increasing the score randomly
 		video.addEventListener('play', function(){
 			renderFrame();
-			//increaseScore();
 		},false);
 	
 	},false);
@@ -94,32 +77,7 @@ function pingServer() {
 }
 	
 
-function processMessage(e) {
-	var message = JSON.parse(e.data);
-	//console.log(message);
 
-	switch(message.type) {
-		case 'updateScore' :
-			score = message.data.score
-			break;
-		case 'loadVideo' :
-			video.src = message.data.file;
-			if (!!message.data.play === true) {
-				video.play();
-			}
-			break;
-		case 'playVideo' :
-			video.play();
-			break;
-		case 'pauseVideo' :
-			video.pause();
-			break;
-		case 'stopVideo' :
-			video.stop();
-			break;
-	}
-	
-}
 
 /**
  * Get the index of the pixel at position X,Y in the Canvas
@@ -159,9 +117,9 @@ function addCommas(nStr) {
 /**
  * Render our background image in the DMD canvas
  */
-function renderBackground() {
+function renderBackground(image) {
 	// draw the background image in the buffering canvas
-	dmdBuffer.context.drawImage(DMDBackgroundImage, 0, 0,dmdBuffer.width, dmdBuffer.height);
+	dmdBuffer.context.drawImage(image, 0, 0,dmdBuffer.width, dmdBuffer.height);
 
 	var backImageData = dmdBuffer.context.getImageData(0,0, dmdBuffer.width, dmdBuffer.height);
 	var backData = backImageData.data;
@@ -185,7 +143,7 @@ function renderFrame() {
 	//dmdBuffer.context.drawImage(DMDBackgroundImage, 0, 0,dmdBuffer.width, dmdBuffer.height);
 
 	// draw the current video image in the frame buffer
-	videoBuffer.context.drawImage(frame, 0, 0, Video.width, Video.height);
+	videoBuffer.context.drawImage(frame, 0, 0, video.width, video.height);
 	
 	videoBuffer.context.font = '22pt Arial';
 	videoBuffer.context.fillStyle = '#de8e01';
@@ -197,7 +155,7 @@ function renderFrame() {
 	var backImageData = dmdBuffer.context.getImageData(0,0, dmdBuffer.width, dmdBuffer.height);
 	var backData = backImageData.data;
 	
-	var frameImageData = videoBuffer.context.getImageData(0, 0,Video.width, Video.height);
+	var frameImageData = videoBuffer.context.getImageData(0, 0,video.width, video.height);
 	var frameData = frameImageData.data;
 
 	// Loop through the pixels, turning them grayscale
@@ -234,7 +192,7 @@ function renderFrame() {
 
 		x++;
 	
-		if (x > Video.width) {
+		if (x > video.width) {
 			x = 1;
 			y++;
 		}
