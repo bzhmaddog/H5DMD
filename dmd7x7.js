@@ -5,29 +5,38 @@
 		DMDErrorBackgroundImage = new Image(),
 		messagesHandler = DMD.messagesHandler,
 		dmd,
-		video = new DMD.Video(128, 64),
+		//video = new DMD.Video(128, 64),
 		dmdBuffer,
-		videoBuffer,
-		server,
-		score = 1000000;
+		//videoBuffer,
+		server;
 
-		video.loop = true;
+		
+		//video.loop = true;
 		//video.controls = true;
 		
 	// When dom is loaded create the objects and bind the events
 	document.addEventListener('DOMContentLoaded', function () {
 
-		// when the bg image is loaded then render background only
-		DMDBackgroundImage.addEventListener('load', function () {
-			renderBackground(DMDBackgroundImage);
+		dmd = new DMD(128, 64, 1024, 511, 5, 5, 3, 3, 'circle', document.getElementById('dmd'));
+		
+		PubSub.subscribe('layer.add', function (ev, data) {
+			dmd.addLayer(data.name, data.type, data.src, data.mimeType, data.width, data.height, data.transparent, data.visible, data.autoplay, data.loop);
 		});
+
+		PubSub.subscribe('layer.loaded', function (ev, data){
+			sendMessage('layer.loaded', data);
+		});
+	
+		// when the bg image is loaded then render background only
+		//DMDBackgroundImage.addEventListener('load', function () {
+			//renderBackground(DMDBackgroundImage);
+		//});
 		
 		// Load the background image
-		DMDBackgroundImage.src = 'img/dmd-7x7.png';
-		DMDErrorBackgroundImage.src = 'img/dmd-7x7-error.png';
+		//DMDBackgroundImage.src = 'img/dmd-7x7.png';
+		//DMDErrorBackgroundImage.src = 'img/dmd-7x7-error.png';
 	
-		//document.body.appendChild(video);
-		PubSub.subscribe('video.load', function (ev, data) {
+		/*PubSub.subscribe('video.load', function (ev, data) {
 			var sToken;
 			
 			if (data.play) {
@@ -37,7 +46,7 @@
 				});
 			}
 			video.load(data.file, data.type);
-		});
+		});*/
 
 		// Connect to the server via a websocket
 		server = new WebSocket('ws://127.0.0.1:1337', ['soap', 'xmpp']);
@@ -48,22 +57,22 @@
 		// Bind error event to display it on the DMD
 		server.onerror = function (error) {
 		  console.log('WebSocket Error ' + error);
-		  renderBackground(DMDErrorBackgroundImage);
+		  //renderBackground(DMDErrorBackgroundImage);
 		};
 		
-		dmd = new DMD(1024, 511, 7, 7, 'circle', document.getElementById('dmd'));
+	
 		// Get the visible canvas and its context
 
 		// Create the buffers we need
-		dmdBuffer = new DMD.Buffer(dmd.width, dmd.height);
-		videoBuffer = new DMD.Buffer(video.width, video.height);
+		//dmdBuffer = new DMD.Buffer(dmd.width, dmd.height);
+		//videoBuffer = new DMD.Buffer(video.width, video.height);
 		
 		
 		// start rendering frames when play is pressed
 		// also start increasing the score randomly
-		video.addEventListener('play', function(){
-			renderFrame();
-		},false);
+		//video.addEventListener('play', function(){
+			//renderFrame();
+		//},false);
 	
 	},false);
 
@@ -76,8 +85,12 @@ function pingServer() {
 	}
 }
 	
-
-
+function sendMessage(messageType, data) {
+	server.send(JSON.stringify({
+		type : messageType,
+		data : data
+	}));
+}
 
 
 /**
@@ -85,7 +98,7 @@ function pingServer() {
  * @param nStr {string} a number as a string
  * @result {string} a formatted number
  */
-function addCommas(nStr) {
+/*function addCommas(nStr) {
 	var x,
 		x1,
 		x2,
@@ -100,12 +113,12 @@ function addCommas(nStr) {
 		x1 = x1.replace(rgx, '$1' + ',' + '$2');
 	}
 	return x1 + x2;
-} 
+}*/
 
 /**
  * Render our background image in the DMD canvas
  */
-function renderBackground(image) {
+/*function renderBackground(image) {
 	// draw the background image in the buffering canvas
 	dmdBuffer.context.drawImage(image, 0, 0,dmdBuffer.width, dmdBuffer.height);
 
@@ -114,7 +127,7 @@ function renderBackground(image) {
 
 	backImageData.data = backData;
 	dmd.context.putImageData(backImageData, 0, 0);
-}
+}*/
 
 /**
  * Render the DMD
@@ -150,33 +163,15 @@ function renderFrame() {
 	var y = 1;
 	
 	for (var i = 0 ; i < 320*62*4 ; i+=4) { // each pixel use 4 bytes (RGBA)
-	//for (var i = 0 ; i < 1280*2 ; i+=4) { // each pixel use 4 bytes (RGBA)
-		
 		// get the pixel from the current frame
 		var r = frameData[i];
 		var g = frameData[i+1];
 		var b = frameData[i+2];
 		var a = frameData[i+3];
 
-		// get the data index for this pixel in the DMD
-		// use mapping to get fast results
 		dmd.drawPixel(x, y, backData, r, g, b, a);
-		/*var pIndex = dmd.getResizedPixelIndex(x, y);
-		
-		for (var row = 0 ; row < dmd.pixelHeight ; row++) {
-			for(var col = 0 ; col < dmd.pixelWidth ; col++) {
-				backData[pIndex] = r;
-				backData[pIndex+1] = g;
-				backData[pIndex+2] = b;
-				backData[pIndex+3] = a;
-				
-				pIndex += 4;
-			}
-			pIndex += dmd.width * 4 - dmd.pixelWidth * 4;
-		}*/
 
 		x++;
-	
 		if (x > video.width) {
 			x = 1;
 			y++;
@@ -185,6 +180,7 @@ function renderFrame() {
 	
 	backImageData.data = backData;
 	
+	// put the altered data back into the canvas context
 	dmd.context.putImageData(backImageData, 0, 0);
 
 	// Render nextFrame

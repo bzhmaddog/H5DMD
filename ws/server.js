@@ -3,53 +3,45 @@ var WebSocketServer = require('ws').Server,
 	keypress = require('keypress'),
 	client,
 	score = 0,
-	to = null;
+	to = null,
+	client;
 
-/*keypress(process.stdin);
-	
-process.stdin.on('keypress', function (ch, key) {
-
-if (typeof key === 'undefined') {
-	return;
-}
-  console.log('got "keypress"', key);
-  
-  if (key.ctrl && key.name === 'c') {
-    process.stdin.pause();
-  }
-  
-  if (key.name === '+') {
-	increaseScore(true);
-  }
-  
-  if (key.name === '*') {
-	increaseScore();
-  }
-
-  if (key.name === '/') {
-	clearTimeout(to);
-  }
-  
-  
-});
-
-process.stdin.resume();*/
-	
 server.on('connection', function connection(_client) {
-  /*ws.on('message', function incoming(message) {
-    console.log('received: %s', message);
-  });*/
   
   client = _client;
+  
+  sendMessage('addLayer', {
+	name : 'background',
+	type : 'image',
+	src : 'img/dmd-128x64-empty.png',
+	mimeType : 'image/png',
+	width : 128,
+	height : 64,
+	transparent : false,
+	visible : true
+  });
 
-  sendMessage('loadVideo', {
-	file : 'medias/test-7x7.webm',
-	//file : 'medias/test3.webm',
-	type : 'video/webm',
-	play : true
+  sendMessage('addLayer', {
+	name : 'mainVideo',
+	type : 'video',
+	src : 'medias/extraball.webm',
+	mimeType : 'video/webm',
+	width : 128,
+	height : 64,
+	transparent : true,
+	visible : true,
+	autoplay : true,
+	loop : false
   });
   
-  increaseScore();
+  
+  /*sendMessage('loadVideo', {
+	file : 'medias/test-7x7.webm',
+	type : 'video/webm',
+	play : true
+  });*/
+  
+  //increaseScore();
 });
 
 function sendMessage(messageType, data) {
