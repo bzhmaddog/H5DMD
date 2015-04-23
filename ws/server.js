@@ -8,23 +8,35 @@ var WebSocketServer = require('ws').Server,
 
 server.on('connection', function connection(_client) {
   
-  client = _client;
+	client = _client;
   
-  sendMessage('addLayer', {
-	name : 'background',
-	type : 'image',
-	src : 'img/dmd-128x64-empty.png',
-	mimeType : 'image/png',
-	width : 128,
-	height : 64,
-	transparent : false,
-	visible : true
-  });
-
+	sendMessage('addLayer', {
+		name : 'background',
+		type : 'image',
+		src : 'img/dmd-128x64-empty.png',
+		mimeType : 'image/png',
+		width : 128,
+		height : 64,
+		transparent : false,
+		visible : false
+	});
+	
+	sendMessage('addLayer', {
+		name : 'test',
+		type : 'image',
+		src : 'img/bg-test.png',
+		mimeType : 'image/png',
+		width : 128,
+		height : 64,
+		transparent : false,
+		visible : true
+	});
+  
+  
   sendMessage('addLayer', {
 	name : 'mainVideo',
 	type : 'video',
-	src : 'medias/extraball.webm',
+	src : 'medias/extraballAlpha.webm',
 	mimeType : 'video/webm',
 	width : 128,
 	height : 64,
