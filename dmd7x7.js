@@ -9,7 +9,7 @@
 		dmdBuffer,
 		videoBuffer,
 		server,
-		score = 0;
+		score = 1000000;
 
 		video.loop = true;
 		//video.controls = true;
@@ -40,18 +40,18 @@
 		});
 
 		// Connect to the server via a websocket
-		//server = new WebSocket('ws://127.0.0.1:1337', ['soap', 'xmpp']);
+		server = new WebSocket('ws://127.0.0.1:1337', ['soap', 'xmpp']);
 		
 		// bind onmessage event
-		//server.onmessage = messagesHandler.processMessage;
+		server.onmessage = messagesHandler.processMessage;
 
 		// Bind error event to display it on the DMD
-		/*server.onerror = function (error) {
+		server.onerror = function (error) {
 		  console.log('WebSocket Error ' + error);
 		  renderBackground(DMDErrorBackgroundImage);
-		};*/
+		};
 		
-		dmd = new DMD(1024, 511, document.getElementById('dmd'));
+		dmd = new DMD(1024, 511, 7, 7, 'circle', document.getElementById('dmd'));
 		// Get the visible canvas and its context
 
 		// Create the buffers we need
@@ -79,18 +79,6 @@ function pingServer() {
 
 
 
-/**
- * Get the index of the pixel at position X,Y in the Canvas
- * @param x {integer} the column of the position
- * @param y {integer} the row of the pixel
- * @result {integer} index of the pixel in the data object
- */
-function getResizedPixelIndex(x, y) {
-	// each pixel use 4 bytes. Our DMD is 3x3 pixel and 1px between each pixel
-	// 12 = 3px * 4bytes
-	// (x - 1) * 4 = the first pixel doesn't have a space before
-	return (x - 1) * 12 + (x - 1) * 4 + (y - 1) * 1280 * 4 * 4 ;
-} 
 
 /**
  * Format a number with commas
@@ -121,8 +109,6 @@ function renderBackground(image) {
 	// draw the background image in the buffering canvas
 	dmdBuffer.context.drawImage(image, 0, 0,dmdBuffer.width, dmdBuffer.height);
 
-	console.log(dmdBuffer.width);
-	
 	var backImageData = dmdBuffer.context.getImageData(0,0, dmdBuffer.width, dmdBuffer.height);
 	var backData = backImageData.data;
 
@@ -147,11 +133,11 @@ function renderFrame() {
 	// draw the current video image in the frame buffer
 	videoBuffer.context.drawImage(frame, 0, 0, video.width, video.height);
 	
-	videoBuffer.context.font = '22pt Arial';
+	videoBuffer.context.font = '14pt Arial';
 	videoBuffer.context.fillStyle = '#de8e01';
 	videoBuffer.context.strokeStyle = '#fff';
 	videoBuffer.context.textAlign = 'right';
-	videoBuffer.context.fillText(addCommas(score.toString()), 320, 25);	
+	videoBuffer.context.fillText(addCommas(score.toString()), 128, 60);	
 	
 	// Grab the pixel data from the backing canvas
 	var backImageData = dmdBuffer.context.getImageData(0,0, dmdBuffer.width, dmdBuffer.height);
@@ -160,9 +146,6 @@ function renderFrame() {
 	var frameImageData = videoBuffer.context.getImageData(0, 0,video.width, video.height);
 	var frameData = frameImageData.data;
 
-	// Loop through the pixels, turning them grayscale
-	var p = 0;
-	
 	var x = 1;
 	var y = 1;
 	
@@ -177,10 +160,11 @@ function renderFrame() {
 
 		// get the data index for this pixel in the DMD
 		// use mapping to get fast results
-		var pIndex = getResizedPixelIndex(x, y);
+		dmd.drawPixel(x, y, backData, r, g, b, a);
+		/*var pIndex = dmd.getResizedPixelIndex(x, y);
 		
-		for (var row = 0 ; row < 3 ; row++) {
-			for(var col = 0 ; col < 3 ; col++) {
+		for (var row = 0 ; row < dmd.pixelHeight ; row++) {
+			for(var col = 0 ; col < dmd.pixelWidth ; col++) {
 				backData[pIndex] = r;
 				backData[pIndex+1] = g;
 				backData[pIndex+2] = b;
@@ -188,9 +172,8 @@ function renderFrame() {
 				
 				pIndex += 4;
 			}
-			pIndex += 1280 * 4 - 12;
-		}
-		p++;
+			pIndex += dmd.width * 4 - dmd.pixelWidth * 4;
+		}*/
 
 		x++;
 	

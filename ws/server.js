@@ -43,7 +43,8 @@ server.on('connection', function connection(_client) {
   client = _client;
 
   sendMessage('loadVideo', {
-	file : 'medias/test3.webm',
+	file : 'medias/test-7x7.webm',
+	//file : 'medias/test3.webm',
 	type : 'video/webm',
 	play : true
   });

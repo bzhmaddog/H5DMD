@@ -51,7 +51,7 @@
 		  renderBackground(DMDErrorBackgroundImage);
 		};
 		
-		dmd = new DMD(1280, 248, document.getElementById('dmd'));
+		dmd = new DMD(1280, 248, 3, 3, document.getElementById('dmd'));
 		// Get the visible canvas and its context
 
 		// Create the buffers we need
@@ -175,10 +175,10 @@ function renderFrame() {
 
 		// get the data index for this pixel in the DMD
 		// use mapping to get fast results
-		var pIndex = getResizedPixelIndex(x, y);
+		var pIndex = dmd.getResizedPixelIndex(x, y);
 		
-		for (var row = 0 ; row < 3 ; row++) {
-			for(var col = 0 ; col < 3 ; col++) {
+		for (var row = 0 ; row < dmd.pixelHeight ; row++) {
+			for(var col = 0 ; col < dmd.pixelWidth ; col++) {
 				backData[pIndex] = r;
 				backData[pIndex+1] = g;
 				backData[pIndex+2] = b;
@@ -186,7 +186,7 @@ function renderFrame() {
 				
 				pIndex += 4;
 			}
-			pIndex += 1280 * 4 - 12;
+			pIndex += dmd.width * 4 - dmd.pixelWidth * 4;
 		}
 		p++;
 
