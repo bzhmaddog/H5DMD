@@ -1,2 +1,4 @@
 # H5DMD
-A Pinball DMD driven by html5 Canvas+Video(WebM)
+A Virtual DMD driven by HTML5 Canvas+Video(WebM)+WebSockets
+
+Example usage : A Pinball DMD
