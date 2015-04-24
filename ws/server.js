@@ -10,7 +10,7 @@ server.on('connection', function connection(_client) {
   
 	client = _client;
   
-	sendMessage('addLayer', {
+	/*sendMessage('addLayer', {
 		name : 'background',
 		type : 'image',
 		src : 'img/dmd-128x64-empty.png',
@@ -18,8 +18,10 @@ server.on('connection', function connection(_client) {
 		width : 128,
 		height : 64,
 		transparent : false,
-		visible : false
-	});
+		visible : true,
+		autoplay: false,
+		loop : false
+	});*/
 	
 	sendMessage('addLayer', {
 		name : 'test',
@@ -29,11 +31,26 @@ server.on('connection', function connection(_client) {
 		width : 128,
 		height : 64,
 		transparent : false,
-		visible : true
+		visible : true,
+		autoplay: false,
+		loop : false
+	});
+
+	sendMessage('addLayer', {
+		name : 'test',
+		type : 'image',
+		src : 'img/text-transparent.png',
+		mimeType : 'image/png',
+		width : 128,
+		height : 64,
+		transparent : false,
+		visible : true,
+		autoplay: false,
+		loop : false
 	});
   
   
-  sendMessage('addLayer', {
+  /*sendMessage('addLayer', {
 	name : 'mainVideo',
 	type : 'video',
 	src : 'medias/extraballAlpha.webm',
@@ -44,7 +61,7 @@ server.on('connection', function connection(_client) {
 	visible : true,
 	autoplay : true,
 	loop : false
-  });
+  });*/
   
   
   /*sendMessage('loadVideo', {
