@@ -36,7 +36,23 @@ server.on('connection', function connection(_client) {
 		loop : false
 	});
 
-	sendMessage('addLayer', {
+
+  
+  
+  sendMessage('addLayer', {
+	name : 'mainVideo',
+	type : 'video',
+	src : 'medias/extraballAlpha.webm',
+	mimeType : 'video/webm',
+	width : 128,
+	height : 64,
+	transparent : true,
+	visible : true,
+	autoplay : true,
+	loop : false
+  });
+  
+  	sendMessage('addLayer', {
 		name : 'test',
 		type : 'image',
 		src : 'img/text-transparent.png',
@@ -48,21 +64,6 @@ server.on('connection', function connection(_client) {
 		autoplay: false,
 		loop : false
 	});
-  
-  
-  /*sendMessage('addLayer', {
-	name : 'mainVideo',
-	type : 'video',
-	src : 'medias/extraballAlpha.webm',
-	mimeType : 'video/webm',
-	width : 128,
-	height : 64,
-	transparent : true,
-	visible : true,
-	autoplay : true,
-	loop : false
-  });*/
-  
   
   /*sendMessage('loadVideo', {
 	file : 'medias/test-7x7.webm',
