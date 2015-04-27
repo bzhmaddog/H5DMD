@@ -18,7 +18,7 @@
 		// DMD.addLayer is expecting separated arguments
 		// Need to find a better way to do this
 		PubSub.subscribe('layer.add', function (ev, data) {
-			dmd.addLayer(data.name, 128, 64,  data.type, data.src, data.mimeType, data.transparent, data.visible, data.extra);
+			dmd.addLayer(data.name, data.type, data.src, data.mimeType, data.transparent, data.visible, data.extra);
 		});
 
 		PubSub.subscribe('layer.remove', function (ev, data) {
