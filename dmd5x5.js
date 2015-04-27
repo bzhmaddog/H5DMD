@@ -18,14 +18,36 @@
 		// DMD.addLayer is expecting separated arguments
 		// Need to find a better way to do this
 		PubSub.subscribe('layer.add', function (ev, data) {
-			dmd.addLayer(data.name, data.type, data.src, data.mimeType, data.width, data.height, data.transparent, data.visible, data.autoplay, data.loop);
+			dmd.addLayer(data.name, 128, 64,  data.type, data.src, data.mimeType, data.transparent, data.visible, data.extra);
 		});
+
+		PubSub.subscribe('layer.remove', function (ev, data) {
+			dmd.removeLayer(data.name);
+		});
+
+
+		PubSub.subscribe('layer.show', function (ev, data) {
+			dmd.showLayer(data.name);
+		});
+
+		PubSub.subscribe('layer.hide', function (ev, data) {
+			dmd.hideLayer(data.name);
+		});
+
 
 		// Subscribe to layer.loaded event
 		PubSub.subscribe('layer.loaded', function (ev, data){
 			// everytime a layer is loaded send back a confirmation to the server
 			messagesHandler.sendMessage('layer.loaded', data);
 		});
+
+
+		// Subscribe to layer.removed event
+		PubSub.subscribe('layer.removed', function (ev, data){
+			// everytime a layer is loaded send back a confirmation to the server
+			messagesHandler.sendMessage('layer.removed', data);
+		});
+
 
 		// Connect to the server via a websocket
 		server = new WebSocket('ws://127.0.0.1:1337', ['soap', 'xmpp']);

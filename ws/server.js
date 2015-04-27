@@ -10,49 +10,56 @@ server.on('connection', function connection(_client) {
   
 	client = _client;
   
-	/*sendMessage('addLayer', {
+	addLayer({
 		name : 'background',
 		type : 'image',
 		src : 'img/dmd-128x64-empty.png',
 		mimeType : 'image/png',
-		width : 128,
-		height : 64,
 		transparent : false,
 		visible : true,
-		autoplay: false,
-		loop : false
-	});*/
+	});
 	
-	sendMessage('addLayer', {
-		name : 'test',
+	addLayer({
+		name : 'testImage',
 		type : 'image',
 		src : 'img/bg-test.png',
 		mimeType : 'image/png',
-		width : 128,
-		height : 64,
 		transparent : false,
+		visible : true
+	});
+  
+
+	addLayer({
+		name : 'testText',
+		type : 'text',
+		src : null,
+		mimeType : null,
+		transparent : true,
 		visible : true,
-		autoplay: false,
-		loop : false
+		extra : {
+			text : 'Hello World'
+		}
 	});
 
 
-  
+	//setTimeout(testHideLayer, 2000);
+
+	//setTimeout(testShowLayer, 5000);
   
   sendMessage('addLayer', {
 	name : 'mainVideo',
 	type : 'video',
 	src : 'medias/extraballAlpha.webm',
 	mimeType : 'video/webm',
-	width : 128,
-	height : 64,
 	transparent : true,
 	visible : true,
-	autoplay : true,
-	loop : false
+	extra : {
+		autoplay : true,
+		loop : false
+	}
   });
   
-  	sendMessage('addLayer', {
+  	/*sendMessage('addLayer', {
 		name : 'test',
 		type : 'image',
 		src : 'img/text-transparent.png',
@@ -63,7 +70,7 @@ server.on('connection', function connection(_client) {
 		visible : true,
 		autoplay: false,
 		loop : false
-	});
+	});*/
   
   /*sendMessage('loadVideo', {
 	file : 'medias/test-7x7.webm',
@@ -73,6 +80,36 @@ server.on('connection', function connection(_client) {
   
   //increaseScore();
 });
+
+function testHideLayer() {
+	hideLayer('test');
+}
+
+function testShowLayer() {
+	showLayer('test');
+}
+
+function addLayer(data) {
+	sendMessage('addLayer', data);
+}
+
+function showLayer(name) {
+	sendMessage('showLayer', {
+		name : name
+	});
+}
+
+function hideLayer(name) {
+	sendMessage('hideLayer', {
+		name : name
+	});
+}
+
+function removeLayer(name) {
+	sendMessage('removeLayer', {
+		name : name
+	});
+}
 
 function sendMessage(messageType, data) {
 	client.send(JSON.stringify({
