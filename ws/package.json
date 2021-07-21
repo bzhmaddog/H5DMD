@@ -2,5 +2,9 @@
   "dependencies": {
     "keypress": "^0.2.1",
     "ws": "^7.5.3"
+  },
+  "devDependencies": {
+    "js-yaml": "^4.1.0",
+    "os-utils": "^0.0.14"
   }
 }

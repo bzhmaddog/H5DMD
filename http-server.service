@@ -1,0 +1,10 @@
+[Unit]
+Description=Python Simple HTTP Server
+
+[Service]
+User=mpfuser
+WorkingDirectory=/home/mpfuser/dmd/www/
+ExecStart=/usr/bin/python -m http.server 8080
+
+[Install]
+WantedBy=multi-user.target

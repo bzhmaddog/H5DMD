@@ -1,0 +1,32 @@
+{
+    "strings" : {
+		"attractModeStart" : "PRESS START"
+	},
+	"musics" : [
+		 {
+			 "key" : "attract",
+			 "url" : "/musics/attract.ogg",
+			 "preload" : true
+		 }
+	],
+	"sounds" : [],
+	"videos" : [
+		{
+			"key" : "test",
+			"url" : "videos/extraballAlpha.webm",
+			"preload" : false
+		}
+	],
+	"fonts" : [
+		{
+			"key" : "superfly",
+			"url" : "/fonts/SUPERFLY.otf",
+			"name" : "Superfly"
+		},
+		{
+			"key" : "dusty",
+			"name" : "Dusty",
+			"url" : "/fonts/Dusty.otf"
+		}
+	]
+}
