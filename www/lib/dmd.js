@@ -10,8 +10,8 @@ var DMD = function (oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, x
 		layers = {},
 		width = oWidth,
 		height = oHeight,
-		dmdBuffer = new DMD.Buffer(cWidth, cHeight),
-		frameBuffer = new DMD.Buffer(oWidth, oHeight),
+		dmdBuffer = new Buffer(cWidth, cHeight),
+		frameBuffer = new Buffer(oWidth, oHeight),
 		strings = strings,
 		startTime,
 		frames = 0,
@@ -19,6 +19,15 @@ var DMD = function (oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, x
 		
 	canvas.width = cWidth;
 	canvas.height = cHeight;
+
+	var fpsBox = document.createElement('div');
+	fpsBox.style.position = 'absolute';
+	fpsBox.style.right = '0';
+	fpsBox.style.top = '0';
+	fpsBox.style.zIndex = 99999;
+	fpsBox.style.color = 'red';
+
+	document.body.appendChild(fpsBox);
 
 	if (pixelShape !== 'square' && pixelShape !== 'circle') {
 		pixelShape = 'square';
@@ -73,12 +82,15 @@ var DMD = function (oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, x
 	function addLayer(options) {
 		if (options.hasOwnProperty('name') && typeof layers[options.name] === 'undefined') {
 			if (options.hasOwnProperty('type')) {
-				layers[options.name] = new DMD.Layer(width, height, options);
+				layers[options.name] = new Layer(width, height, options);
+				return layers[options.name]
 			} else {
 				console.log('Cannot create layer "' + options.name + '" without a type');
+				return null;
 			}
 		} else {
 			console.log('Layer "' + options.name + '" already exist');
+			return layers[options.name]
 		}
 	}
 
@@ -115,14 +127,14 @@ var DMD = function (oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, x
 			if (layers.hasOwnProperty(name)) {
 				var layer = layers[name];
 
-				if (layer.isVisible()) {
+				if (layer.isVisible() && layer.content.isLoaded) {
 
 					// Get current image
 					var dmdImageData = dmdBuffer.context.getImageData(0,0, dmdBuffer.width, dmdBuffer.height);
 					var dmdData = dmdImageData.data;
 
 					// Draw layer content into a buffer
-					frameBuffer.context.drawImage(layer.content, 0, 0, frameBuffer.width, frameBuffer.height);
+					frameBuffer.context.drawImage(layer.content.data, 0, 0, frameBuffer.width, frameBuffer.height);
 					
 					// Get data from layer content
 					var frameImageData = frameBuffer.context.getImageData(0, 0,frameBuffer.width, frameBuffer.height);
@@ -168,10 +180,7 @@ var DMD = function (oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, x
 
 		frames++;
 
-
-		document.getElementById('fps-box').innerHTML = Math.round(fps) + 'fps';
-
-
+		fpsBox.innerHTML = Math.round(fps) + 'fps';
 
 		requestAnimationFrame(renderDMD);
 	}

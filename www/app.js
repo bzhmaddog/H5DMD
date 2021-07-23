@@ -4,23 +4,17 @@
 	var dlgBox,
 		wsServer,
 		dmd,
-		messagesHandler,
-		mode,
+		wss = new WSS(),
 		scores = [],
 		players = 0,
 		player = 0,
 		ball = 0,
 		wsConnected = false,
-		resources = new Resources(),
+		resources = new Resources('/res/resources.json'),
 		audioManager = new AudioManager(),
-		fonts;
-
-	var mpf = {
-		modes : {
-			attract : Modes.attract
-		},
-		variables : {}
-	};
+		fonts,
+		modes,
+		variables = new Variables();
 
 	// When dom is loaded create the objects and bind the events
 	document.addEventListener('DOMContentLoaded', function () {
@@ -35,16 +29,29 @@
 		// dmd without dot effect
 		//dmd = new DMD(1280, 390, 1280, 390, 1, 1, 0, 0, 0, 0, 'square', document.getElementById('dmd'));
 
-		/*
-, {
-			superfly : new FontFace('Superfly', 'url(/fonts/SUPERFLY.otf)'),
-			dusty : new FontFace('Dusty', 'url(/fonts/Dusty.otf)')
-		}
-		*/
-
 		dlgBox = document.getElementById('dialog-box');
 
-		PubSub.subscribe('resources.loaded', function() {
+		/*PubSub.subscribe('ws.receive', function (ev, data) {
+			//console.log('--- BEGIN ---');
+			handleReceivedMessage(data);
+		});*/
+
+		PubSub.subscribe('layer.created', function(ev, layer) {
+			console.log('Layer created :', layer);
+		});
+
+
+		PubSub.subscribe('layer.loaded', function(ev, options) {
+			console.log('Layer loaded :', options);
+		});
+
+		// Load resources file then reset dmd
+		// TODO : Use promise instead ?
+		resources.load(function() {
+
+			resetDMD();
+
+			//var testLayer = dmd.addLayer({ name : 'text-test', type : 'text'});
 
 			// Preload some musics/sounds
 			resources.getMusics().filter(music => music.preload === true).forEach( music => {
@@ -53,33 +60,48 @@
 
 			//console.log('here');
 			fonts = new Fonts(resources.getFonts());
-		});
 
-		resetDMD();
+			console.log(audioManager);
 
-		/*dmd.addLayer({
+			modes = new Modes({
+				attract : new AttractMode(dmd, resources, fonts, variables, audioManager)
+			}, dmd, resources, fonts, variables, audioManager);
+	
+
+			/*dmd.addLayer({
 			name :'test',
 			type : 'video',
-			src : 'medias/extraballAlpha.webm',
+			src : 'videos/extraballAlpha.webm',
 			mimeType : 'video/webm',
-			loop : true
-		});*/
+			loop : false,
+			autoplay: false
+			}).content.play();*/
 
-		PubSub.subscribe('ws.receive', function (ev, data) {
-			//console.log('--- BEGIN ---');
-			handleReceivedMessage(data);
+			/*fonts.getFont('dusty').load().then(function() {
+
+				console.log('superfly loaded');
+	
+				testLayer.content.addText('title1', 'TEST', {
+					fontSize: '30',
+					fontFamily : 'dusty',
+					align : 'center',
+					vAlign : 'middle',
+					color:'#21a6df',
+					strokeWidth : 2,
+					strokeColor : 'white'
+				});
+			});*/
+
+			connectServer();
 		});
 
-		PubSub.subscribe('layer.loaded', function(ev, options) {
-			console.log('Layer loaded :', options);
-		});
 
 		//dmd.debug();
 		/*setTimeout( function() {
 			audioManager.playSound('attract');
 		}, 5000);*/
 		
-		connectServer();
+		
 	},false);
 
 function connectServer() {
@@ -101,7 +123,8 @@ function connectServer() {
 	wsServer.onopen = function(event) {
 		console.log('WebSocket onconnect', event);
 		// Create a message Handler
-		messagesHandler = new WS.messagesHandler(wsServer);
+		//messagesHandler = WS.messagesHandler(wsServer);
+		wss.setServer(wsServer, handleReceivedMessage);
 
 		wsConnected = true;
 
@@ -113,10 +136,8 @@ function connectServer() {
 		if (wsConnected) {
 			console.log('WebSocket onclose', event);
 			wsConnected = false;
+			reset();
 
-			resetDMD();
-			audioManager.reset();
-			//resetDMD();
 			showDlg('Connection lost ...', 'error');
 			setTimeout(connectServer, 1000);
 		}
@@ -135,7 +156,12 @@ function showDlg(txt, classTxt) {
 }
 
 
-function handleReceivedMessage(data) {
+/**
+ * Handle messages from web socket server
+ * @param {event} ev 
+ */
+function handleReceivedMessage(ev) {
+	let data = ev.data;
 	const parts = data.split('?');
 	let cmd = "";
 	let params = {};
@@ -162,19 +188,16 @@ function handleReceivedMessage(data) {
 			wsServer.send('mc_ready');
 	 		break;
 		case 'mc_machine_variable':
-			mpf.variables = Object.assign(mpf.variables, params);
+			for (const [key, value] of Object.entries(params)) {
+				variables.set(key,value);
+			};
 			break;
 		case 'mc_mode_start':
-			startMode(params.name,params.priority);
+			modes.startMode(params.name,params.priority);
 			break;
 		case 'mc_goodbye':
 			console.log('MPF said goodbye');
-			console.log(mode);
-			if (typeof mode === 'object' && typeof mode.stop === 'function') {
-				mode.stop();
-			}
-			resetDMD();
-			audioManager.reset();
+			reset();
 			break;
 		default:
 			console.log('Unhandled message received : ' + data);
@@ -185,10 +208,17 @@ function handleReceivedMessage(data) {
 }
 
 
+function reset() {
+	modes.stopActiveMode();
+	resetDMD();
+	audioManager.reset();
+}
+
 /**
  * Reset all layers and add the two default layers
  */
 function resetDMD() {
+	console.log('DMD reset');
 	dmd.reset();
 	dmd.addLayer({
 		name : 'background',
@@ -204,19 +234,6 @@ function resetDMD() {
 		src : 'images/logo.png',
 		mimeType : 'image/png'
 	});
-}
-
-function startMode(name, priority) {
-	console.log(mode);
-
-	if (typeof mode === 'object' && mode.isStarted()) {
-		mode.stop();
-	}
-
-	if (typeof mpf.modes[name] !== 'undefined') {
-		mode = mpf.modes[name](dmd, resources, fonts, mpf.variables, audioManager);
-		mode.start(priority);
-	}
 }
 
 

@@ -12,14 +12,6 @@ body {
 	font-family: Arial;
 }
 
-#fps-box {
-	position: absolute;
-	top: 0;
-	right: 0;
-	z-index: 99999;
-	color: red;
-}
-
 #dialog-box {
 	display: none;
 	position: absolute;
@@ -46,29 +38,4 @@ body {
 .dlg-success {
 	display: block !important;
 	background-color:lightgreen;
-}
-
-#superfly-font {
-	font-family: superfly;
-}
-
-@font-face {
-	font-family: 'superfly';
-	src: url('/fonts/SUPERFLY.otf') format('truetype');
-	font-weight: normal;
-	font-style: normal;
-}
-
-@font-face {
-    font-family: 'Dusty Pro Regular';
-    font-style: normal;
-    font-weight: normal;
-    src: local('Dusty Pro Regular'), url('/fonts/DustyPro.otf') format('truetype'), url('/fonts/DustyPro.woff') format('woff');
-}
-
-@font-face {
-    font-family: 'Dusty';
-    font-style: normal;
-    font-weight: normal;
-    src: local('Dusty'), url('/fonts/Dusty.otf') format('truetype'), url('/fonts/Dusty.woff') format('woff');
 }
