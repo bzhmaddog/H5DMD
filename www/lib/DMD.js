@@ -1,36 +1,57 @@
-var DMD = function (oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, xOffset, yOffset, pixelShape, el) {
+class DMD {
+	#canvas;
+	#context;
+	#xSpace;
+	#ySpace;
+	#pixelWidth;
+	#pixelHeight;
+	#pixelShape;
+	#layers;
+	#outputWidth;
+	#outputHeight;
+	#dmdBuffer;
+	#frameBuffer;
+	#startTime;
+	#frames;
+	#lastFrames;
+	#fpsBox;
 
-	var canvas = el,
-		context = canvas.getContext('2d'),
-		xSpace = xSpace,
-		ySpace = xSpace,
-		pixelWidth = pixelWidth,
-		pixelHeight = pixelHeight,
-		pixelShape = pixelShape,
-		layers = {},
-		width = oWidth,
-		height = oHeight,
-		dmdBuffer = new Buffer(cWidth, cHeight),
-		frameBuffer = new Buffer(oWidth, oHeight),
-		strings = strings,
-		startTime,
-		frames = 0,
-		lastFrames = 0;
+	constructor(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, xOffset, yOffset, pixelShape, targetCanvas) {
+		this.#canvas = targetCanvas,
+		this.#context = this.#canvas.getContext('2d'),
+		this.#xSpace = xSpace,
+		this.#ySpace = ySpace,
+		this.#pixelWidth = pixelWidth,
+		this.#pixelHeight = pixelHeight,
+		this.#pixelShape = pixelShape,
+		this.#layers = {},
+		this.#outputWidth = oWidth,
+		this.#outputHeight = oHeight,
+		this.#dmdBuffer = new Buffer(cWidth, cHeight),
+		this.#frameBuffer = new Buffer(oWidth, oHeight),
+		this.#startTime = 0,
+		this.#frames = 0,
+		this.#lastFrames = 0;
 		
-	canvas.width = cWidth;
-	canvas.height = cHeight;
+		this.#canvas.width = cWidth;
+		this.#canvas.height = cHeight;
 
-	var fpsBox = document.createElement('div');
-	fpsBox.style.position = 'absolute';
-	fpsBox.style.right = '0';
-	fpsBox.style.top = '0';
-	fpsBox.style.zIndex = 99999;
-	fpsBox.style.color = 'red';
+		this.#fpsBox = document.createElement('div');
+		this.#fpsBox.style.position = 'absolute';
+		this.#fpsBox.style.right = '0';
+		this.#fpsBox.style.top = '0';
+		this.#fpsBox.style.zIndex = 99999;
+		this.#fpsBox.style.color = 'red';
 
-	document.body.appendChild(fpsBox);
+		document.body.appendChild(this.#fpsBox);
 
-	if (pixelShape !== 'square' && pixelShape !== 'circle') {
-		pixelShape = 'square';
+		if (this.#pixelShape !== 'square' && this.#pixelShape !== 'circle') {
+			pixelShape = 'square';
+		}
+
+		this.#startTime = new Date().getTime();
+		requestAnimationFrame(this.#renderDMD.bind(this));
+	
 	}
 	
 	/**
@@ -39,28 +60,28 @@ var DMD = function (oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, x
 	 * @param y {integer} the row of the pixel
 	 * @result {integer} index of the pixel in the data object
 	 */
-	function getResizedPixelIndex(x, y) {
+	getResizedPixelIndex(x, y) {
 		// (x - 1) * 4 = the first pixel doesn't have a space before
-		return (x - 1) * pixelWidth * 4  + (x - 1) * xSpace * 4 + (y - 1) * canvas.width * 4 * (pixelHeight + ySpace) ;
+		return (x - 1) * this.#pixelWidth * 4  + (x - 1) * this.#xSpace * 4 + (y - 1) * this.#canvas.width * 4 * (this.#pixelHeight + this.#ySpace) ;
 	}
 
-	function drawPixel(x, y, dataArray, red, green, blue, alpha) {
-		var pIndex = getResizedPixelIndex(x, y),
+	#drawPixel(x, y, dataArray, red, green, blue, alpha) {
+		var pIndex = this.getResizedPixelIndex(x, y),
 			pOld = pIndex,
 			r,
 			g,
 			b,
 			a;
 
-		for (var row = 0 ; row < pixelHeight ; row++) {
-			for(var col = 0 ; col < pixelWidth ; col++) {
+		for (var row = 0 ; row < this.#pixelHeight ; row++) {
+			for(var col = 0 ; col < this.#pixelWidth ; col++) {
 				r = red;
 				g = green;
 				b = blue;
 				a = alpha;
 			
-				if (pixelShape === 'circle') {
-					if ( (row === 0 && (col === 0 || col === pixelWidth -1)) || (row === pixelHeight -1 && (col === 0 || col === pixelWidth -1))) {
+				if (this.#pixelShape === 'circle') {
+					if ( (row === 0 && (col === 0 || col === this.#pixelWidth -1)) || (row === this.#pixelHeight -1 && (col === 0 || col === this.#pixelWidth -1))) {
 						r = 0;
 						g = 0;
 						b = 0;
@@ -75,147 +96,126 @@ var DMD = function (oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, x
 				
 				pIndex += 4;
 			}
-			pIndex += canvas.width * 4 - pixelWidth * 4;
+			pIndex += this.#canvas.width * 4 - this.#pixelWidth * 4;
 		}
 	}
 
-	function addLayer(options) {
-		if (options.hasOwnProperty('name') && typeof layers[options.name] === 'undefined') {
-			if (options.hasOwnProperty('type')) {
-				layers[options.name] = new Layer(width, height, options);
-				return layers[options.name]
-			} else {
-				console.log('Cannot create layer "' + options.name + '" without a type');
-				return null;
-			}
-		} else {
-			console.log('Layer "' + options.name + '" already exist');
-			return layers[options.name]
-		}
-	}
+	#renderDMD(timestamp) {
 
-	function removeLayer(name) {
-		if (typeof layers[name] !== 'undefined') {
-			delete layers[name];
-		}
-	}
-
-	function showLayer(name) {
-		if (typeof layers[name] !== 'undefined') {
-			layers[name].setVisibility(true);
-		}
-	}
-
-	function hideLayer(name) {
-		if (typeof layers[name] !== 'undefined') {
-			console.log('hideLayer', name);
-			layers[name].setVisibility(false);
-		}
-	}
-
-	function reset() {
-		layers = {};
-	}
-
-	function debug() {
-		console.log(layers);
-	}
-
-	function renderDMD(timestamp) {
-		//console.log(layers);
-		for (var name in layers) {
-			if (layers.hasOwnProperty(name)) {
-				var layer = layers[name];
+		for (var name in this.#layers) {
+			if (this.#layers.hasOwnProperty(name)) {
+				var layer = this.#layers[name];
 
 				if (layer.isVisible() && layer.content.isLoaded) {
 
 					// Get current image
-					var dmdImageData = dmdBuffer.context.getImageData(0,0, dmdBuffer.width, dmdBuffer.height);
+					var dmdImageData = this.#dmdBuffer.context.getImageData(0,0, this.#dmdBuffer.width, this.#dmdBuffer.height);
 					var dmdData = dmdImageData.data;
 
 					// Draw layer content into a buffer
-					frameBuffer.context.drawImage(layer.content.data, 0, 0, frameBuffer.width, frameBuffer.height);
+					this.#frameBuffer.context.drawImage(layer.content.data, 0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
 					
 					// Get data from layer content
-					var frameImageData = frameBuffer.context.getImageData(0, 0,frameBuffer.width, frameBuffer.height);
+					var frameImageData = this.#frameBuffer.context.getImageData(0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
 					var frameData = frameImageData.data;
 					
 					var x = 1;
 					var y = 1;
 		
 					// each pixel use 4 bytes (RGBA)
-					for (var i = 0 ; i < frameBuffer.width * frameBuffer.height * 4 ; i+=4) {
+					for (var i = 0 ; i < this.#frameBuffer.width * this.#frameBuffer.height * 4 ; i+=4) {
 						// get the pixel from the current frame
 						var r = frameData[i];
 						var g = frameData[i+1];
 						var b = frameData[i+2];
 						var a = frameData[i+3];
 
-						drawPixel(x, y, dmdData, r, g, b, a);
+						this.#drawPixel(x, y, dmdData, r, g, b, a);
 
 						x++;
-						if (x > frameBuffer.width) {
+						if (x > this.#frameBuffer.width) {
 							x = 1;
 							y++;
 						}
 					}
-					
-					dmdImageData.data = dmdData;
-
-					
+				
 					// put the altered data back into the canvas context
-					//context.putImageData(dmdImageData, 0, 0);				
-					context.putImageData(dmdImageData, 0, 0);
+					this.#context.putImageData(dmdImageData, 0, 0);
 				}
 			}
 		}
 
 		var now = new Date().getTime();
-		var dt = now - startTime;
-		var df = frames - lastFrames;
-		startTime = now;
-		lastFrames = frames;
+		var dt = now - this.#startTime;
+		var df = this.#frames - this.#lastFrames;
+		this.#startTime = now;
+		this.#lastFrames = this.#frames;
 
 		var fps = (df * 1000) / dt;
 
-		frames++;
+		this.#frames++;
 
-		fpsBox.innerHTML = Math.round(fps) + 'fps';
+		this.#fpsBox.innerHTML = Math.round(fps) + 'fps';
 
-		requestAnimationFrame(renderDMD);
+		requestAnimationFrame(this.#renderDMD.bind(this));
+	}	
+
+	addLayer(options) {
+		if (options.hasOwnProperty('name') && typeof this.#layers[options.name] === 'undefined') {
+			if (options.hasOwnProperty('type')) {
+				this.#layers[options.name] = new Layer(this.#outputWidth, this.#outputHeight, options);
+				return this.#layers[options.name]
+			} else {
+				console.log('Cannot create layer "' + options.name + '" without a type');
+				return null;
+			}
+		} else {
+			console.log('Layer "' + options.name + '" already exist');
+			return this.#layers[options.name]
+		}
 	}
 
-	function getLayer(name) {
-		if (typeof layers[name] !== 'undefined') {
-			return layers[name];
+	removeLayer(name) {
+		if (typeof this.#layers[name] !== 'undefined') {
+			delete this.#layers[name];
+		}
+	}
+
+	showLayer(name) {
+		if (typeof this.#layers[name] !== 'undefined') {
+			this.#layers[name].setVisibility(true);
+		}
+	}
+
+	hideLayer(name) {
+		if (typeof this.#layers[name] !== 'undefined') {
+			console.log('hideLayer', name);
+			this.#layers[name].setVisibility(false);
+		}
+	}
+
+	reset() {
+		// TODO : Cleanup objects ? does GC do it by itself ?
+		this.#layers = {};
+	}
+
+	debug() {
+		console.log(this.#layers);
+	}
+
+	getLayer(name) {
+		if (typeof this.#layers[name] !== 'undefined') {
+			return this.#layers[name];
 		} else {
 			return null;
 		}
 	}
 
-	//setInterval(renderDMD, 1);
-	//setTimeout(renderDMD,1000);
-	startTime = new Date().getTime();
-	requestAnimationFrame(renderDMD);
-
-
-
-
-	
-	return {
-		canvas : canvas,
-		context : context,
-		width : canvas.width,
-		height : canvas.height,
-		pixelWidth : pixelWidth,
-		pixelHeight : pixelHeight,
-		getResizedPixelIndex : getResizedPixelIndex,
-		addLayer : addLayer,
-		removeLayer : removeLayer,
-		showLayer : showLayer,
-		hideLayer : hideLayer,
-		reset : reset,
-		debug : debug,
-		getLayer : getLayer,
+	get canvas() {
+		return this.#canvas;
 	}
-};
+	
+	get context() {
+		return this.#context;
+	}
+}
