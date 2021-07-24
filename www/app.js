@@ -24,7 +24,7 @@
 		// the original medias size will be 128x64
 		// and the final DMD size will be 1024x511
 		// pixel shape will be circle (can be circle or square at the moment)
-		dmd = new DMD(256, 78, 1280, 390, 4, 4, 1, 1, 1, 1, 'square', document.getElementById('dmd'));
+		dmd = new DMD(256, 78, 1280, 390, 4, 4, 1, 1, 1, 1, DMD.DotShape.Square, document.getElementById('dmd'));
 		
 		// dmd without dot effect
 		//dmd = new DMD(1280, 390, 1280, 390, 1, 1, 0, 0, 0, 0, 'square', document.getElementById('dmd'));

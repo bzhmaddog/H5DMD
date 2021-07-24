@@ -1,11 +1,13 @@
+
 class DMD {
+	static DotShape = Utils.createEnum(['Square','Circle']);
 	#canvas;
 	#context;
 	#xSpace;
 	#ySpace;
 	#pixelWidth;
 	#pixelHeight;
-	#pixelShape;
+	#dotShape;
 	#layers;
 	#outputWidth;
 	#outputHeight;
@@ -16,26 +18,43 @@ class DMD {
 	#lastFrames;
 	#fpsBox;
 
-	constructor(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, xOffset, yOffset, pixelShape, targetCanvas) {
-		this.#canvas = targetCanvas,
-		this.#context = this.#canvas.getContext('2d'),
-		this.#xSpace = xSpace,
-		this.#ySpace = ySpace,
-		this.#pixelWidth = pixelWidth,
-		this.#pixelHeight = pixelHeight,
-		this.#pixelShape = pixelShape,
-		this.#layers = {},
-		this.#outputWidth = oWidth,
-		this.#outputHeight = oHeight,
-		this.#dmdBuffer = new Buffer(cWidth, cHeight),
-		this.#frameBuffer = new Buffer(oWidth, oHeight),
-		this.#startTime = 0,
-		this.#frames = 0,
+	/**
+	 * 
+	 * @param {integer} oWidth Number of horizontal dots that will appear to the viewer
+	 * @param {integer} oHeight Number of vertical dots that will appear to the viewer
+	 * @param {integer} cWidth Number of real horizontal pixels of the display
+	 * @param {integer} cHeight Number of real vertical pixels of the display 
+	 * @param {integer} pixelWidth Horizontal width of the virtual pixels (ex: 1 dot will be 4 pixels wide) 
+	 * @param {integer} pixelHeight Vertical height of the virtual pixels (ex: 1 dot will be 4 pixels tall)
+	 * @param {integer} xSpace number of 'black' pixels between each column (vertical lines between dots)
+	 * @param {integer} ySpace number of 'black' pixels between each row (horizontal lines between dots)
+	 * @param {integer} xOffset // TODO : horizontal shifting
+	 * @param {integer} yOffset  // TODO : vertical shifting
+	 * @param {string} dotShape Shape of the dots (can be square or circle)
+	 * @param {*} targetCanvas Dom Element where the DMD will be drawed
+	 */
+	constructor(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, xOffset, yOffset, dotShape, targetCanvas) {
+		this.#canvas = targetCanvas;
+		this.#context = this.#canvas.getContext('2d');
+		this.#xSpace = xSpace;
+		this.#ySpace = ySpace;
+		this.#pixelWidth = pixelWidth;
+		this.#pixelHeight = pixelHeight;
+		this.#dotShape = dotShape;
+		this.#layers = {};
+		this.#outputWidth = oWidth;
+		this.#outputHeight = oHeight;
+		this.#dmdBuffer = new Buffer(cWidth, cHeight);
+		this.#frameBuffer = new Buffer(oWidth, oHeight);
+		this.#startTime = 0;
+		this.#frames = 0;
 		this.#lastFrames = 0;
 		
 		this.#canvas.width = cWidth;
 		this.#canvas.height = cHeight;
 
+		// Dom element to ouput fps value
+		// TODO : Remove later
 		this.#fpsBox = document.createElement('div');
 		this.#fpsBox.style.position = 'absolute';
 		this.#fpsBox.style.right = '0';
@@ -45,13 +64,12 @@ class DMD {
 
 		document.body.appendChild(this.#fpsBox);
 
-		if (this.#pixelShape !== 'square' && this.#pixelShape !== 'circle') {
-			pixelShape = 'square';
-		}
+		this.#dotShape = dotShape || DMD.DotShape.Circle;
 
 		this.#startTime = new Date().getTime();
+
+		// Start rendering frames
 		requestAnimationFrame(this.#renderDMD.bind(this));
-	
 	}
 	
 	/**
@@ -65,6 +83,16 @@ class DMD {
 		return (x - 1) * this.#pixelWidth * 4  + (x - 1) * this.#xSpace * 4 + (y - 1) * this.#canvas.width * 4 * (this.#pixelHeight + this.#ySpace) ;
 	}
 
+	/**
+	 * 
+	 * @param {integer} x 
+	 * @param {integer} y 
+	 * @param {array} dataArray 
+	 * @param {integer} red 
+	 * @param {integer} green 
+	 * @param {integer} blue 
+	 * @param {integer} alpha 
+	 */	
 	#drawPixel(x, y, dataArray, red, green, blue, alpha) {
 		var pIndex = this.getResizedPixelIndex(x, y),
 			pOld = pIndex,
@@ -80,7 +108,7 @@ class DMD {
 				b = blue;
 				a = alpha;
 			
-				if (this.#pixelShape === 'circle') {
+				if (this.#dotShape === DMD.DotShape.Circle) {
 					if ( (row === 0 && (col === 0 || col === this.#pixelWidth -1)) || (row === this.#pixelHeight -1 && (col === 0 || col === this.#pixelWidth -1))) {
 						r = 0;
 						g = 0;
@@ -100,6 +128,10 @@ class DMD {
 		}
 	}
 
+	/**
+	 * 
+	 * @param {integer} timestamp 
+	 */
 	#renderDMD(timestamp) {
 
 		for (var name in this.#layers) {
@@ -145,9 +177,11 @@ class DMD {
 			}
 		}
 
+		// calculate FPS rate
 		var now = new Date().getTime();
 		var dt = now - this.#startTime;
 		var df = this.#frames - this.#lastFrames;
+
 		this.#startTime = now;
 		this.#lastFrames = this.#frames;
 
@@ -157,9 +191,20 @@ class DMD {
 
 		this.#fpsBox.innerHTML = Math.round(fps) + 'fps';
 
+		// request render next frame
 		requestAnimationFrame(this.#renderDMD.bind(this));
 	}	
 
+	/**
+	 * Add a new layer
+	 * @param {object} options
+	 * {
+	 *  name : mandatory
+	 * 	type : mandatory
+	 *  @see Layer for available options
+	 * }
+	 * @returns 
+	 */
 	addLayer(options) {
 		if (options.hasOwnProperty('name') && typeof this.#layers[options.name] === 'undefined') {
 			if (options.hasOwnProperty('type')) {
@@ -175,18 +220,30 @@ class DMD {
 		}
 	}
 
+	/**
+	 * Remove specified layer
+	 * @param {string} name 
+	 */
 	removeLayer(name) {
 		if (typeof this.#layers[name] !== 'undefined') {
 			delete this.#layers[name];
 		}
 	}
 
+	/**
+	 * Show specified layer
+	 * @param {string} name 
+	 */
 	showLayer(name) {
 		if (typeof this.#layers[name] !== 'undefined') {
 			this.#layers[name].setVisibility(true);
 		}
 	}
 
+	/**
+	 * Hide specified layer
+	 * @param {string} name 
+	 */
 	hideLayer(name) {
 		if (typeof this.#layers[name] !== 'undefined') {
 			console.log('hideLayer', name);
@@ -194,15 +251,26 @@ class DMD {
 		}
 	}
 
+	/**
+	 * Reset DMD
+	 */
 	reset() {
 		// TODO : Cleanup objects ? does GC do it by itself ?
 		this.#layers = {};
 	}
 
+	/**
+	 * Output some info in the console
+	 */
 	debug() {
 		console.log(this.#layers);
 	}
 
+	/**
+	 * Get specified layer
+	 * @param {string} name 
+	 * @returns 
+	 */
 	getLayer(name) {
 		if (typeof this.#layers[name] !== 'undefined') {
 			return this.#layers[name];
@@ -211,10 +279,16 @@ class DMD {
 		}
 	}
 
+	/**
+	 * Get canvas
+	 */
 	get canvas() {
 		return this.#canvas;
 	}
-	
+
+	/**
+	 * Get canvas context
+	 */
 	get context() {
 		return this.#context;
 	}

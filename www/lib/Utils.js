@@ -1,10 +1,10 @@
 class Utils {
 
-	str2int(str) {
+	static str2int(str) {
 		return parseInt(str.replace('int:',''), 10);
 	};
 
-	str2value(str) {
+	static str2value(str) {
 		if (str.toString().startsWith('int:')) {
 			return parseInt(str.replace('int:',''), 10);
 		} else if (str.toString().startsWith('float:')) {
@@ -12,5 +12,13 @@ class Utils {
 		} else {
 			return str.toString();
 		}
+	}
+
+	static createEnum(values) {
+		const enumObject = {};
+		for (const val of values) {
+			enumObject[val] = val;
+		}
+		return Object.freeze(enumObject);
 	}
 }
