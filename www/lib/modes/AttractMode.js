@@ -1,5 +1,4 @@
 
-
 class AttractMode {
     #creditsString;
     #startString;
@@ -13,7 +12,7 @@ class AttractMode {
     #variables;
     #resources;
     #audioManager;
-
+    #priority;
 
      constructor(_dmd, _resources, _fonts, _variables, _audioManager) {
         this.#modeStarted = false;
@@ -22,11 +21,14 @@ class AttractMode {
         this.#variables = _variables;
         this.#resources = _resources;
         this.#audioManager = _audioManager;
+        this.#priority = 0;
         this.#attractMusic = this.#resources.getMusic('attract');
      }
 
     start(priority) {
         var that = this;
+
+        this.#priority = priority;
 
         var creditsString = this.#variables.get('credits_string', 'credit_string_error');
         var startString = this.#resources.getString('attractModeStart');

@@ -78,12 +78,14 @@ class App {
 			//console.log("here");
 			that.#fonts.load(that.#resources.getFonts());
 
-            // Instantiat attract mode class
+            // Instantiate attract mode class
             var attractMode = new AttractMode(that.#dmd, resources, that.#fonts, that.#variables, that.#audioManager);
+			var baseMode = new BaseMode(that.#dmd, resources, that.#fonts, that.#variables, that.#audioManager);
 
             // Init modes
             // TODO : Add modes here
 			that.#modes.add('attract', attractMode);
+			that.#modes.add('base', baseMode);
 	
             // try to connect to socket server
 			that.#connectServer();
