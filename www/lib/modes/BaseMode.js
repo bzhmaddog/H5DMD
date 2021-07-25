@@ -11,6 +11,6 @@ class BaseMode extends Mode{
     }
 
     stop() {
-        super.stop(priority);
+        super.stop();
     }
 }

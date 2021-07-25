@@ -1,22 +1,22 @@
 class Mode {
     name;
     #modeStarted;
-    #fonts;
-    #dmd;
-    #variables;
-    #resources;
-    #audioManager;
+    _fonts;
+    _dmd;
+    _variables;
+    _resources;
+    _audioManager;
     #priority;
 
 
     constructor(_dmd, _resources, _fonts, _variables, _audioManager) {
         this.name = null;
         this.#modeStarted = false;
-        this.#fonts = _fonts;
-        this.#dmd = _dmd;
-        this.#variables = _variables;
-        this.#resources = _resources;
-        this.#audioManager = _audioManager;
+        this._fonts = _fonts;
+        this._dmd = _dmd;
+        this._variables = _variables;
+        this._resources = _resources;
+        this._audioManager = _audioManager;
         this.#priority = 0;
     }
 
@@ -28,11 +28,11 @@ class Mode {
 
     stop() {
         if (!this.#modeStarted) {
-            console.log(`${this._name} mode is not started`);
+            console.log(`${this.name} mode is not started`);
             return;
         }
 
-        console.log(`Stopping ${this._name} mode`);
+        console.log(`Stopping ${this.name} mode`);
 
         this.#modeStarted = false;
     }
@@ -43,5 +43,9 @@ class Mode {
     
     get name() {
         return this.name;
+    }
+
+    get priority() {
+        return this.#priority;
     }
 }

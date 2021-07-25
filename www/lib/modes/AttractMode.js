@@ -1,41 +1,26 @@
 
-class AttractMode {
+class AttractMode extends Mode {
     #creditsString;
     #startString;
     #blinkInterval;
-    #modeStarted;
     #startLayer;
     #titleLayer;
     #attractMusic;
-    #fonts;
-    #dmd;
-    #variables;
-    #resources;
-    #audioManager;
-    #priority;
 
-     constructor(_dmd, _resources, _fonts, _variables, _audioManager) {
-        this.#modeStarted = false;
-        this.#fonts = _fonts;
-        this.#dmd = _dmd;
-        this.#variables = _variables;
-        this.#resources = _resources;
-        this.#audioManager = _audioManager;
-        this.#priority = 0;
-        this.#attractMusic = this.#resources.getMusic('attract');
-     }
+    constructor(_dmd, _resources, _fonts, _variables, _audioManager) {
+        super(_dmd, _resources, _fonts, _variables, _audioManager);
+        this.name = 'attract';
+        this.#attractMusic = this._resources.getMusic('attract');
+    }
 
     start(priority) {
+        super.start(priority);
         var that = this;
 
-        this.#priority = priority;
+        var creditsString = this._variables.get('credits_string', 'credit_string_error');
+        var startString = this._resources.getString('attractModeStart');
 
-        var creditsString = this.#variables.get('credits_string', 'credit_string_error');
-        var startString = this.#resources.getString('attractModeStart');
-
-        console.log("Starting attract mode with priority : ", priority);
-
-        this.#dmd.addLayer({
+        this._dmd.addLayer({
             name : 'attract-image',
             type : 'image',
             src : 'images/title.png',
@@ -43,10 +28,10 @@ class AttractMode {
             transparent : false
         });
 
-        this.#titleLayer = this.#dmd.addLayer({ name : 'attract-title', type : 'text'});
-        this.#startLayer =  this.#dmd.addLayer({ name : 'attract-start', type: 'text', visible : false});
+        this.#titleLayer = this._dmd.addLayer({ name : 'attract-title', type : 'text'});
+        this.#startLayer =  this._dmd.addLayer({ name : 'attract-start', type: 'text', visible : false});
 
-		this.#fonts.getFont('Superfly').load().then(function() {
+		this._fonts.getFont('Superfly').load().then(function() {
 
             console.log("Superfly loaded");
 
@@ -71,7 +56,7 @@ class AttractMode {
 			});
 		});
 
-		this.#fonts.getFont('Dusty').load().then(function() {
+		this._fonts.getFont('Dusty').load().then(function() {
 
             console.log("dusty loaded");
 
@@ -100,7 +85,6 @@ class AttractMode {
             });
 
             that.#blinkInterval = setInterval(that.#toggleStartText.bind(that), 1000);
-            that.#modeStarted = true;
 		});
 
         /*if (!this.#audioManager.isLoaded('attract')) {
@@ -121,24 +105,14 @@ class AttractMode {
     }
 
     stop() {
-        if (!this.#modeStarted) {
-            console.log("Attract mode is not started");
-            return;
-        }
-
-        console.log("Stopping attract mode");
+        super.stop();
 
         //this.#audioManager.stopSound('attract');
 
-        this.#modeStarted = false;
         clearInterval(this.#blinkInterval);
 
-        this.#dmd.removeLayer('attract-image');
-        this.#dmd.removeLayer('attract-title');
-        this.#dmd.removeLayer('attract-start');
-    }
-
-    isStarted() {
-        return this.#modeStarted;
+        this._dmd.removeLayer('attract-image');
+        this._dmd.removeLayer('attract-title');
+        this._dmd.removeLayer('attract-start');
     }
 }
