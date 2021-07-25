@@ -1,3 +1,5 @@
+import { App } from './lib/App.mjs';
+
 (function () {
 	'use strict';
 	

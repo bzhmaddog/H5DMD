@@ -49,3 +49,5 @@ class Mode {
         return this.#priority;
     }
 }
+
+export { Mode };

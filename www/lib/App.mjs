@@ -1,3 +1,7 @@
+import { BaseMode } from './modes/BaseMode.mjs';
+import { AttractMode } from './modes/AttractMode.mjs';
+
+
 class App {
 	#dlgBox;
 	#wsServer;
@@ -229,3 +233,5 @@ class App {
 		});
 	}
 }
+
+export { App };

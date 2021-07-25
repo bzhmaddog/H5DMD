@@ -1,3 +1,6 @@
+import { Mode } from "./Mode.mjs";
+
+
 class BaseMode extends Mode{
 
     constructor(_dmd, _resources, _fonts, _variables, _audioManager) {
@@ -14,3 +17,5 @@ class BaseMode extends Mode{
         super.stop();
     }
 }
+
+export { BaseMode };

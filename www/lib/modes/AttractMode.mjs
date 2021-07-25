@@ -1,3 +1,5 @@
+import { Mode } from "./Mode.mjs";
+
 
 class AttractMode extends Mode {
     #creditsString;
@@ -116,3 +118,5 @@ class AttractMode extends Mode {
         this._dmd.removeLayer('attract-start');
     }
 }
+
+export { AttractMode };
