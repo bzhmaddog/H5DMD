@@ -1,4 +1,4 @@
-import { App } from './lib/App.mjs';
+import { App } from './js/App.mjs';
 
 (function () {
 	'use strict';
