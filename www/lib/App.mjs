@@ -1,6 +1,12 @@
+import { Modes } from './modes/Modes.mjs';
 import { BaseMode } from './modes/BaseMode.mjs';
 import { AttractMode } from './modes/AttractMode.mjs';
-
+import { DMD } from './dmd/DMD.mjs';
+import { Fonts } from './fonts/Fonts.mjs';
+import { Resources } from './resources/Resources.mjs';
+import { Variables } from './variables/Variables.mjs';
+import { AudioManager } from './audio-manager/AudioManager.mjs';
+import { WSS } from './ws/WSS.mjs';
 
 class App {
 	#dlgBox;
@@ -79,8 +85,12 @@ class App {
 				that.#audioManager.loadSound(music.url, music.key);
 			});
 
-			//console.log("here");
-			that.#fonts.load(that.#resources.getFonts());
+			// Preload fonts
+			that.#resources.getFonts().forEach(f => {
+				that.#fonts.add(f.key, f.name, f.url).load().then(function() {
+					console.log(`Font '${f.name}' is loaded`);
+				});
+			});
 
             // Instantiate attract mode class
             var attractMode = new AttractMode(that.#dmd, resources, that.#fonts, that.#variables, that.#audioManager);

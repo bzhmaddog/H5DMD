@@ -1,3 +1,7 @@
+import { ImageLayer } from './ImageLayer.mjs';
+import { VideoLayer } from './VideoLayer.mjs';
+import { TextLayer } from './TextLayer.mjs';
+
 /**
  * Provide a Layer for the DMD
  */
@@ -80,3 +84,5 @@ class Layer {
 	}
 
 }
+
+export { Layer };

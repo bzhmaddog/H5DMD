@@ -74,3 +74,5 @@ class AudioManager {
     return (typeof this.#sounds[key] !== 'undefined');
   }
 }
+
+export { AudioManager };

@@ -14,3 +14,5 @@ class Variables {
         this.#variables[k] = v;
     }
 }
+
+export { Variables };

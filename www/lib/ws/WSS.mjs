@@ -24,3 +24,5 @@ class WSS {
 		}));
 	}
 }
+
+export { WSS };

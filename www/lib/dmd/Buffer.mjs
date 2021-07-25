@@ -31,3 +31,5 @@ class Buffer {
 		return this.#canvas.height
 	}
 }
+
+export { Buffer };

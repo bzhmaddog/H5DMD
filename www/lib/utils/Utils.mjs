@@ -22,3 +22,5 @@ class Utils {
 		return Object.freeze(enumObject);
 	}
 }
+
+export { Utils };

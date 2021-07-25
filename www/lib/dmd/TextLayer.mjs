@@ -1,3 +1,5 @@
+import { Buffer } from './Buffer.mjs';
+
 class TextLayer {
     #id;
     #loaded;
@@ -124,3 +126,5 @@ class TextLayer {
         return this.#texts;
     }
 }
+
+export { TextLayer };

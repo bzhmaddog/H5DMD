@@ -1,4 +1,3 @@
-
 class VideoLayer {
 	#loaded;
 	#video;
@@ -68,3 +67,5 @@ class VideoLayer {
 		return this.#options;
 	}
 }
+
+export { VideoLayer };

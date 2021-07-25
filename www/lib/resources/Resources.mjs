@@ -72,3 +72,5 @@ class Resources {
         return this.#res.fonts;
     }
 }
+
+export { Resources };

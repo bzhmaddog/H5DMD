@@ -1,3 +1,7 @@
+import { Buffer } from './Buffer.mjs';
+import { Layer } from './Layer.mjs';
+import { Utils } from '../utils/Utils.mjs';
+
 
 class DMD {
 	static DotShape = Utils.createEnum(['Square','Circle']);
@@ -360,3 +364,5 @@ class DMD {
 		return this.#context;
 	}
 }
+
+export { DMD };
