@@ -31,7 +31,7 @@ class AttractMode {
         var creditsString = this.#variables.get('credits_string', 'credit_string_error');
         var startString = this.#resources.getString('attractModeStart');
 
-        console.log('Starting attract mode with priority : ' + priority);
+        console.log("Starting attract mode with priority : ", priority);
 
         this.#dmd.addLayer({
             name : 'attract-image',
@@ -46,7 +46,7 @@ class AttractMode {
 
 		this.#fonts.getFont('Superfly').load().then(function() {
 
-            console.log('Superfly loaded');
+            console.log("Superfly loaded");
 
             that.#titleLayer.content.addText('title1', 'SCOTT', {
 				fontSize: '30',
@@ -71,7 +71,7 @@ class AttractMode {
 
 		this.#fonts.getFont('Dusty').load().then(function() {
 
-            console.log('dusty loaded');
+            console.log("dusty loaded");
 
 			that.#titleLayer.content.addText('subtitle', 'VS. THE WORLD', {
 				fontSize : '10',
@@ -104,7 +104,7 @@ class AttractMode {
         /*if (!this.#audioManager.isLoaded('attract')) {
 
             PubSub.subscribe('sound.attract.loaded', function() {
-                console.log('attract music loaded');
+                console.log("attract music loaded");
                 this.#audioManager.playSound('attract');
             });
 
@@ -120,11 +120,11 @@ class AttractMode {
 
     stop() {
         if (!this.#modeStarted) {
-            console.log('Attract mode is not started');
+            console.log("Attract mode is not started");
             return;
         }
 
-        console.log('Stopping attract mode');
+        console.log("Stopping attract mode");
 
         //this.#audioManager.stopSound('attract');
 

@@ -25,8 +25,7 @@ class AudioManager {
             PubSub.publish('sound.' + key + '.loaded');
           },
           function() {
-            console.log('Error');
-            console.log(arguments);
+            console.log("Error", arguments);
           }
         ); 
       }
@@ -35,7 +34,7 @@ class AudioManager {
 
   playSound(key) {
     if (typeof this.#sounds[key] === 'undefined') {
-      console.log('Sound "' + key + '" is not loaded');
+      console.log(`Sound [${key}] is not loaded`);
       return;
     }
 

@@ -10,23 +10,25 @@ class Resources {
         this.#resFile = _file;
     }
 
-    load(listener) {
-	    var xhr = new XMLHttpRequest();
-        var that = this; // Kee[ ref of this for use inside onReadyStateChange
-    
-        xhr.overrideMimeType("application/json");
-        xhr.open('GET', this.#resFile, true);
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState == 4 && xhr.status == "200") {
-                that.#res = Object.assign(that.#res, JSON.parse(xhr.responseText));
-                that.#resourcesLoaded = true;
-                if (typeof listener === 'function') {
-                    listener();
-                }
-                PubSub.publish('resources.loaded', that);
-            }  
-        }
-        xhr.send(null);  
+    load() {
+        var that = this; // Keep ref of this for use inside onReadyStateChange
+
+        return new Promise((resolve, reject) => {
+
+            var xhr = new XMLHttpRequest();
+        
+            xhr.overrideMimeType("application/json");
+            xhr.open('GET', this.#resFile, true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4 && xhr.status == "200") {
+                    that.#res = Object.assign(that.#res, JSON.parse(xhr.responseText));
+                    that.#resourcesLoaded = true;
+                    resolve(that);
+                }  
+            }
+            xhr.onerror = reject;
+            xhr.send(null);  
+        });
     }
 
     getString(key) {

@@ -262,11 +262,11 @@ class DMD {
 
 				return this.#layers[options.name]
 			} else {
-				console.log('Cannot create layer "' + options.name + '" without a type');
+				console.log(`Cannot create layer ${options.name}] without a type`);
 				return null;
 			}
 		} else {
-			console.log('Layer "' + options.name + '" already exist');
+			console.log(`Layer [${options.name}] already exists`);
 			return this.#layers[options.name]
 		}
 	}

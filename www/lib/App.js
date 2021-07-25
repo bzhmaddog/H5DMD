@@ -32,7 +32,7 @@ class App {
         this.#resources = new Resources('/res/resources.json');
         this.#audioManager = new AudioManager();
         this.#fonts;
-        this.#modes;
+        this.#modes = new Modes();
         this.#variables = new Variables();
         this.#canvas = document.getElementById(canvasId);
         this.#fonts = new Fonts();
@@ -54,71 +54,37 @@ class App {
         this.#dlgBox.id = 'dialog-box';
         document.body.appendChild(this.#dlgBox);
 
-		/*PubSub.subscribe('ws.receive', function (ev, data) {
-			//console.log('--- BEGIN ---');
-			handleReceivedMessage(data);
-		});*/
-
 		PubSub.subscribe('layer.created', function(ev, layer) {
-			console.log('Layer created :', layer);
+			console.log("Layer created :", layer);
 		});
 
 
 		PubSub.subscribe('layer.loaded', function(ev, options) {
-			console.log('Layer loaded :', options);
+			console.log("Layer loaded :", options);
 		});
 
 		// Load resources file then reset dmd
-		// TODO : Use promise instead ?
-		this.#resources.load(function() {
+		this.#resources.load().then(function(resources) {
+			console.log("Resources loaded", resources);
 
+			// Reset the DMD (show only background layer and mpf logo)
 			that.#resetDMD();
 
-			//var testLayer = that.#dmd.addLayer({ name : 'text-test', type : 'text'});
-
 			// Preload some musics/sounds
-			that.#resources.getMusics().filter(music => music.preload === true).forEach( music => {
+			resources.getMusics().filter(music => music.preload === true).forEach( music => {
 				that.#audioManager.loadSound(music.url, music.key);
 			});
 
-			//console.log('here');
+			//console.log("here");
 			that.#fonts.load(that.#resources.getFonts());
 
-			
             // Instantiat attract mode class
-            var attractMode = new AttractMode(that.#dmd, that.#resources, that.#fonts, that.#variables, that.#audioManager);
+            var attractMode = new AttractMode(that.#dmd, resources, that.#fonts, that.#variables, that.#audioManager);
 
             // Init modes
             // TODO : Add modes here
-			that.#modes = new Modes({
-				                    attract : attractMode
-			                        });
+			that.#modes.add('attract', attractMode);
 	
-
-			/*dmd.addLayer({
-			name :'test',
-			type : 'video',
-			src : 'videos/extraballAlpha.webm',
-			mimeType : 'video/webm',
-			loop : false,
-			autoplay: false
-			}).content.play();*/
-
-			/*that.#fonts.getFont('Superfly').load().then(function() {
-
-				console.log('dusty loaded');
-	
-				testLayer.content.addText('title1', 'TEST', {
-					fontSize: '30',
-					fontFamily : 'Superfly',
-					align : 'center',
-					vAlign : 'middle',
-					color:'#21a6df',
-					strokeWidth : 2,
-					strokeColor : 'white'
-				});
-			});*/
-
             // try to connect to socket server
 			that.#connectServer();
 		});		
@@ -136,7 +102,7 @@ class App {
 
 		// Bind error event to display it on the DMD
 		this.#wsServer.onerror = function (event) {
-			console.log('WebSocket onerror', event);
+			console.log("WebSocket onerror", event);
 
 			if (event.target.readyState === 3) {
 				//that.#showDlg('Connection error : Retrying ...', 'error');
@@ -145,25 +111,25 @@ class App {
 		};
 
 		this.#wsServer.onopen = function(event) {
-			console.log('WebSocket onconnect', event);
+			console.log("WebSocket onconnect", event);
 			// Create a message Handler
 			//messagesHandler = WS.messagesHandler(wsServer);
 			that.#wss.setServer(that.#wsServer, that.#handleReceivedMessage.bind(that));
 
 			that.#wsConnected = true;
 
-			that.#showDlg('Connected...', 'success');
+			that.#showDlg("Connected...", 'success');
 			
             setTimeout(that.#hideDlg.bind(that), 1000);
 		}
 
 		this.#wsServer.onclose = function(event) {
 			if (that.#wsConnected) {
-				console.log('WebSocket onclose', event);
+				console.log("WebSocket onclose", event);
 				that.#wsConnected = false;
 				that.#reset();
 
-				that.#showDlg('Connection lost ...', 'error');
+				that.#showDlg("Connection lost ...", 'error');
 				setTimeout(that.#connectServer.bind(this), 1000);
 			}
 		}
@@ -208,14 +174,14 @@ class App {
 
 		switch(cmd) {
 			case 'mc_connected':
-				console.log('MPF connected');
+				console.log("MPF connected");
 				break;
 			case 'mc_hello':
-				console.log('MPF says hello');
+				console.log("MPF says hello");
 				break;
 			case 'mc_reset':
-				console.log('MPF requested reset');
-				this.#dmd.removeLayer('logo');
+				console.log("MPF requested reset");
+				this.#dmd.removeLayer("logo");
 				this.#wsServer.send('mc_ready');
 				break;
 			case 'mc_machine_variable':
@@ -224,19 +190,17 @@ class App {
 				};
 				break;
 			case 'mc_mode_start':
-				this.#modes.startMode(params.name,params.priority);
+				this.#modes.startMode(params.name, params.priority);
 				break;
 			case 'mc_goodbye':
-				console.log('MPF said goodbye');
+				console.log("MPF said goodbye");
 				this.#reset();
 				break;
 			default:
-				console.log('Unhandled message received : ' + data);
+				console.log("Unhandled message received : ", data);
 
 		}
-		//console.log('--- END ---');
 	}
-
 
     /**
      * Reset app
@@ -251,7 +215,7 @@ class App {
 	 * Reset all layers and add the two default layers
 	 */
 	#resetDMD() {
-		console.log('DMD reset');
+		console.log("DMD reset");
 		this.#dmd.reset();
 
 		this.#dmd.addLayer({
