@@ -18,7 +18,6 @@ class TextLayer {
         this.#image = new Image();
         this.#listener = _listener;
         this.#image.addEventListener('load',  this.#onDataLoaded.bind(this));
-
         this.#texts = {};
     }
 
@@ -45,7 +44,6 @@ class TextLayer {
         },
         options = Object.assign(defaultOptions, _options);
 
-
         if (typeof text === 'undefined' || text === '') {
             return;
         }
@@ -62,7 +60,7 @@ class TextLayer {
         this.#ctx.textBaseline = options.textBaseline;
         this.#ctx.font = (options.fontSize) + 'px ' + options.fontFamily;
 
-        var m = this.#ctx.measureText(options.text);
+        var m = this.#ctx.measureText(text);
 
         if (options.align === 'center') {
             left = (this.#options.width/2) - (m.width / 2);
@@ -87,7 +85,6 @@ class TextLayer {
                     break;
             }
         }
-
 
         left += options.xOffset;
         top += options.yOffset;

@@ -9,6 +9,7 @@ class DMD {
 	#pixelHeight;
 	#dotShape;
 	#layers;
+	#sortedLayers;
 	#outputWidth;
 	#outputHeight;
 	#dmdBuffer;
@@ -17,6 +18,8 @@ class DMD {
 	#frames;
 	#lastFrames;
 	#fpsBox;
+	#backgroundLayer;
+	#zIndex;
 
 	/**
 	 * 
@@ -41,7 +44,6 @@ class DMD {
 		this.#pixelWidth = pixelWidth;
 		this.#pixelHeight = pixelHeight;
 		this.#dotShape = dotShape;
-		this.#layers = {};
 		this.#outputWidth = oWidth;
 		this.#outputHeight = oHeight;
 		this.#dmdBuffer = new Buffer(cWidth, cHeight);
@@ -49,6 +51,8 @@ class DMD {
 		this.#startTime = 0;
 		this.#frames = 0;
 		this.#lastFrames = 0;
+		this.#zIndex = 1;
+		this.#sortedLayers = [];
 		
 		this.#canvas.width = cWidth;
 		this.#canvas.height = cHeight;
@@ -67,6 +71,18 @@ class DMD {
 		this.#dotShape = dotShape || DMD.DotShape.Circle;
 
 		this.#startTime = new Date().getTime();
+
+
+		this.#backgroundLayer = new Layer(this.#outputWidth, this.#outputHeight, {
+			name : 'background',
+			type : 'image',
+			src : 'images/background.png',
+			mimeType : 'image/png',
+			transparent : false,
+			zIndex : 0
+		});
+
+		this.reset();
 
 		// Start rendering frames
 		requestAnimationFrame(this.#renderDMD.bind(this));
@@ -107,6 +123,7 @@ class DMD {
 				g = green;
 				b = blue;
 				a = alpha;
+
 			
 				if (this.#dotShape === DMD.DotShape.Circle) {
 					if ( (row === 0 && (col === 0 || col === this.#pixelWidth -1)) || (row === this.#pixelHeight -1 && (col === 0 || col === this.#pixelWidth -1))) {
@@ -115,6 +132,14 @@ class DMD {
 						b = 0;
 						a = 255;
 					}
+				}
+
+				// Hack Pixels that are too dark  to make then look like the background (15,15,15)
+				if (r < 15 && g < 15 && b < 15) {
+					r = 15;
+					g = 15;
+					b = 15;
+					a = 255;
 				}
 			
 				dataArray[pIndex] = r;
@@ -134,9 +159,11 @@ class DMD {
 	 */
 	#renderDMD(timestamp) {
 
-		for (var name in this.#layers) {
-			if (this.#layers.hasOwnProperty(name)) {
-				var layer = this.#layers[name];
+		//console.log(this.#layers);
+
+		this.#sortedLayers.forEach( l =>  {
+			if (this.#layers.hasOwnProperty(l.name)) {
+				var layer = this.#layers[l.name];
 
 				if (layer.isVisible() && layer.content.isLoaded) {
 
@@ -175,7 +202,9 @@ class DMD {
 					this.#context.putImageData(dmdImageData, 0, 0);
 				}
 			}
-		}
+		});
+
+		//console.log(this.#context.getImageData(0, 0, this.#dmdBuffer.width, this.#dmdBuffer.height ));
 
 		// calculate FPS rate
 		var now = new Date().getTime();
@@ -205,10 +234,32 @@ class DMD {
 	 * }
 	 * @returns 
 	 */
-	addLayer(options) {
+	addLayer(_options) {
+		if (_options.name === 'background') {
+			console.log("'background' is a reserver name. Please choose another name for you layer");
+			return;
+		}
+
+		// add zIndex if not specified
+		var options = Object.assign({ zIndex: this.#zIndex}, _options);
+
+		// Only background can have zIndex = 0 this is to make sure it is the first layer to be rendered
+		if (options.zIndex === 0) {
+			options.zIndex = options.zIndex + 1;
+		}
+
 		if (options.hasOwnProperty('name') && typeof this.#layers[options.name] === 'undefined') {
 			if (options.hasOwnProperty('type')) {
 				this.#layers[options.name] = new Layer(this.#outputWidth, this.#outputHeight, options);
+
+				if (options.zIndex === this.#zIndex) {
+					this.#zIndex++;
+				}
+
+				this.#sortedLayers.push({ name : options.name, zIndex : options.zIndex});
+		
+				this.#sortedLayers = this.#sortedLayers.sort((a,b)=>{a.zIndex > b.zIndex});
+
 				return this.#layers[options.name]
 			} else {
 				console.log('Cannot create layer "' + options.name + '" without a type');
@@ -225,8 +276,16 @@ class DMD {
 	 * @param {string} name 
 	 */
 	removeLayer(name) {
+		if (name === 'background') {
+			console.log("Cannot remove background layer");
+			return;
+		}
+
 		if (typeof this.#layers[name] !== 'undefined') {
 			delete this.#layers[name];
+			this.#sortedLayers = this.#sortedLayers.filter( l => {return l.name !== name});			
+		} else {
+			console.log('This layer does not exist');
 		}
 	}
 
@@ -245,6 +304,11 @@ class DMD {
 	 * @param {string} name 
 	 */
 	hideLayer(name) {
+		if (name === 'background') {
+			console.log("Cannot hide background layer");
+			return;
+		}
+
 		if (typeof this.#layers[name] !== 'undefined') {
 			console.log('hideLayer', name);
 			this.#layers[name].setVisibility(false);
@@ -256,7 +320,10 @@ class DMD {
 	 */
 	reset() {
 		// TODO : Cleanup objects ? does GC do it by itself ?
-		this.#layers = {};
+		this.#layers = {
+			'background' : this.#backgroundLayer
+		};
+		this.#sortedLayers = [ {name : 'background', zIndex : 0}];
 	}
 
 	/**

@@ -44,14 +44,15 @@ class AttractMode {
         this.#titleLayer = this.#dmd.addLayer({ name : 'attract-title', type : 'text'});
         this.#startLayer =  this.#dmd.addLayer({ name : 'attract-start', type: 'text', visible : false});
 
-		this.#fonts.getFont('superfly').load().then(function() {
+		this.#fonts.getFont('Superfly').load().then(function() {
 
-            console.log('superfly loaded');
+            console.log('Superfly loaded');
 
             that.#titleLayer.content.addText('title1', 'SCOTT', {
 				fontSize: '30',
                 fontFamily : 'Superfly',
-				left: 130,
+				left: 140,
+                top: 2,
 				color:'#21a6df',
                 strokeWidth : 2,
                 strokeColor : 'white'
@@ -60,23 +61,23 @@ class AttractMode {
 			that.#titleLayer.content.addText('title2', 'PILGRIM', {
 				fontSize: '30',
                 fontFamily : 'Superfly',
-				left: 130,
-				top: 25,
+				left: 140,
+				top: 27,
 				color:'#21a6df',
                 strokeWidth : 2,
                 strokeColor : 'white'
 			});
 		});
 
-		this.#fonts.getFont('dusty').load().then(function() {
+		this.#fonts.getFont('Dusty').load().then(function() {
 
             console.log('dusty loaded');
 
 			that.#titleLayer.content.addText('subtitle', 'VS. THE WORLD', {
 				fontSize : '10',
                 fontFamily : 'Dusty',
-				left: 131,
-				top: 50,
+				left: 141,
+				top: 52,
 				color:'red'
 			});
 

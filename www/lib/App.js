@@ -74,7 +74,7 @@ class App {
 
 			that.#resetDMD();
 
-			//var testLayer = dmd.addLayer({ name : 'text-test', type : 'text'});
+			//var testLayer = that.#dmd.addLayer({ name : 'text-test', type : 'text'});
 
 			// Preload some musics/sounds
 			that.#resources.getMusics().filter(music => music.preload === true).forEach( music => {
@@ -104,13 +104,13 @@ class App {
 			autoplay: false
 			}).content.play();*/
 
-			/*fonts.getFont('dusty').load().then(function() {
+			/*that.#fonts.getFont('Superfly').load().then(function() {
 
-				console.log('superfly loaded');
+				console.log('dusty loaded');
 	
 				testLayer.content.addText('title1', 'TEST', {
 					fontSize: '30',
-					fontFamily : 'dusty',
+					fontFamily : 'Superfly',
 					align : 'center',
 					vAlign : 'middle',
 					color:'#21a6df',
@@ -253,19 +253,13 @@ class App {
 	#resetDMD() {
 		console.log('DMD reset');
 		this.#dmd.reset();
-		this.#dmd.addLayer({
-			name : 'background',
-			type : 'image',
-			src : 'images/background.png',
-			mimeType : 'image/png',
-			transparent : false,
-		});
 
 		this.#dmd.addLayer({
 			name :'logo',
 			type : 'image',
 			src : 'images/logo.png',
-			mimeType : 'image/png'
+			mimeType : 'image/png',
+			//visible : false
 		});
 	}
 }

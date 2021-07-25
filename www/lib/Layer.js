@@ -75,4 +75,8 @@ class Layer {
 		return this.#content;
 	}
 
+	get options() {
+		return this.#options;
+	}
+
 }

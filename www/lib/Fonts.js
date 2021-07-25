@@ -1,5 +1,3 @@
-
-
 class Fonts {
     #fonts;
     

@@ -19,12 +19,12 @@
 	],
 	"fonts" : [
 		{
-			"key" : "superfly",
+			"key" : "Superfly",
 			"url" : "/fonts/SUPERFLY.otf",
 			"name" : "Superfly"
 		},
 		{
-			"key" : "dusty",
+			"key" : "Dusty",
 			"name" : "Dusty",
 			"url" : "/fonts/Dusty.otf"
 		}
