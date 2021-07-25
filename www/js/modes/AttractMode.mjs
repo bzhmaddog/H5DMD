@@ -17,7 +17,6 @@ class AttractMode extends Mode {
 
     start(priority) {
         super.start(priority);
-        var that = this;
 
         var creditsString = this._variables.get('credits_string', 'credit_string_error');
         var startString = this._resources.getString('attractModeStart');
@@ -33,61 +32,54 @@ class AttractMode extends Mode {
         this.#titleLayer = this._dmd.addLayer({ name : 'attract-title', type : 'text'});
         this.#startLayer =  this._dmd.addLayer({ name : 'attract-start', type: 'text', visible : false});
 
-		this._fonts.getFont('Superfly').load().then(function() {
 
-            console.log("Superfly loaded");
+        this.#titleLayer.content.addText('title1', 'SCOTT', {
+            fontSize : '30',
+            fontFamily : 'Superfly',
+            left : 140,
+            top : 2,
+            color :'#21a6df',
+            strokeWidth : 2,
+            strokeColor : 'white'
+        });
 
-            that.#titleLayer.content.addText('title1', 'SCOTT', {
-				fontSize: '30',
-                fontFamily : 'Superfly',
-				left: 140,
-                top: 2,
-				color:'#21a6df',
-                strokeWidth : 2,
-                strokeColor : 'white'
-			});
+        this.#titleLayer.content.addText('title2', 'PILGRIM', {
+            fontSize : '30',
+            fontFamily : 'Superfly',
+            left : 140,
+            top : 27,
+            color :'#21a6df',
+            strokeWidth : 2,
+            strokeColor : 'white'
+        });
 
-			that.#titleLayer.content.addText('title2', 'PILGRIM', {
-				fontSize: '30',
-                fontFamily : 'Superfly',
-				left: 140,
-				top: 27,
-				color:'#21a6df',
-                strokeWidth : 2,
-                strokeColor : 'white'
-			});
-		});
+        this.#titleLayer.content.addText('subtitle', 'VS. THE WORLD', {
+            fontSize : '10',
+            fontFamily : 'Dusty',
+            left : 141,
+            top : 52,
+            color : 'red'
+        });
 
-		this._fonts.getFont('Dusty').load().then(function() {
+        this.#titleLayer.content.addText('credits', creditsString, {
+            fontSize : '9',
+            fontFamily : 'Dusty',
+            align: 'right',
+            vAlign: 'bottom',
+            xOffset : -2,
+            yOffset : -1
+        });
 
-            console.log("dusty loaded");
+        this.#startLayer.content.addText('start', startString, {
+            fontSize: '10',
+            fontFamily : 'Dusty',
+            align : 'center',
+            top: 65,
+            strokeWidth : 2,
+            strokeColor : 'red'
+        });
 
-			that.#titleLayer.content.addText('subtitle', 'VS. THE WORLD', {
-				fontSize : '10',
-                fontFamily : 'Dusty',
-				left: 141,
-				top: 52,
-				color:'red'
-			});
-
-            that.#titleLayer.content.addText('credits', creditsString, {
-				fontSize : '9',
-                fontFamily : 'Dusty',
-				align: 'right',
-                vAlign: 'bottom',
-                xOffset : -2,
-                yOffset : -1
-            });
-
-            that.#startLayer.content.addText('start', startString, {
-				fontSize: '10',
-                fontFamily : 'Dusty',
-				align : 'center',
-				top: 65
-            });
-
-            that.#blinkInterval = setInterval(that.#toggleStartText.bind(that), 1000);
-		});
+        this.#blinkInterval = setInterval(this.#toggleStartText.bind(this), 1000);
 
         /*if (!this.#audioManager.isLoaded('attract')) {
 
