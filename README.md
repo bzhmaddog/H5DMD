@@ -43,6 +43,6 @@ mpf
 # In progress
 - Implementing the audio manager on server side
 
-# TODO
+# To do
 - Create services for the controller and mpf
 - Implement x and y offset to position the dmd in the display

@@ -1,0 +1,10 @@
+[Unit]
+Description=MPF
+
+[Service]
+User=mpfuser
+WorkingDirectory=/home/mpfuser/mpf-data
+ExecStart=mpf
+
+[Install]
+WantedBy=multi-user.target
