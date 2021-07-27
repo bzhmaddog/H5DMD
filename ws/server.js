@@ -60,7 +60,11 @@ try {
     console.log(e);
 }
 
-audioManager.loadSound(fs.readFileSync('www/musics/attract.ogg'), 'test');
+audioManager.loadSound(fs.readFileSync('./ws/test.mp3'), 'test');
+
+setTimeout(function() {
+	audioManager.playSound('test');
+}, 5000);
 
 bcpServer.listen(BCP_PORT,function() {
 	console.log(`BCP server listening for connection requests on socket localhost:${BCP_PORT}`);

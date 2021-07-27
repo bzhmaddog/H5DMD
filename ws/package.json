@@ -1,12 +1,12 @@
 {
   "dependencies": {
+    "js-yaml": "^4.1.0",
     "keypress": "^0.2.1",
+    "os-utils": "^0.0.14",
     "speaker": "^0.5.3",
+    "underscore": ">=1.12.1",
     "web-audio-api": "^0.2.2",
     "ws": "^7.5.3"
   },
-  "devDependencies": {
-    "js-yaml": "^4.1.0",
-    "os-utils": "^0.0.14"
-  }
+  "devDependencies": {}
 }

@@ -25,15 +25,18 @@ class AudioManager {
     this.#context.decodeAudioData(
       data,
       function(buffer) {
+        console.log('here');
         that.#sounds[key] = buffer;
       },
       function() {
+        console.log('there');
         console.log("Error", arguments);
       }
     ); 
   }
 
   playSound(key) {
+    console.log(this.#sounds);
     if (typeof this.#sounds[key] === 'undefined') {
       console.log(`Sound [${key}] is not loaded`);
       return;
