@@ -5,7 +5,6 @@ const fs = require('fs'),
 	  WebSocketServer = require('ws').Server,
 	  process = require('process'),
 	  os = require('os-utils'),
-	  AudioManager = require('./AudioManager'),
 	  stdin = process.stdin;
 
 	// without this, we would only get streams once enter is pressed
@@ -59,12 +58,6 @@ try {
 } catch (e) {
     console.log(e);
 }
-
-audioManager.loadSound(fs.readFileSync('./ws/test.mp3'), 'test');
-
-setTimeout(function() {
-	audioManager.playSound('test');
-}, 5000);
 
 bcpServer.listen(BCP_PORT,function() {
 	console.log(`BCP server listening for connection requests on socket localhost:${BCP_PORT}`);
