@@ -50,7 +50,7 @@ class TextLayer {
 
         Object.keys(texts).forEach(id => {
             var text = texts[id];
-            //console.log(text);
+            //logger.log(text);
             that.addText(id, text.getText(), text.getOptions());
         });
     }
@@ -104,7 +104,7 @@ class TextLayer {
         } else {
             this.#ctx.font = (options.fontSize) + 'px ' + options.fontFamily;
             m = this.#ctx.measureText(text);       
-            //console.log('here');
+            //logger.log('here');
         }
 
 

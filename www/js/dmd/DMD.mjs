@@ -175,7 +175,7 @@ class DMD {
 	 */
 	#renderDMD(timestamp) {
 
-		//console.log(this.#layers);
+		//logger.log(this.#layers);
 
 		this.#sortedLayers.forEach( l =>  {
 			if (this.#layers.hasOwnProperty(l.name)) {
@@ -220,7 +220,7 @@ class DMD {
 			}
 		});
 
-		//console.log(this.#context.getImageData(0, 0, this.#dmdBuffer.width, this.#dmdBuffer.height ));
+		//logger.log(this.#context.getImageData(0, 0, this.#dmdBuffer.width, this.#dmdBuffer.height ));
 
 		this.#renderFPS();
 
@@ -249,7 +249,7 @@ class DMD {
 	}
 
 	#layerUpdated() {
-		console.log('here');
+		//logger.log('here');
 		requestAnimationFrame(this.#renderDMD.bind(this));
 	}
 
@@ -265,7 +265,7 @@ class DMD {
 	 */
 	addLayer(_options) {
 		if (_options.name === 'background') {
-			console.log("'background' is a reserver name. Please choose another name for you layer");
+			logger.log("'background' is a reserver name. Please choose another name for you layer");
 			return;
 		}
 
@@ -293,11 +293,11 @@ class DMD {
 
 				return this.#layers[options.name]
 			} else {
-				console.log(`Cannot create layer ${options.name}] without a type`);
+				logger.log(`Cannot create layer ${options.name}] without a type`);
 				return null;
 			}
 		} else {
-			console.log(`Layer [${options.name}] already exists`);
+			logger.log(`Layer [${options.name}] already exists`);
 			return this.#layers[options.name]
 		}
 	}
@@ -308,7 +308,7 @@ class DMD {
 	 */
 	removeLayer(name) {
 		if (name === 'background') {
-			console.log("Cannot remove background layer");
+			logger.log("Cannot remove background layer");
 			return;
 		}
 
@@ -316,7 +316,7 @@ class DMD {
 			delete this.#layers[name];
 			this.#sortedLayers = this.#sortedLayers.filter( l => {return l.name !== name});			
 		} else {
-			console.log('This layer does not exist');
+			logger.log('This layer does not exist');
 		}
 	}
 
@@ -336,12 +336,12 @@ class DMD {
 	 */
 	hideLayer(name) {
 		if (name === 'background') {
-			console.log("Cannot hide background layer");
+			logger.log("Cannot hide background layer");
 			return;
 		}
 
 		if (typeof this.#layers[name] !== 'undefined') {
-			console.log('hideLayer', name);
+			logger.log('hideLayer', name);
 			this.#layers[name].setVisibility(false);
 		}
 	}
@@ -361,8 +361,8 @@ class DMD {
 	 * Output some info in the console
 	 */
 	debug() {
-		console.log(this.#layers);
-		console.log(this.#sortedLayers);
+		logger.log(this.#layers);
+		logger.log(this.#sortedLayers);
 	}
 
 	/**

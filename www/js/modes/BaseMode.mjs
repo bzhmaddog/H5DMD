@@ -22,7 +22,7 @@ class BaseMode extends Mode {
 
         if (!this._audioManager.isLoaded('start')) {
             PubSub.subscribe('sound.start.loaded', function() {
-                console.log("start sound loaded");
+                logger.log("start sound loaded");
                 this._audioManager.playSound('start');
             });
             this._audioManager.loadSound(this.#startSound, 'start');
@@ -33,7 +33,7 @@ class BaseMode extends Mode {
 
         if (!this._audioManager.isLoaded('main')) {
             PubSub.subscribe('sound.main.loaded', function() {
-                console.log("main music loaded");
+                logger.log("main music loaded");
                 setTimeout(that.#startMainMusic.bind(that), 1000);
             });
             this._audioManager.loadSound(this.#mainMusic, 'main');

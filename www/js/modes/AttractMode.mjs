@@ -86,7 +86,7 @@ class AttractMode extends Mode {
         if (!this._audioManager.isLoaded('attract')) {
 
             PubSub.subscribe('sound.attract.loaded', function() {
-                console.log("attract music loaded");
+                logger.log("attract music loaded");
                 that.#startAttractMusic();
             });
 
@@ -106,10 +106,10 @@ class AttractMode extends Mode {
 
     #onMusicEnded() {
         if (this.isStarted()) {
-            console.log("onMusicEnded() : Attract music ended, restarting later");
+            logger.log("onMusicEnded() : Attract music ended, restarting later");
             setTimeout(this.#startAttractMusic.bind(this), 300000);
         } else {
-            console.log("onMusicEnded() : Mode not started so I will not restart attract music");
+            logger.log("onMusicEnded() : Mode not started so I will not restart attract music");
         }
     }
 

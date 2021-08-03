@@ -23,16 +23,16 @@ class Mode {
     start(priority) {
         this.#modeStarted = true;
         this.#priority = priority;
-        console.log(`Starting ${this.name} mode with priority ${priority}`);
+        logger.log(`Starting ${this.name} mode with priority ${priority}`);
     }
 
     stop() {
         if (!this.#modeStarted) {
-            console.log(`${this.name} mode is not started`);
+            logger.log(`${this.name} mode is not started`);
             return;
         }
 
-        console.log(`Stopping ${this.name} mode`);
+        logger.log(`Stopping ${this.name} mode`);
 
         this.#modeStarted = false;
     }

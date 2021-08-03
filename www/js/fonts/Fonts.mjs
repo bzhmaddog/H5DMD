@@ -10,9 +10,9 @@ class Fonts {
     add(key, name, url) {
         if (typeof this.#fonts[name] === 'undefined') {
             this.#fonts[key] = new Font(name, url);
-            console.log("Added font", this.#fonts[key]);
+            logger.log("Added font", this.#fonts[key]);
         } else {
-            console.log("Font was already added", this.#fonts[key]);
+            logger.log("Font was already added", this.#fonts[key]);
         }
 
         return this.#fonts[key];
@@ -21,9 +21,9 @@ class Fonts {
     remove(key) {
         if (typeof this.#fonts[key] === 'object') {
             delete this.#fonts[key];
-            console.log(`Removed font : ${key}`);
+            logger.log(`Removed font : ${key}`);
         } else {
-            console.log(`Font '${key}' was not found`);
+            logger.log(`Font '${key}' was not found`);
         }
     }
 

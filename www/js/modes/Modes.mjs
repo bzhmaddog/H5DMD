@@ -15,9 +15,9 @@ class Modes {
     add(name, mode) {
         if (!this.#modes.hasOwnProperty(name)) {
             this.#modes[name] = mode;
-            console.log(`Added mode [${name}]`, mode);
+            logger.log(`Added mode [${name}]`, mode);
         } else {
-            console.log(`Mode ${name} already exists`);
+            logger.log(`Mode ${name} already exists`);
         }
     }
 
@@ -34,7 +34,7 @@ class Modes {
             this.#activeMode = this.#modes[name];
             this.#activeMode.start(priority);
         } else {
-            console.log(`Mode [${name}] does not exists`);
+            logger.log(`Mode [${name}] does not exists`);
         }
     }
 

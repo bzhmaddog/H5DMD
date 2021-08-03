@@ -64,17 +64,17 @@ class App {
         document.body.appendChild(this.#dlgBox);
 
 		PubSub.subscribe('layer.created', function(ev, layer) {
-			console.log("Layer created :", layer);
+			logger.log("Layer created :", layer);
 		});
 
 
 		PubSub.subscribe('layer.loaded', function(ev, options) {
-			console.log("Layer loaded :", options);
+			logger.log("Layer loaded :", options);
 		});
 
 		// Load resources file then reset dmd
 		this.#resources.load().then(function(resources) {
-			console.log("Resources loaded", resources);
+			logger.log("Resources loaded", resources);
 
 			// Reset the DMD (show only background layer and mpf logo)
 			that.#resetDMD();
@@ -91,7 +91,7 @@ class App {
 			// Preload fonts
 			that.#resources.getFonts().forEach(f => {
 				that.#fonts.add(f.key, f.name, f.url).load().then(function() {
-					console.log(`Font '${f.name}' is loaded`);
+					logger.log(`Font '${f.name}' is loaded`);
 				});
 			});
 
@@ -105,7 +105,6 @@ class App {
 			that.#modes.add('game', baseMode);
 	
             // try to connect to socket server
-			//that.#connectServer.bind(that)();
 			that.#wsServer.onOpen = that.#wsOnOpen.bind(that);
 			that.#wsServer.onClose = that.#wsOnClose.bind(that);
 			that.#wsServer.onError = that.#wsOnError.bind(that);
@@ -116,10 +115,9 @@ class App {
 
 	#wsOnError(event) {
 		var that = this;
-		//console.log("WebSocket onerror", event);
+		//logger.log("WebSocket onerror", event);
 
 		if (this.#wsServer.isConnected()) {
-			console.log('here');
 			this.#wsServer.close();
 		} else {
 			if (event.target.readyState === 3) {
@@ -132,8 +130,7 @@ class App {
 
 	#wsOnOpen(event) {
 		var that = this;
-
-		console.log("WebSocket onconnect", event);
+		//logger.log("WebSocket onconnect", event);
 		this.#showDlg("Connected...", 'success');
 		setTimeout(function() {
 			that.#hideDlg();
@@ -144,7 +141,7 @@ class App {
 		var that = this;
 
 		if (this.#wsServer.isConnected()) {
-			console.log("WebSocket onclose", event);
+			//logger.log("WebSocket onclose", event);
 
 			this.#reset();
 
@@ -159,30 +156,17 @@ class App {
 	 * Handle messages from web socket server
 	 * @param {event} ev 
 	 */
-	#wsOnMessage(ev) {
-		let data = ev.data;
-		const parts = data.split('?');
-		let cmd = "";
-		let params = {};
-
-		if (parts.length > 1) {
-			const urlSearchParams = new URLSearchParams(parts[1]);
-			params = Object.fromEntries(urlSearchParams.entries());
-			cmd = parts[0];
-			//console.log(params);
-		} else {
-			cmd = data;
-		}
+	#wsOnMessage(cmd, params, rawData) {
 
 		switch(cmd) {
 			case 'mc_connected':
-				console.log("MPF connected");
+				logger.log("MPF connected");
 				break;
 			case 'mc_hello':
-				console.log("MPF says hello");
+				logger.log("MPF says hello");
 				break;
 			case 'mc_reset':
-				console.log("MPF requested reset");
+				logger.log("MPF requested reset");
 				this.#dmd.removeLayer("logo");
 				this.#wsServer.send('mc_ready');
 				break;
@@ -209,7 +193,7 @@ class App {
 				var players = this.#variables.get('player', 'players', []);
 				players.push({ball : 1, score : 0});
 				this.#variables.set('player', 'players', players);
-				//console.log(this.#variables.get('player', 'players', {}));
+				//logger.log(this.#variables.get('player', 'players', {}));
 				break;
 			case 'mc_player_turn_start':
 				this.#variables.set('player', 'player', parseInt(params.player_num, 10));
@@ -220,11 +204,11 @@ class App {
 				this.#variables.set('player', 'players', players);
 				break;
 			case 'mc_goodbye':
-				console.log("MPF said goodbye");
+				logger.log("MPF said goodbye");
 				this.#reset();
 				break;
 			default:
-				console.log("Unhandled message received : ", data);
+				logger.log("Unhandled message received : ", data);
 
 		}
 	}
@@ -260,7 +244,7 @@ class App {
 	 * Reset all layers and add the two default layers
 	 */
 	#resetDMD() {
-		console.log("DMD reset");
+		logger.log("DMD reset");
 		this.#dmd.reset();
 
 		this.#dmd.addLayer({

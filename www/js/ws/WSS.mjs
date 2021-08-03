@@ -62,7 +62,22 @@ class WSS {
 	 */
 	#onMessage(event) {
 		if (this.#isConnected && typeof this.#onMessageListener === 'function') {
-			this.#onMessageListener(event);
+
+			// Parse message into a command and params
+			let data = event.data;
+			const parts = data.split('?');
+			let cmd = "";
+			let params = {};
+	
+			if (parts.length > 1) {
+				const urlSearchParams = new URLSearchParams(parts[1]);
+				params = Object.fromEntries(urlSearchParams.entries());
+				cmd = parts[0];
+			} else {
+				cmd = data;
+			}
+	
+			this.#onMessageListener(cmd, params, data);
 		}
 	}
 
