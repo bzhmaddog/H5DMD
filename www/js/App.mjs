@@ -14,8 +14,6 @@ class App {
 	#dlgBox;
 	#wsServer;
     #dmd;
-    #wss;
-    #wsConnected;
     #resources;
     #audioManager;
     #fonts;
@@ -31,10 +29,8 @@ class App {
      */
     constructor(canvasId) {
         this.#dlgBox;
-        this.#wsServer;
+        this.#wsServer = new WSS(location.hostname, 1337);
         this.#dmd;
-        this.#wss = new WSS();
-        this.#wsConnected = false;
         this.#resources = new Resources('/res/resources.json');
         this.#audioManager = new AudioManager();
         this.#fonts;
@@ -109,78 +105,61 @@ class App {
 			that.#modes.add('game', baseMode);
 	
             // try to connect to socket server
-			that.#connectServer.bind(that)();
+			//that.#connectServer.bind(that)();
+			that.#wsServer.onOpen = that.#wsOnOpen.bind(that);
+			that.#wsServer.onClose = that.#wsOnClose.bind(that);
+			that.#wsServer.onError = that.#wsOnError.bind(that);
+			that.#wsServer.onMessage = that.#wsOnMessage.bind(that);
+			that.#wsServer.connect();
 		});		
     }
 
-    /**
-     * Connect to socket server
-     */
-    #connectServer() {
-        var that = this;
+	#wsOnError(event) {
+		var that = this;
+		//console.log("WebSocket onerror", event);
 
-        this.#showDlg('Waiting for server ...', 'info');
-		// Connect to the server via a websocket
-		this.#wsServer = new WebSocket('ws://' + location.hostname + ':1337', ['soap', 'xmpp']);
-
-		// Bind error event to display it on the DMD
-		this.#wsServer.onerror = function (event) {
-			console.log("WebSocket onerror", event);
-
+		if (this.#wsServer.isConnected()) {
+			console.log('here');
+			this.#wsServer.close();
+		} else {
 			if (event.target.readyState === 3) {
-				//that.#showDlg('Connection error : Retrying ...', 'error');
-				setTimeout(that.#connectServer.bind(that), 1500);
+				setTimeout(function() {
+					that.#wsServer.connect();
+				}, 1500);
 			}
-		};
+		}		
+	}
 
-		this.#wsServer.onopen = function(event) {
-			console.log("WebSocket onconnect", event);
-			// Create a message Handler
-			//messagesHandler = WS.messagesHandler(wsServer);
-			that.#wss.setServer(that.#wsServer, that.#handleReceivedMessage.bind(that));
+	#wsOnOpen(event) {
+		var that = this;
 
-			that.#wsConnected = true;
+		console.log("WebSocket onconnect", event);
+		this.#showDlg("Connected...", 'success');
+		setTimeout(function() {
+			that.#hideDlg();
+		}, 1000);
+	}
 
-			that.#showDlg("Connected...", 'success');
-			
-            setTimeout(that.#hideDlg.bind(that), 1000);
+	#wsOnClose(event) {
+		var that = this;
+
+		if (this.#wsServer.isConnected()) {
+			console.log("WebSocket onclose", event);
+
+			this.#reset();
+
+			this.#showDlg("Connection lost ...", 'error');
+			setTimeout(function() {
+				that.#wsServer.connect();
+			}, 1000);
 		}
-
-		this.#wsServer.onclose = function(event) {
-			if (that.#wsConnected) {
-				console.log("WebSocket onclose", event);
-				that.#wsConnected = false;
-				that.#reset();
-
-				that.#showDlg("Connection lost ...", 'error');
-				setTimeout(that.#connectServer.bind(this), 1000);
-			}
-		}
-
 	}
-
-    /**
-     * Hide system dialog box
-     */
-	#hideDlg() {
-		this.#dlgBox.className = '';
-		this.#dlgBox.innerHTML = '';
-	}
-
-    /**
-     * Show system dialog box
-     */
-	#showDlg(txt, classTxt) {
-		this.#dlgBox.className = 'dlg-' + classTxt;
-		this.#dlgBox.innerHTML = txt;
-	}
-
 
 	/**
 	 * Handle messages from web socket server
 	 * @param {event} ev 
 	 */
-	#handleReceivedMessage(ev) {
+	#wsOnMessage(ev) {
 		let data = ev.data;
 		const parts = data.split('?');
 		let cmd = "";
@@ -249,6 +228,24 @@ class App {
 
 		}
 	}
+
+	
+    /**
+     * Hide system dialog box
+     */
+	 #hideDlg() {
+		this.#dlgBox.className = '';
+		this.#dlgBox.innerHTML = '';
+	}
+
+    /**
+     * Show system dialog box
+     */
+	#showDlg(txt, classTxt) {
+		this.#dlgBox.className = 'dlg-' + classTxt;
+		this.#dlgBox.innerHTML = txt;
+	}
+
 
     /**
      * Reset app

@@ -4,24 +4,109 @@
  */
 class WSS {
 	#server;
-	
-	setServer(s, onMessage) {
-		this.#server = s;
-		// Bind the onMessage event to our procesing method
-		this.#server.onmessage = onMessage;
+	#isConnected;
+	#port;
+	#hostname;
+	#onOpenListener;
+	#onCloseListener;
+	#onErrorListener;
+	#onMessageListener;
+
+	constructor(hostname, port) {
+		this.#isConnected = false;
+		this.#hostname = hostname;
+		this.#port = port;
+	}
+
+	set onOpen(listener) {
+		this.#onOpenListener = listener;
+	}
+
+	set onClose(listener) {
+		this.#onCloseListener = listener;
+	}
+
+	set onError(listener) {
+		this.#onErrorListener = listener;
+	}
+
+	set onMessage(listener) {
+		this.#onMessageListener = listener;
+	}
+
+	/**
+	 * Internal on error handle (forward to listener)
+	 * @param event 
+	 */
+	#onError(event) {
+		if (typeof this.#onErrorListener === 'function') {
+			this.#onErrorListener(event);
+		}
+	}
+
+	/**
+	 * Internal onopen handle to manage the state of isConnected
+	 * @param event 
+	 */
+	#onOpen(event) {
+		this.#isConnected = true;
+		
+		if (typeof this.#onOpenListener === 'function') {
+			this.#onOpenListener(event);
+		}
+	}
+
+	/**
+	 * Internal message handle (forward event to listener only if connected to server)
+	 * @param event 
+	 */
+	#onMessage(event) {
+		if (this.#isConnected && typeof this.#onMessageListener === 'function') {
+			this.#onMessageListener(event);
+		}
+	}
+
+	/**
+	 * Internal close event (to manage isConnected state)
+	 * @param event
+	 */
+	#onClose(event) {
+		if (typeof this.#onCloseListener === 'function') {
+			this.#onCloseListener(event);
+		}
+		this.#isConnected = false;
+	}
+
+	/**
+     * Connect to websocket server
+     */
+	connect() {
+		// Connect to the server via a websocket
+		this.#server = new WebSocket(`ws://${this.#hostname}:${this.#port}`, ['soap', 'xmpp']);
+
+		this.#server.onerror = this.#onError.bind(this);
+		this.#server.onopen = this.#onOpen.bind(this);
+		this.#server.onclose = this.#onClose.bind(this);
+		this.#server.onmessage = this.#onMessage.bind(this);
+	}
+
+	/**
+	 * Close websocket server
+	 */
+	close() {
+		this.#server.close();
 	}
 
 	/**
 	 * Send a message to the server
-	 * @param messageType {string} type of message
-	 * @param data {object} Data to send in the message
+	 * @param data {string} Data to send in the message
 	 */
-	sendMessage(messageType, data) {
-		// Websocket only allow strings or binary data so we have to serialize our data before seding them
-		this.#server.send(JSON.stringify({
-			type : messageType,
-			data : data
-		}));
+	send(data) {
+		this.#server.send(data);
+	}
+
+	isConnected() {
+		return this.#isConnected;
 	}
 }
 
