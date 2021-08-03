@@ -28,15 +28,19 @@ class Modes {
     }
 
     startMode(name, priority) {
-        this.stopActiveMode();
-
-        console.log('here');
+        //this.stopActiveMode();
 
         if (typeof this.#modes[name] !== 'undefined') {
             this.#activeMode = this.#modes[name];
             this.#activeMode.start(priority);
         } else {
             console.log(`Mode [${name}] does not exists`);
+        }
+    }
+
+    stopMode(name) {
+        if (typeof this.#modes[name] !== 'undefined') {
+            this.#modes[name].stop();
         }
     }
 

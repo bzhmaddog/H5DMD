@@ -24,6 +24,7 @@ class DMD {
 	#fpsBox;
 	#backgroundLayer;
 	#zIndex;
+	#renderFPS;
 
 	/**
 	 * 
@@ -40,7 +41,7 @@ class DMD {
 	 * @param {string} dotShape Shape of the dots (can be square or circle)
 	 * @param {*} targetCanvas Dom Element where the DMD will be drawed
 	 */
-	constructor(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, xOffset, yOffset, dotShape, targetCanvas) {
+	constructor(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, xOffset, yOffset, dotShape, targetCanvas, showFPS) {
 		this.#canvas = targetCanvas;
 		this.#context = this.#canvas.getContext('2d');
 		this.#xSpace = xSpace;
@@ -57,20 +58,29 @@ class DMD {
 		this.#lastFrames = 0;
 		this.#zIndex = 1;
 		this.#sortedLayers = [];
+		this.#renderFPS = function() {}; // Does nothing
 		
 		this.#canvas.width = cWidth;
 		this.#canvas.height = cHeight;
 
-		// Dom element to ouput fps value
-		// TODO : Remove later
-		this.#fpsBox = document.createElement('div');
-		this.#fpsBox.style.position = 'absolute';
-		this.#fpsBox.style.right = '0';
-		this.#fpsBox.style.top = '0';
-		this.#fpsBox.style.zIndex = 99999;
-		this.#fpsBox.style.color = 'red';
+		if (!!showFPS) {
+			// Dom element to ouput fps value
+			// TODO : Remove later
+			this.#fpsBox = document.createElement('div');
+			this.#fpsBox.style.position = 'absolute';
+			this.#fpsBox.style.right = '0';
+			this.#fpsBox.style.top = '0';
+			this.#fpsBox.style.zIndex = 99999;
+			this.#fpsBox.style.color = 'red';
+			this.#fpsBox.style.background = "rgba(255,255,255,0.5)";
+			this.#fpsBox.style.padding = '5px';
+			this.#fpsBox.style.minWidth = '40px';
+			this.#fpsBox.style.textAlign = 'center';
 
-		document.body.appendChild(this.#fpsBox);
+			document.body.appendChild(this.#fpsBox);
+
+			this.#renderFPS = this.#_renderFPS; // Enable fps rendering on top of dmd
+		}
 
 		this.#dotShape = dotShape || DMD.DotShape.Circle;
 
@@ -87,6 +97,8 @@ class DMD {
 		});
 
 		this.reset();
+
+		window.debugDMD = this.debug.bind(this);
 
 		// Start rendering frames
 		requestAnimationFrame(this.#renderDMD.bind(this));
@@ -210,6 +222,13 @@ class DMD {
 
 		//console.log(this.#context.getImageData(0, 0, this.#dmdBuffer.width, this.#dmdBuffer.height ));
 
+		this.#renderFPS();
+
+		// request render next frame
+		requestAnimationFrame(this.#renderDMD.bind(this));
+	}	
+
+	#_renderFPS(){
 		// calculate FPS rate
 		var now = new Date().getTime();
 		var dt = now - this.#startTime;
@@ -223,10 +242,16 @@ class DMD {
 		this.#frames++;
 
 		this.#fpsBox.innerHTML = Math.round(fps) + 'fps';
+	}
 
-		// request render next frame
+	#layerdLoaded() {
+
+	}
+
+	#layerUpdated() {
+		console.log('here');
 		requestAnimationFrame(this.#renderDMD.bind(this));
-	}	
+	}
 
 	/**
 	 * Add a new layer
@@ -254,15 +279,17 @@ class DMD {
 
 		if (options.hasOwnProperty('name') && typeof this.#layers[options.name] === 'undefined') {
 			if (options.hasOwnProperty('type')) {
-				this.#layers[options.name] = new Layer(this.#outputWidth, this.#outputHeight, options);
+				this.#layers[options.name] = new Layer(this.#outputWidth, this.#outputHeight, options, this.#layerdLoaded.bind(this), this.#layerUpdated.bind(this));
 
 				if (options.zIndex === this.#zIndex) {
 					this.#zIndex++;
 				}
 
+				// Add new layer to sorted array
 				this.#sortedLayers.push({ name : options.name, zIndex : options.zIndex});
 		
-				this.#sortedLayers = this.#sortedLayers.sort((a,b)=>{a.zIndex > b.zIndex});
+				// Sort by zIndex inc
+				this.#sortedLayers = this.#sortedLayers.sort((a,b)=> (a.zIndex > b.zIndex) ? 1 : -1);
 
 				return this.#layers[options.name]
 			} else {
@@ -335,6 +362,7 @@ class DMD {
 	 */
 	debug() {
 		console.log(this.#layers);
+		console.log(this.#sortedLayers);
 	}
 
 	/**

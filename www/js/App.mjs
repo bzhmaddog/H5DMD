@@ -7,16 +7,14 @@ import { Resources } from './resources/Resources.mjs';
 import { Variables } from './variables/Variables.mjs';
 import { AudioManager } from './audio-manager/AudioManager.mjs';
 import { WSS } from './ws/WSS.mjs';
+import { Colors } from './colors/Colors.mjs';
+import { Utils } from './utils/Utils.mjs';
 
 class App {
 	#dlgBox;
 	#wsServer;
     #dmd;
     #wss;
-    #scores;
-    #players;
-    #player;
-    #ball;
     #wsConnected;
     #resources;
     #audioManager;
@@ -24,6 +22,8 @@ class App {
     #modes;
     #variables;
     #canvas;
+	#hudLayer;
+	#scoreLayer;
 
     /**
      * 
@@ -34,18 +34,21 @@ class App {
         this.#wsServer;
         this.#dmd;
         this.#wss = new WSS();
-        this.#scores = [];
-        this.#players = 0;
-        this.#player = 0;
-        this.#ball = 0;
         this.#wsConnected = false;
         this.#resources = new Resources('/res/resources.json');
         this.#audioManager = new AudioManager();
         this.#fonts;
         this.#modes = new Modes();
-        this.#variables = new Variables();
+        this.#variables = new Variables(['machine', 'player']);
         this.#canvas = document.getElementById(canvasId);
         this.#fonts = new Fonts();
+
+		this.#variables.set('player', 'players', []);
+		this.#variables.set('player', 'player', 0);
+
+		window.getMPFVars = function() {
+			return this.#variables;
+		}.bind(this);
     }
 
     start() {
@@ -55,7 +58,7 @@ class App {
 		// the original medias size will be 128x64
 		// and the final DMD size will be 1024x511
 		// pixel shape will be circle (can be circle or square at the moment)
-		this.#dmd = new DMD(256, 78, 1280, 390, 4, 4, 1, 1, 1, 1, DMD.DotShape.Square, this.#canvas);
+		this.#dmd = new DMD(256, 78, 1280, 390, 4, 4, 1, 1, 1, 1, DMD.DotShape.Square, this.#canvas, true);
 		
 		// dmd without dot effect
 		//dmd = new DMD(1280, 390, 1280, 390, 1, 1, 0, 0, 0, 0, 'square', document.getElementById('dmd'));
@@ -85,6 +88,10 @@ class App {
 				that.#audioManager.loadSound(music.url, music.key);
 			});
 
+			resources.getSounds().filter(sound => sound.preload === true).forEach( sound => {
+				that.#audioManager.loadSound(sound.url, sound.key);
+			});
+
 			// Preload fonts
 			that.#resources.getFonts().forEach(f => {
 				that.#fonts.add(f.key, f.name, f.url).load().then(function() {
@@ -99,10 +106,10 @@ class App {
             // Init modes
             // TODO : Add modes here
 			that.#modes.add('attract', attractMode);
-			that.#modes.add('base', baseMode);
+			that.#modes.add('game', baseMode);
 	
             // try to connect to socket server
-			that.#connectServer();
+			that.#connectServer.bind(that)();
 		});		
     }
 
@@ -202,11 +209,36 @@ class App {
 				break;
 			case 'mc_machine_variable':
 				for (const [key, value] of Object.entries(params)) {
-					this.#variables.set(key,value);
+					var v;
+
+					try {
+						v = JSON.parse(value);
+					} catch (error) {
+						v = value;
+					}
+					
+					this.#variables.set('machine', key, v);
 				};
 				break;
 			case 'mc_mode_start':
 				this.#modes.startMode(params.name, params.priority);
+				break;
+			case 'mc_mode_stop':
+				this.#modes.stopMode(params.name);
+				break;
+			case 'mc_player_added':
+				var players = this.#variables.get('player', 'players', []);
+				players.push({ball : 1, score : 0});
+				this.#variables.set('player', 'players', players);
+				//console.log(this.#variables.get('player', 'players', {}));
+				break;
+			case 'mc_player_turn_start':
+				this.#variables.set('player', 'player', parseInt(params.player_num, 10));
+				break;
+			case 'mc_ball_start':
+				var players = this.#variables.get('player', 'players', []);
+				players[params.player_num - 1].ball = parseInt(params.ball, 10);
+				this.#variables.set('player', 'players', players);
 				break;
 			case 'mc_goodbye':
 				console.log("MPF said goodbye");
@@ -240,6 +272,82 @@ class App {
 			src : 'images/logo.png',
 			mimeType : 'image/png',
 			//visible : false
+		});
+
+		// Should be above common layers by below special layers
+		this.#hudLayer = this.#dmd.addLayer({
+			name : 'hud',
+			type : 'text',
+			transparent : true,
+			zIndex : 1000,
+			visible : false
+		});			
+
+		this.#scoreLayer = this.#dmd.addLayer({
+			name : 'score',
+			type : 'text',
+			transparent : true,
+			zIndex : 1001,
+			visible : false
+		});			
+
+
+		this.#hudLayer.content.addText('ball-text', this.#resources.getString('ballText'), {
+			fontSize : '10',
+			fontFamily : 'Dusty',
+			align : 'right',
+			xOffset : -11,
+			vAlign : 'bottom',
+			yOffset : -1,
+			color : Colors.white,
+			strokeWidth : 2,
+			strokeColor : Colors.blue
+		});
+
+		this.#hudLayer.content.addText('ball-value', 1, {
+			fontSize : '10',
+			fontFamily : 'Dusty',
+			align : 'right',
+			xOffset : -1,
+			vAlign : 'bottom',
+			yOffset : -1,
+			color : Colors.white,
+			strokeWidth : 2,
+			strokeColor : Colors.blue
+		});
+
+		this.#hudLayer.content.addText('player-text', this.#resources.getString('playerText'), {
+			fontSize : '10',
+			fontFamily : 'Dusty',
+			left : 2,
+			vAlign : 'bottom',
+			yOffset : -1,
+			color : Colors.white,
+			strokeWidth : 2,
+			strokeColor : Colors.blue
+		});
+
+		this.#hudLayer.content.addText('player-value', 1, {
+			fontSize : '10',
+			fontFamily : 'Dusty',
+			left : 61,
+			vAlign : 'bottom',
+			yOffset : -1,
+			color : Colors.white,
+			strokeWidth : 2,
+			strokeColor : Colors.blue
+		});
+
+		this.#scoreLayer.content.addText('score', 0, {
+			fontSize : '40',
+			fontFamily : 'Dusty',
+			align : 'right',
+			xOffset : -1,
+			vAlign : 'middle',
+			color : Colors.white,
+			strokeWidth : 2,
+			strokeColor : Colors.blue,
+			adjustWidth : true
 		});
 	}
 }

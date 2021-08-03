@@ -32,13 +32,19 @@ class AudioManager {
       xhr.send();
   }
 
-  playSound(key) {
+  playSound(key, loop, onEndedListener) {
     if (typeof this.#sounds[key] === 'undefined') {
       console.log(`Sound [${key}] is not loaded`);
       return;
     }
 
     var source = this.#context.createBufferSource();
+
+    source.loop = !!loop;
+
+    if (typeof onEndedListener === 'function') {
+      source.onended = onEndedListener;
+    }
 
     this.#sources.push({ 
       'key' : key,

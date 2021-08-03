@@ -21,6 +21,10 @@ class Utils {
 		}
 		return Object.freeze(enumObject);
 	}
+
+	static formatScore(s) {
+		return s.toLocaleString("en-US");
+	}
 }
 
 export { Utils };

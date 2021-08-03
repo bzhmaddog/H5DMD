@@ -1,4 +1,5 @@
-import { Mode } from "./Mode.mjs";
+import { Mode } from './Mode.mjs';
+import { Colors } from '../colors/Colors.mjs';
 
 
 class AttractMode extends Mode {
@@ -18,7 +19,8 @@ class AttractMode extends Mode {
     start(priority) {
         super.start(priority);
 
-        var creditsString = this._variables.get('credits_string', 'credit_string_error');
+        var that = this;
+        var creditsString = this._variables.get('machine', 'credits_string', 'credit_string_error');
         var startString = this._resources.getString('attractModeStart');
 
         this._dmd.addLayer({
@@ -38,9 +40,9 @@ class AttractMode extends Mode {
             fontFamily : 'Superfly',
             left : 140,
             top : 2,
-            color :'#21a6df',
+            color :Colors.blue,
             strokeWidth : 2,
-            strokeColor : 'white'
+            strokeColor : Colors.white
         });
 
         this.#titleLayer.content.addText('title2', 'PILGRIM', {
@@ -48,9 +50,9 @@ class AttractMode extends Mode {
             fontFamily : 'Superfly',
             left : 140,
             top : 27,
-            color :'#21a6df',
+            color :Colors.blue,
             strokeWidth : 2,
-            strokeColor : 'white'
+            strokeColor : Colors.white
         });
 
         this.#titleLayer.content.addText('subtitle', 'VS. THE WORLD', {
@@ -58,7 +60,7 @@ class AttractMode extends Mode {
             fontFamily : 'Dusty',
             left : 141,
             top : 52,
-            color : 'red'
+            color : Colors.red
         });
 
         this.#titleLayer.content.addText('credits', creditsString, {
@@ -76,32 +78,45 @@ class AttractMode extends Mode {
             align : 'center',
             top: 65,
             strokeWidth : 2,
-            strokeColor : 'red'
+            strokeColor : Colors.red
         });
 
         this.#blinkInterval = setInterval(this.#toggleStartText.bind(this), 1000);
 
-        /*if (!this.#audioManager.isLoaded('attract')) {
+        if (!this._audioManager.isLoaded('attract')) {
 
             PubSub.subscribe('sound.attract.loaded', function() {
                 console.log("attract music loaded");
-                this.#audioManager.playSound('attract');
+                that.#startAttractMusic();
             });
 
-            this.#audioManager.loadSound(this.#attractMusic, 'attract');
+            this._audioManager.loadSound(this.#attractMusic, 'attract');
         } else {
-           this.#audioManager.playSound('attract');
-        }*/
+           this.#startAttractMusic();
+        }
+    }
+
+    #startAttractMusic() {
+        this._audioManager.playSound('attract', false, this.#onMusicEnded.bind(this));
     }
 
     #toggleStartText = function() {
         this.#startLayer.toggleVisibility();
     }
 
+    #onMusicEnded() {
+        if (this.isStarted()) {
+            console.log("onMusicEnded() : Attract music ended, restarting later");
+            setTimeout(this.#startAttractMusic.bind(this), 300000);
+        } else {
+            console.log("onMusicEnded() : Mode not started so I will not restart attract music");
+        }
+    }
+
     stop() {
         super.stop();
 
-        //this.#audioManager.stopSound('attract');
+        this._audioManager.stopSound('attract');
 
         clearInterval(this.#blinkInterval);
 

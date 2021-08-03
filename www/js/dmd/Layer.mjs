@@ -9,8 +9,10 @@ class Layer {
 	#content;
 	#layerId;
 	#options;
+	#loadedListener;
+	#updatedListener;
 	
-	constructor(_width, _height, _options) {
+	constructor(_width, _height, _options, _loadedListener, _updatedListener) {
 
 		var defaultOptions = {
 			type : '',
@@ -18,6 +20,9 @@ class Layer {
 			visible : true,
 			opacity : 1
 		};
+
+		this.#loadedListener = _loadedListener;
+		this.#updatedListener = _updatedListener;
 
 		this.#options = Object.assign(defaultOptions, _options);
 
@@ -38,7 +43,7 @@ class Layer {
 				this.#content.load(this.#options.src, this.#options.mimeType);
 				break;
 			case 'text':
-				this.#content = new TextLayer(this.#layerId, this.#options, this.#layerLoaded.bind(this));
+				this.#content = new TextLayer(this.#layerId, this.#options, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this));
 				break;
 
 		}
@@ -51,6 +56,16 @@ class Layer {
 		// Autoload video if needed
 		if (this.#options.type === 'video' && this.#content.options.autoplay && this.#content.isLoaded) {
 			this.#content.data.play();
+		}
+
+		if (typeof this.#loadedListener === 'function') {
+			this.#loadedListener(this);
+		}
+	}
+
+	#layerUpdated() {
+		if (typeof this.#updatedListener === 'function') {
+			this.#updatedListener(this);
 		}
 	}
 	

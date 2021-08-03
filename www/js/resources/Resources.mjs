@@ -31,22 +31,27 @@ class Resources {
         });
     }
 
-    getString(key) {
-        return (this.#resourcesLoaded && typeof this.#res.strings[key] === 'string') ? this.#res.strings[key] : "String not found or resources not loaded";
+    #getResource(key, prefix) {
+        if (typeof this.#res[prefix] === 'undefined') {
+            return null;
+        }
+
+        var r = this.#res[prefix].filter(m => { return m.key === key });
+
+        return (r.length) ? r[0]: null;
     }
 
     getMusic(key) {
-        if (!this.#resourcesLoaded) {
-            console.log("Resources not loaded");
-            return null;
-        }
-        var r = this.#res.musics.filter(m => { return m.key === key });
+        return this.#getResource(key, 'musics');
+    }
 
-        if (r.length) {        
-            return r[0];
-        } else {
-            return null;
-        }
+    getSound(key) {
+        return this.#getResource(key, 'sounds');
+    }
+
+
+    getString(key) {
+        return (this.#resourcesLoaded && typeof this.#res.strings[key] === 'string') ? this.#res.strings[key] : "String not found or resources not loaded";
     }
 
     getFont(key) {
@@ -68,8 +73,16 @@ class Resources {
         return this.#res.musics;
     }
 
+    getSounds() {
+        return this.#res.sounds;
+    }
+
     getFonts() {
         return this.#res.fonts;
+    }
+
+    getStrings() {
+        return this.#res.strings;
     }
 }
 

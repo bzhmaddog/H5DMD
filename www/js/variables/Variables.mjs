@@ -1,17 +1,21 @@
 class Variables {
     #variables;
 
-    constructor() {
+    constructor(namespaces) {
         this.#variables = {};
+
+        namespaces.forEach(n => {
+            this.#variables[n] = {};
+        });
     }
 
 
-    get(k, d) {
-        return this.#variables[k] || d;
+    get(p, k, d) {
+        return this.#variables[p][k] || d;
     }
 
-    set(k, v) {
-        this.#variables[k] = v;
+    set(p, k, v) {
+        this.#variables[p][k] = v;
     }
 }
 

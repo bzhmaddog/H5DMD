@@ -34,13 +34,13 @@ var clients = [];
 var reset_sent = false;
 var clients_ready = 0;
 var kbdKeys = {};
-var audioManager = new AudioManager();
 
 var mpf = {
 	settings : {},
-	variables: {},
+	mVars: {},
 	modes:[],
-	mode: {}
+	mode: {},
+	players : [],
 };
 
 try {
@@ -48,9 +48,11 @@ try {
     let data = yaml.load(fileContents);
 
 	if (typeof data.keyboard === 'object') {
-    	//console.log(data.keyboard);
 		Object.keys(data.keyboard).forEach(k => {
-			kbdKeys[k] = data.keyboard[k].switch;
+			var sw = data.keyboard[k];
+			sw.state = (sw.switch === 's_plunger') ? true :false; // Tmp hack to force plunger state to true
+			sw.toggle = sw.toggle || false;
+			kbdKeys[k] = sw;
 		});
 
 		console.log(kbdKeys);
@@ -77,6 +79,7 @@ bcpServer.on('connection', function(socket) {
 
 		//handle all messages and forward them to the UIs
 		messages.forEach( msg => {
+			//console.log(msg);
 			if (msg === "") return;
 
 			var msgObj = parseMessageData(msg);
@@ -91,15 +94,23 @@ bcpServer.on('connection', function(socket) {
 					clients.forEach(client => client.send('mc_reset'));
 					break;
 				case 'machine_variable':
+					var v;
+
 					if (msgObj.params.hasOwnProperty('json')) {
 						msgObj.params = JSON.parse(msgObj.params.json);
 					}
 					
 					if (msgObj.params.hasOwnProperty('name') && msgObj.params.hasOwnProperty('value')) {
-						mpf.variables[msgObj.params.name] = str2value(msgObj.params.value);
+						mpf.mVars[msgObj.params.name] = str2value(msgObj.params.value);
 					}
 
-					clients.forEach(client => client.send('mc_machine_variable?' + msgObj.params.name + '=' + str2value(msgObj.params.value)));
+					if (typeof msgObj.params.value === 'object') {
+						v = JSON.stringify(msgObj.params.value);
+					} else {
+						v = str2value(msgObj.params.value);
+					}
+
+					clients.forEach(client => client.send('mc_machine_variable?' + msgObj.params.name + '=' + v));
 					break;
 				case 'settings':
 					var settingsObj = JSON.parse(msgObj.params['json']);
@@ -110,8 +121,33 @@ bcpServer.on('connection', function(socket) {
 						name : msgObj.params.name,
 						priority : str2int(msgObj.params.priority)
 					};
-					console.log(mpf.mode);
+					console.log("Starting mode :", mpf.mode);
 					clients.forEach(client => client.send('mc_mode_start?name=' + msgObj.params.name + '&priority=' + str2value(msgObj.params.priority)));
+					break;
+				case 'mode_stop':
+					console.log("Stopping mode :", msgObj.params.name);
+					clients.forEach(client => client.send('mc_mode_stop?name=' + msgObj.params.name));
+					break;
+				case 'player_variable':
+					//console.log(msgObj);
+					//TODO
+					break;
+				case 'player_added':
+					mpf.players.push({
+						ball : 1,
+						score : 0
+					});
+					console.log(mpf.players);
+					clients.forEach(client => client.send('mc_player_added'));
+					break;
+				case 'player_turn_start':
+					var p = str2int(msgObj.params.player_num);
+					clients.forEach(client => client.send(`mc_player_turn_start?player_num=${p}`));
+					break;
+				case 'ball_start':
+					var p = str2int(msgObj.params.player_num);
+					var b = str2int(msgObj.params.ball);
+					clients.forEach(client => client.send(`mc_ball_start?player_num=${p}&ball=${b}`));
 					break;
 				case 'mode_list':
 					var jsonObj = JSON.parse(msgObj.params.json);
@@ -123,7 +159,7 @@ bcpServer.on('connection', function(socket) {
 							running: true
 						});
 					});
-					console.log(mpf.modes);
+					console.log("List of modes :", mpf.modes);
 					break;
 				case 'status_request':
 					// TODO : Send real data
@@ -135,7 +171,7 @@ bcpServer.on('connection', function(socket) {
 					clients.forEach(client => client.send('mc_goodbye'));					
 					break;
 				default:
-					console.log(`Received unhandled message from mpf: ${msg}`);
+					console.log("Received unhandled message from mpf :", msg);
 
 			}
 
@@ -238,9 +274,16 @@ stdin.on('data', function(key) {
 		process.exit();
 	}
 
-	if (typeof kbdKeys[key] === 'string') {
-		bcpSend(`switch?name=${kbdKeys[key]}&state=1`);
-		bcpSend(`switch?name=${kbdKeys[key]}&state=0`);
+	if (typeof kbdKeys[key] === 'object') {
+		if (kbdKeys[key].toggle === true) {
+			kbdKeys[key].state = !kbdKeys[key].state;
+			var state = kbdKeys[key].state ? 1 : 0;
+			bcpSend(`switch?name=${kbdKeys[key].switch}&state=${state}`);
+		} else {
+			bcpSend(`switch?name=${kbdKeys[key].switch}&state=1`);
+			bcpSend(`switch?name=${kbdKeys[key].switch}&state=0`);
+		}
+
 	} else {
 		console.log(key);
 	}

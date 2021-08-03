@@ -37,6 +37,10 @@ class Mode {
         this.#modeStarted = false;
     }
 
+    update() {
+        
+    }
+
     isStarted() {
         return this.#modeStarted;
     }

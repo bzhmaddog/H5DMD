@@ -1,15 +1,28 @@
 {
     "strings" : {
-		"attractModeStart" : "PRESS START"
+		"attractModeStart" : "PRESS START",
+		"ballText" : "Ball :",
+		"playerText" : "Player :"
 	},
 	"musics" : [
 		 {
 			 "key" : "attract",
 			 "url" : "/musics/attract.ogg",
 			 "preload" : true
-		 }
+		 },
+		 {
+			"key" : "main",
+			"url" : "/musics/main.ogg",
+			"preload" : true
+		}
 	],
-	"sounds" : [],
+	"sounds" : [
+		{
+			"key" : "start",
+			"url" : "/sounds/start.ogg",
+			"preload" : true
+		}
+	],
 	"videos" : [
 		{
 			"key" : "test",
