@@ -10,9 +10,9 @@ class Fonts {
     add(key, name, url) {
         if (typeof this.#fonts[name] === 'undefined') {
             this.#fonts[key] = new Font(name, url);
-            logger.log("Added font", this.#fonts[key]);
+            //logger.log("Added font", this.#fonts[key]);
         } else {
-            logger.log("Font was already added", this.#fonts[key]);
+            logger.log(`Font '${this.#fonts[key]}' already exists`);
         }
 
         return this.#fonts[key];

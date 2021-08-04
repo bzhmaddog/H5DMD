@@ -63,18 +63,18 @@ class App {
         this.#dlgBox.id = 'dialog-box';
         document.body.appendChild(this.#dlgBox);
 
-		PubSub.subscribe('layer.created', function(ev, layer) {
-			logger.log("Layer created :", layer);
-		});
+		/*PubSub.subscribe('layer.created', function(ev, layer) {
+			logger.log(`Layer created : ${layer.getId()}`, layer);
+		});*/
 
 
-		PubSub.subscribe('layer.loaded', function(ev, options) {
-			logger.log("Layer loaded :", options);
-		});
+		/*PubSub.subscribe('layer.loaded', function(ev, layer) {
+			logger.log(`Layer loaded : ${layer.getId()}`, layer);
+		});*/
 
 		// Load resources file then reset dmd
 		this.#resources.load().then(function(resources) {
-			logger.log("Resources loaded", resources);
+			logger.log("Resources file loaded", resources);
 
 			// Reset the DMD (show only background layer and mpf logo)
 			that.#resetDMD();
@@ -91,7 +91,7 @@ class App {
 			// Preload fonts
 			that.#resources.getFonts().forEach(f => {
 				that.#fonts.add(f.key, f.name, f.url).load().then(function() {
-					logger.log(`Font '${f.name}' is loaded`);
+					logger.log(`Font '${f.name}' loaded`);
 				});
 			});
 

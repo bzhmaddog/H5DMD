@@ -98,6 +98,10 @@ class Layer {
 		return this.#options;
 	}
 
+	getId() {
+		return this.#layerId;
+	}
+
 }
 
 export { Layer };

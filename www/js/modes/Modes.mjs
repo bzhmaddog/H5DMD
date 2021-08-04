@@ -15,7 +15,7 @@ class Modes {
     add(name, mode) {
         if (!this.#modes.hasOwnProperty(name)) {
             this.#modes[name] = mode;
-            logger.log(`Added mode [${name}]`, mode);
+            //logger.log(`Added mode [${name}]`, mode);
         } else {
             logger.log(`Mode ${name} already exists`);
         }
