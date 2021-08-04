@@ -7,7 +7,9 @@ class AudioManager {
   constructor() {
     this.#context = new AudioContext();
     this.#sounds = {};
-    this.#sources = [];
+    this.#sources = {};
+
+    window.audioManager = this;
   }
 
   loadSound(url, key) {
@@ -33,8 +35,15 @@ class AudioManager {
   }
 
   playSound(key, loop, onEndedListener) {
-    if (typeof this.#sounds[key] === 'undefined') {
+	var that = this;
+    
+	if (typeof this.#sounds[key] === 'undefined') {
       logger.log(`Sound [${key}] is not loaded`);
+      return;
+    }
+
+    if (typeof this.#sources[key] !== 'undefined') {
+      logger.log(`Sound [${key}] is already beeing played`);
       return;
     }
 
@@ -42,14 +51,19 @@ class AudioManager {
 
     source.loop = !!loop;
 
-    if (typeof onEndedListener === 'function') {
-      source.onended = onEndedListener;
-    }
+	// Sound finished player then delete it from sources list
+	// and call external listener if provided
+    source.onended = function() {
+		var endedListener = onEndedListener;
 
-    this.#sources.push({ 
-      'key' : key,
-      'source' : source
-    });
+		delete that.#sources[key];
+
+		if (typeof endedListener === 'function') {
+			endedListener();
+		}
+	}
+
+    this.#sources[key] = source;
 
     source.buffer = this.#sounds[key];
     source.connect(this.#context.destination);
@@ -58,18 +72,18 @@ class AudioManager {
   }
 
   stopSound(key) {
-    var s = this.#sources.filter(s => {return s.key === key});
-
-    if (s.length) {
-      s[0].source.stop(0);
-      // Delete source from array
-      this.#sources = this.#sources.filter(source=> { source !== s[0]});
+    if (typeof this.#sources[key] === 'undefined') {
+      logger.log(`Sound [${key}] is not beeing played`);
+      return;
     }
+
+    this.#sources[key].stop(0);
+    delete this.#sources[key];
   }
 
   reset() {
-    this.#sources.forEach(s => s.source.stop(0));
-    this.#sources = [];
+    Object.keys(this.#sources).forEach(s => s.stop(0));
+    this.#sources = {};
   }
 
   getContext() {
@@ -78,6 +92,10 @@ class AudioManager {
 
   isLoaded(key) {
     return (typeof this.#sounds[key] !== 'undefined');
+  }
+
+  getSources() {
+    return this.#sources;
   }
 }
 

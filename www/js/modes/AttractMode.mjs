@@ -1,37 +1,37 @@
 import { Mode } from './Mode.mjs';
 import { Colors } from '../colors/Colors.mjs';
 
+const ATTRACT_MUSIC_RESTART_DELAY = 300000; // 5 min
+//const ATTRACT_MUSIC_RESTART_DELAY = 30000;
 
 class AttractMode extends Mode {
-    #creditsString;
-    #startString;
     #blinkInterval;
     #startLayer;
     #titleLayer;
-    #attractMusic;
+    #backgroundLayer;
 
     constructor(_dmd, _resources, _fonts, _variables, _audioManager) {
         super(_dmd, _resources, _fonts, _variables, _audioManager);
         this.name = 'attract';
-        this.#attractMusic = this._resources.getMusic('attract');
-    }
 
-    start(priority) {
-        super.start(priority);
+        // Credit string var is not initialized at this point
+        var creditsString = this._variables.get('machine', 'credits_string', ".");
 
-        var that = this;
-        var creditsString = this._variables.get('machine', 'credits_string', 'credit_string_error');
         var startString = this._resources.getString('attractModeStart');
 
-        this._dmd.addLayer({
+        // Listen to credits string var changes to update the text in the layer
+        PubSub.subscribe('variable.machine.credits_string.changed', this.#onCreditsStringChanged.bind(this));
+
+        this.#backgroundLayer = this._dmd.addLayer({
             name : 'attract-image',
             type : 'image',
             src : 'images/title.png',
             mimeType : 'image/png',
-            transparent : false
+            transparent : false,
+            visible : false
         });
 
-        this.#titleLayer = this._dmd.addLayer({ name : 'attract-title', type : 'text'});
+        this.#titleLayer = this._dmd.addLayer({ name : 'attract-title', type : 'text', visible : false});
         this.#startLayer =  this._dmd.addLayer({ name : 'attract-start', type: 'text', visible : false});
 
 
@@ -79,21 +79,25 @@ class AttractMode extends Mode {
             top: 65,
             strokeWidth : 2,
             strokeColor : Colors.red
-        });
+        });    
+    }
+
+    // Update credit string
+    #onCreditsStringChanged(ev, data) {
+        this.#titleLayer.content.getText('credits').setText(data.after);
+    }
+
+    start(priority) {
+        super.start(priority);
+
+        // TODO Add Game over / highscores / attract screens cycle
+
+        this.#backgroundLayer.setVisibility(true);
+        this.#titleLayer.setVisibility(true);
 
         this.#blinkInterval = setInterval(this.#toggleStartText.bind(this), 1000);
 
-        if (!this._audioManager.isLoaded('attract')) {
-
-            PubSub.subscribe('sound.attract.loaded', function() {
-                logger.log("attract music loaded");
-                that.#startAttractMusic();
-            });
-
-            this._audioManager.loadSound(this.#attractMusic, 'attract');
-        } else {
-           this.#startAttractMusic();
-        }
+        this.#startAttractMusic();
     }
 
     #startAttractMusic() {
@@ -107,7 +111,7 @@ class AttractMode extends Mode {
     #onMusicEnded() {
         if (this.isStarted()) {
             logger.log("onMusicEnded() : Attract music ended, restarting later");
-            setTimeout(this.#startAttractMusic.bind(this), 300000);
+            setTimeout(this.#startAttractMusic.bind(this), ATTRACT_MUSIC_RESTART_DELAY);
         } else {
             logger.log("onMusicEnded() : Mode not started so I will not restart attract music");
         }
@@ -120,9 +124,9 @@ class AttractMode extends Mode {
 
         clearInterval(this.#blinkInterval);
 
-        this._dmd.removeLayer('attract-image');
-        this._dmd.removeLayer('attract-title');
-        this._dmd.removeLayer('attract-start');
+        this.#backgroundLayer.setVisibility(false);
+        this.#titleLayer.setVisibility(false);
+        this.#startLayer.setVisibility(false);
     }
 }
 

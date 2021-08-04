@@ -10,6 +10,7 @@ class Logger {
     log() {
         if (this.#enabled) {
             console.log.apply(console, arguments);
+            //console.log(arguments)
         }
     }
 }

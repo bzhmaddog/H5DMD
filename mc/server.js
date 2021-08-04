@@ -101,12 +101,14 @@ bcpServer.on('connection', function(socket) {
 					}
 					
 					if (msgObj.params.hasOwnProperty('name') && msgObj.params.hasOwnProperty('value')) {
+						//console.log('here', msgObj);
 						mpf.mVars[msgObj.params.name] = str2value(msgObj.params.value);
 					}
 
 					if (typeof msgObj.params.value === 'object') {
 						v = JSON.stringify(msgObj.params.value);
 					} else {
+						//console.log('there', msgObj);
 						v = str2value(msgObj.params.value);
 					}
 

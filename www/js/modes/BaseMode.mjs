@@ -92,9 +92,20 @@ class BaseMode extends Mode {
         this.#scoreLayer.setVisibility(true);
     }
 
-    /*stop() {
+    stop() {
         super.stop();
-    }*/
+
+        PubSub.unsubscribe('variable.player.players.changed');
+        PubSub.unsubscribe('variable.player.player.changed');
+
+        this._audioManager.stopSound('main');
+
+        this.#hudLayer.setVisibility(false);
+        this.#scoreLayer.setVisibility(false);
+
+        this._variables.set('player', 'player', 0);
+        this._variables.set('player', 'players', []);
+    }
 
     #startMainMusic() {
         this._audioManager.playSound('main', true);

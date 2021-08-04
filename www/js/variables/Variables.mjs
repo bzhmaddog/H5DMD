@@ -33,6 +33,10 @@ class Variables {
         this.#variables[p][k] = v;
 
     }
+
+    debug() {
+        logger.log(this.#variables);
+    }
 }
 
 export { Variables };
