@@ -149,6 +149,9 @@ bcpServer.on('connection', function(socket) {
 					var b = str2int(msgObj.params.ball);
 					clients.forEach(client => client.send(`mc_ball_start?player_num=${p}&ball=${b}`));
 					break;
+				case 'ball_end':
+					clients.forEach(client => client.send(`mc_ball_end`));
+					break;
 				case 'mode_list':
 					var jsonObj = JSON.parse(msgObj.params.json);
 					mpf.modes = [];

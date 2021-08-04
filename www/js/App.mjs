@@ -200,8 +200,18 @@ class App {
 				break;
 			case 'mc_ball_start':
 				var players = this.#variables.get('player', 'players', []);
-				players[params.player_num - 1].ball = parseInt(params.ball, 10);
-				this.#variables.set('player', 'players', players);
+				var newBallNumber = parseInt(params.ball, 10);
+				var currentBallNumber = players[params.player_num - 1].ball;
+
+				if (newBallNumber !== currentBallNumber) {
+					logger.log(`New ball for player ${params.player_num}`);
+					players[params.player_num - 1].ball = newBallNumber;
+					//logger.log("players", players);
+					this.#variables.set('player', 'players', players);
+				}
+				break;
+			case 'mc_ball_end':
+				logger.log('ball_end');
 				break;
 			case 'mc_goodbye':
 				logger.log("MPF said goodbye");
