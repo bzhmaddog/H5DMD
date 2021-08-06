@@ -170,6 +170,10 @@ class TextLayer {
     getText(id) {
         return this.#texts[id];
     }
+
+    removeAllTexts() {
+        this.#texts = {};
+    }
 }
 
 export { TextLayer };

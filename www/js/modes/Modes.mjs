@@ -44,6 +44,17 @@ class Modes {
         }
     }
 
+    getMode(key) {
+        return this.#modes[key] || undefined;
+    }
+
+    initAll() {
+        var that = this;
+        Object.keys(this.#modes).forEach(key => {
+            that.#modes[key].init();
+        });
+    }
+
 }
 
 export { Modes };

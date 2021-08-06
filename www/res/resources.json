@@ -2,7 +2,8 @@
     "strings" : {
 		"attractModeStart" : "PRESS START",
 		"ballText" : "Ball :",
-		"playerText" : "Player :"
+		"playerText" : "Player #{1}",
+		"gameOver" : "Game Over"
 	},
 	"musics" : [
 		 {
@@ -20,6 +21,16 @@
 		{
 			"key" : "start",
 			"url" : "/sounds/start.ogg",
+			"preload" : true
+		},
+		{
+			"key" : "gameover",
+			"url" : "/sounds/ko.ogg",
+			"preload" : true
+		},
+		{
+			"key" : "dong",
+			"url" : "/sounds/dong.ogg",
 			"preload" : true
 		}
 	],

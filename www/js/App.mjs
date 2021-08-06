@@ -20,8 +20,6 @@ class App {
     #modes;
     #variables;
     #canvas;
-	#hudLayer;
-	#scoreLayer;
 
     /**
      * 
@@ -103,6 +101,9 @@ class App {
             // TODO : Add modes here
 			that.#modes.add('attract', attractMode);
 			that.#modes.add('game', baseMode);
+
+			// Initialize added modes
+			that.#modes.initAll();
 	
             // try to connect to socket server
 			that.#wsServer.onOpen = that.#wsOnOpen.bind(that);
@@ -260,86 +261,22 @@ class App {
 		this.#dmd.addLayer({
 			name :'logo',
 			type : 'image',
-			src : 'images/logo.png',
-			mimeType : 'image/png',
+			src : 'images/logo.webp',
+			mimeType : 'image/webp',
 			//visible : false
 		});
 
-		// Should be above common layers by below special layers
-		this.#hudLayer = this.#dmd.addLayer({
-			name : 'hud',
-			type : 'text',
-			transparent : true,
-			zIndex : 1000,
-			visible : false
-		});			
+		this.#modes.initAll();
 
-		this.#scoreLayer = this.#dmd.addLayer({
-			name : 'score',
-			type : 'text',
-			transparent : true,
-			zIndex : 1001,
-			visible : false
-		});			
+		/*this.#dmd.addLayer({
+			name : 'test',
+			type : 'video',
+			autoPlay : true,
+			loop : true,
+			src : 'images/game-over-clouds.webp',
+			mimeType : 'image/webp'
+		})*/
 
-
-		this.#hudLayer.content.addText('ball-text', this.#resources.getString('ballText'), {
-			fontSize : '10',
-			fontFamily : 'Dusty',
-			align : 'right',
-			xOffset : -11,
-			vAlign : 'bottom',
-			yOffset : -1,
-			color : Colors.white,
-			strokeWidth : 2,
-			strokeColor : Colors.blue
-		});
-
-		this.#hudLayer.content.addText('ball-value', 1, {
-			fontSize : '10',
-			fontFamily : 'Dusty',
-			align : 'right',
-			xOffset : -1,
-			vAlign : 'bottom',
-			yOffset : -1,
-			color : Colors.white,
-			strokeWidth : 2,
-			strokeColor : Colors.blue
-		});
-
-		this.#hudLayer.content.addText('player-text', this.#resources.getString('playerText'), {
-			fontSize : '10',
-			fontFamily : 'Dusty',
-			left : 2,
-			vAlign : 'bottom',
-			yOffset : -1,
-			color : Colors.white,
-			strokeWidth : 2,
-			strokeColor : Colors.blue
-		});
-
-		this.#hudLayer.content.addText('player-value', 1, {
-			fontSize : '10',
-			fontFamily : 'Dusty',
-			left : 61,
-			vAlign : 'bottom',
-			yOffset : -1,
-			color : Colors.white,
-			strokeWidth : 2,
-			strokeColor : Colors.blue
-		});
-
-		this.#scoreLayer.content.addText('score', 0, {
-			fontSize : '40',
-			fontFamily : 'Dusty',
-			align : 'right',
-			xOffset : -1,
-			vAlign : 'middle',
-			color : Colors.white,
-			strokeWidth : 2,
-			strokeColor : Colors.blue,
-			adjustWidth : true
-		});
 	}
 }
 

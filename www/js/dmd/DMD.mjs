@@ -90,8 +90,8 @@ class DMD {
 		this.#backgroundLayer = new Layer(this.#outputWidth, this.#outputHeight, {
 			name : 'background',
 			type : 'image',
-			src : 'images/background.png',
-			mimeType : 'image/png',
+			src : 'images/background.webp',
+			mimeType : 'image/webp',
 			transparent : false,
 			zIndex : 0
 		});
@@ -182,10 +182,16 @@ class DMD {
 				var layer = this.#layers[l.name];
 
 				if (layer.isVisible() && layer.content.isLoaded) {
+					//logger.log(l.name);
+
 
 					// Get current image
 					var dmdImageData = this.#dmdBuffer.context.getImageData(0,0, this.#dmdBuffer.width, this.#dmdBuffer.height);
 					var dmdData = dmdImageData.data;
+
+					/*if (l.name === 'game-over-clouds') {
+						logger.log(dmdData);
+					};*/
 
 					// Draw layer content into a buffer
 					this.#frameBuffer.context.drawImage(layer.content.data, 0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
@@ -245,12 +251,13 @@ class DMD {
 	}
 
 	#layerdLoaded() {
-
+		//logger.log("Layer loaded");
+		//requestAnimationFrame(this.#renderDMD.bind(this));
 	}
 
 	#layerUpdated() {
 		//logger.log('here');
-		requestAnimationFrame(this.#renderDMD.bind(this));
+		//requestAnimationFrame(this.#renderDMD.bind(this));
 	}
 
 	/**

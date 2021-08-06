@@ -25,6 +25,19 @@ class Utils {
 	static formatScore(s) {
 		return s.toLocaleString("en-US");
 	}
+
+	static format() {
+		var s = arguments[0];
+		var finalString = s;
+
+		//console.log(arguments);
+
+		for (var i = 1 ; i < arguments.length ; i++) {
+			finalString = finalString.replace("#{" + i + "}", arguments[i]);
+		}
+
+		return finalString;
+	}
 }
 
 export { Utils };

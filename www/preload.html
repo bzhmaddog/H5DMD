@@ -1,0 +1,37 @@
+<!DOCTYPE html> 
+<html>
+    <head>
+        <title>Media Controller DMD preloader</title>
+        <style>
+			@font-face {
+				font-family: 'Dusty';
+				src: local('Dusty'), url('/fonts/Dusty.otf') format('truetype');
+				font-style: normal;
+				font-weight: normal;
+			}
+			
+			* {
+				box-sizing: border-box;
+			}
+			
+			html {
+				height: 100%;
+			}
+			
+			body {
+				min-height: 100%;
+				background-color: black;
+				padding: 0;
+				margin: 0;
+			}
+		</style>
+        <script>
+			setTimeout(function(){ 
+				window.location = `http://${location.hostname}:${location.port}/index.html`;
+			}, 500);
+		</script> 
+    </head>
+    <body>
+        <div style="width:100vw;height:100vh;display:table-cell;vertical-align:middle;font-family:Dusty;text-align:center;font-size:3em;color:yellow">Loading ...</div>
+    </body>
+</html>

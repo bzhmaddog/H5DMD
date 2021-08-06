@@ -34,16 +34,21 @@ class AudioManager {
       xhr.send();
   }
 
-  playSound(key, loop, onEndedListener) {
+  playSound(key, pKey, loop, onEndedListener) {
 	var that = this;
+  var playKey = pKey;
+
+    if (typeof playKey === 'undefined') {
+      playKey = key;
+    }
     
-	if (typeof this.#sounds[key] === 'undefined') {
+	  if (typeof this.#sounds[key] === 'undefined') {
       logger.log(`Sound [${key}] is not loaded`);
       return;
     }
 
-    if (typeof this.#sources[key] !== 'undefined') {
-      logger.log(`Sound [${key}] is already beeing played`);
+    if (typeof this.#sources[playKey] !== 'undefined') {
+      logger.log(`Sound [${playKey}] is already beeing played`);
       return;
     }
 
@@ -56,14 +61,14 @@ class AudioManager {
     source.onended = function() {
 		var endedListener = onEndedListener;
 
-		delete that.#sources[key];
+		delete that.#sources[playKey];
 
 		if (typeof endedListener === 'function') {
 			endedListener();
 		}
 	}
 
-    this.#sources[key] = source;
+    this.#sources[playKey] = source;
 
     source.buffer = this.#sounds[key];
     source.connect(this.#context.destination);
@@ -71,14 +76,14 @@ class AudioManager {
     source.start(0);
   }
 
-  stopSound(key) {
-    if (typeof this.#sources[key] === 'undefined') {
-      logger.log(`Sound [${key}] is not beeing played`);
+  stopSound(pKey) {
+    if (typeof this.#sources[pKey] === 'undefined') {
+      logger.log(`Sound [${pKey}] is not beeing played`);
       return;
     }
 
-    this.#sources[key].stop(0);
-    delete this.#sources[key];
+    this.#sources[pKey].stop(0);
+    delete this.#sources[pKey];
   }
 
   reset() {
