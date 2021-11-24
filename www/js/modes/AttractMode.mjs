@@ -5,10 +5,12 @@ import { Utils } from '../utils/Utils.mjs';
 //const ATTRACT_MUSIC_RESTART_DELAY = 300000; // 5 min
 const ATTRACT_MUSIC_RESTART_DELAY = 30000;
 
-const GAMEOVER_TIMEOUT = 30000;
+const ATTRACT_RESTART_TIMEOUT = 30000;
 
 class AttractMode extends Mode {
     #blinkInterval;
+    #attractRestartTO;
+    #attractMusicTO;
     #startLayer;
     #titleLayer;
     #backgroundLayer;
@@ -18,7 +20,6 @@ class AttractMode extends Mode {
     #gameOverTextLayer;
     #gameOverScoresLayer;
     #gameIsPlaying;
-    #attractMusicTO;
     #delayAttractMusic;
 
     constructor(_dmd, _resources, _fonts, _variables, _audioManager) {
@@ -228,7 +229,7 @@ class AttractMode extends Mode {
 
             });
 
-            setTimeout(function(){
+            this.#attractRestartTO = setTimeout(function(){
                 that.#gameOverCloudsLayer.setVisibility(false);
                 that.#gameOverCloudsLayer2.setVisibility(false);
                 that.#gameOverBackgroundLayer.setVisibility(false);
@@ -237,7 +238,7 @@ class AttractMode extends Mode {
                 that.#gameOverScoresLayer.content.removeAllTexts();
                 that.#delayAttractMusic = true;
                 that.start(priority);
-            }, GAMEOVER_TIMEOUT);
+            }, ATTRACT_RESTART_TIMEOUT);
 
 
         
@@ -280,8 +281,6 @@ class AttractMode extends Mode {
 
         this._audioManager.stopSound('attract-music');
 
-        clearInterval(this.#blinkInterval);
-
         this.#backgroundLayer.setVisibility(false);
         this.#titleLayer.setVisibility(false);
         this.#startLayer.setVisibility(false);
@@ -296,6 +295,13 @@ class AttractMode extends Mode {
 
         clearTimeout(this.#attractMusicTO);
         this.#attractMusicTO = null;
+
+        clearTimeout(this.#attractRestartTO);
+        this.#attractRestartTO = null;
+
+        clearInterval(this.#blinkInterval);
+        this.#blinkInterval =  null;
+
 
         // Set variable so that attract mode knows a game was playing
         this.#gameIsPlaying = true;

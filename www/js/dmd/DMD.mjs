@@ -25,6 +25,8 @@ class DMD {
 	#backgroundLayer;
 	#zIndex;
 	#renderFPS;
+	#dmdImageData;
+	#dmdData;
 
 	/**
 	 * 
@@ -62,6 +64,10 @@ class DMD {
 		
 		this.#canvas.width = cWidth;
 		this.#canvas.height = cHeight;
+
+		this.#dmdImageData = new ImageData(this.#dmdBuffer.width, this.#dmdBuffer.height)
+		this.#dmdData = this.#dmdImageData.data;
+
 
 		if (!!showFPS) {
 			// Dom element to ouput fps value
@@ -125,9 +131,8 @@ class DMD {
 	 * @param {integer} blue 
 	 * @param {integer} alpha 
 	 */	
-	#drawPixel(x, y, dataArray, red, green, blue, alpha) {
+	#drawDot(x, y, dataArray, red, green, blue, alpha) {
 		var pIndex = this.getResizedPixelIndex(x, y),
-			pOld = pIndex,
 			r,
 			g,
 			b,
@@ -151,6 +156,7 @@ class DMD {
 				}
 
 				// Hack Pixels that are too dark  to make then look like the background (15,15,15)
+				// TODO : Get background color from a variable
 				if (r < 15 && g < 15 && b < 15) {
 					r = 15;
 					g = 15;
@@ -182,51 +188,40 @@ class DMD {
 				var layer = this.#layers[l.name];
 
 				if (layer.isVisible() && layer.content.isLoaded) {
-					//logger.log(l.name);
-
-
-					// Get current image
-					var dmdImageData = this.#dmdBuffer.context.getImageData(0,0, this.#dmdBuffer.width, this.#dmdBuffer.height);
-					var dmdData = dmdImageData.data;
-
-					/*if (l.name === 'game-over-clouds') {
-						logger.log(dmdData);
-					};*/
-
 					// Draw layer content into a buffer
 					this.#frameBuffer.context.drawImage(layer.content.data, 0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
-					
-					// Get data from layer content
-					var frameImageData = this.#frameBuffer.context.getImageData(0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
-					var frameData = frameImageData.data;
-					
-					var x = 1;
-					var y = 1;
-		
-					// each pixel use 4 bytes (RGBA)
-					for (var i = 0 ; i < this.#frameBuffer.width * this.#frameBuffer.height * 4 ; i+=4) {
-						// get the pixel from the current frame
-						var r = frameData[i];
-						var g = frameData[i+1];
-						var b = frameData[i+2];
-						var a = frameData[i+3];
-
-						this.#drawPixel(x, y, dmdData, r, g, b, a);
-
-						x++;
-						if (x > this.#frameBuffer.width) {
-							x = 1;
-							y++;
-						}
-					}
-				
-					// put the altered data back into the canvas context
-					this.#context.putImageData(dmdImageData, 0, 0);
 				}
 			}
 		});
 
-		//logger.log(this.#context.getImageData(0, 0, this.#dmdBuffer.width, this.#dmdBuffer.height ));
+		// Get data from the merged layers content
+		var frameImageData = this.#frameBuffer.context.getImageData(0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
+		var frameData = frameImageData.data;
+					
+		var x = 1;
+		var y = 1;
+		
+		// each pixel use 4 bytes (RGBA)
+		for (var i = 0 ; i < this.#frameBuffer.width * this.#frameBuffer.height * 4 ; i+=4) {
+			// get the pixel from the current frame
+			var r = frameData[i];
+			var g = frameData[i+1];
+			var b = frameData[i+2];
+			var a = frameData[i+3];
+
+			this.#drawDot(x, y, this.#dmdData, r, g, b, a);
+
+			x++;
+			if (x > this.#frameBuffer.width) {
+				x = 1;
+				y++;
+			}
+		}
+	
+		// put the altered data back into the canvas context
+		// which draw the dmd dots on the screen
+		this.#context.putImageData(this.#dmdImageData, 0, 0);
+
 
 		this.#renderFPS();
 
