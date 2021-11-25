@@ -44,7 +44,7 @@ var mpf = {
 };
 
 try {
-    let fileContents = fs.readFileSync('/home/mpfuser/mpf-data/config/config.yaml', 'utf8');
+    let fileContents = fs.readFileSync('/home/mpfuser/mpf-scott-pilgrim/config/keyboard.yaml', 'utf8');
     let data = yaml.load(fileContents);
 
 	if (typeof data.keyboard === 'object') {
@@ -55,7 +55,7 @@ try {
 			kbdKeys[k] = sw;
 		});
 
-		console.log(kbdKeys);
+		//console.log(kbdKeys);
 	}
 } catch (e) {
     console.log(e);
@@ -212,6 +212,9 @@ webSocketServer.on('connection', function connection(_client) {
 	clients.push(_client);
 
 	_client.on('message', function incoming(message) {
+
+		//console.log("Message receiced from client : ")
+		//console.log(message);
 
 		if (message.startsWith('mc_')) {
 			handleLocalMessages(message);

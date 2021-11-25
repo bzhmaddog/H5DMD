@@ -53,6 +53,8 @@ class Modes {
         Object.keys(this.#modes).forEach(key => {
             that.#modes[key].init();
         });
+
+        //console.log(that.#modes);
     }
 
 }

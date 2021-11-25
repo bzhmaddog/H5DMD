@@ -159,6 +159,8 @@ class App {
 	 */
 	#wsOnMessage(cmd, params, rawData) {
 
+		//console.log(arguments);
+
 		switch(cmd) {
 			case 'mc_connected':
 				logger.log("MPF connected");

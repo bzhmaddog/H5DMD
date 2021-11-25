@@ -76,6 +76,8 @@ class WSS {
 			} else {
 				cmd = data;
 			}
+
+			//console.log(cmd);
 	
 			this.#onMessageListener(cmd, params, data);
 		}
