@@ -1,6 +1,7 @@
 import { Buffer } from './Buffer.mjs';
 import { Layer } from './Layer.mjs';
 import { Utils } from '../utils/Utils.mjs';
+import { CPURenderer} from './CPURenderer.mjs';
 
 
 class DMD {
@@ -25,8 +26,7 @@ class DMD {
 	#backgroundLayer;
 	#zIndex;
 	#renderFPS;
-	#dmdImageData;
-	#dmdData;
+	#renderer;
 
 	/**
 	 * 
@@ -65,8 +65,7 @@ class DMD {
 		this.#canvas.width = cWidth;
 		this.#canvas.height = cHeight;
 
-		this.#dmdImageData = new ImageData(this.#dmdBuffer.width, this.#dmdBuffer.height)
-		this.#dmdData = this.#dmdImageData.data;
+		this.#renderer = new CPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape);
 
 
 		if (!!showFPS) {
@@ -110,76 +109,14 @@ class DMD {
 		requestAnimationFrame(this.#renderDMD.bind(this));
 	}
 	
-	/**
-	 * Get the index of the pixel at position X,Y in the Canvas
-	 * @param x {integer} the column of the position
-	 * @param y {integer} the row of the pixel
-	 * @result {integer} index of the pixel in the data object
-	 */
-	getResizedPixelIndex(x, y) {
-		// (x - 1) * 4 = the first pixel doesn't have a space before
-		return (x - 1) * this.#pixelWidth * 4  + (x - 1) * this.#xSpace * 4 + (y - 1) * this.#canvas.width * 4 * (this.#pixelHeight + this.#ySpace) ;
-	}
-
-	/**
-	 * 
-	 * @param {integer} x 
-	 * @param {integer} y 
-	 * @param {array} dataArray 
-	 * @param {integer} red 
-	 * @param {integer} green 
-	 * @param {integer} blue 
-	 * @param {integer} alpha 
-	 */	
-	#drawDot(x, y, dataArray, red, green, blue, alpha) {
-		var pIndex = this.getResizedPixelIndex(x, y),
-			r,
-			g,
-			b,
-			a;
-
-		for (var row = 0 ; row < this.#pixelHeight ; row++) {
-			for(var col = 0 ; col < this.#pixelWidth ; col++) {
-				r = red;
-				g = green;
-				b = blue;
-				a = alpha;
-
-			
-				if (this.#dotShape === DMD.DotShape.Circle) {
-					if ( (row === 0 && (col === 0 || col === this.#pixelWidth -1)) || (row === this.#pixelHeight -1 && (col === 0 || col === this.#pixelWidth -1))) {
-						r = 0;
-						g = 0;
-						b = 0;
-						a = 255;
-					}
-				}
-
-				// Hack Pixels that are too dark  to make then look like the background (15,15,15)
-				// TODO : Get background color from a variable
-				if (r < 15 && g < 15 && b < 15) {
-					r = 15;
-					g = 15;
-					b = 15;
-					a = 255;
-				}
-			
-				dataArray[pIndex] = r;
-				dataArray[pIndex+1] = g;
-				dataArray[pIndex+2] = b;
-				dataArray[pIndex+3] = a;
-				
-				pIndex += 4;
-			}
-			pIndex += this.#canvas.width * 4 - this.#pixelWidth * 4;
-		}
-	}
+	
 
 	/**
 	 * 
 	 * @param {integer} timestamp 
 	 */
 	#renderDMD(timestamp) {
+		var that = this;
 
 		//logger.log(this.#layers);
 
@@ -197,33 +134,14 @@ class DMD {
 		// Get data from the merged layers content
 		var frameImageData = this.#frameBuffer.context.getImageData(0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
 		var frameData = frameImageData.data;
-					
-		var x = 1;
-		var y = 1;
 		
-		// each pixel use 4 bytes (RGBA)
-		for (var i = 0 ; i < this.#frameBuffer.width * this.#frameBuffer.height * 4 ; i+=4) {
-			// get the pixel from the current frame
-			var r = frameData[i];
-			var g = frameData[i+1];
-			var b = frameData[i+2];
-			var a = frameData[i+3];
+		
+		this.#renderer.renderFrame(frameData).then( dmdImageData => {
+			//console.log(dmdImageData);
+			that.#context.putImageData(dmdImageData, 0, 0);
+			//that.#renderFPS();
+		});
 
-			this.#drawDot(x, y, this.#dmdData, r, g, b, a);
-
-			x++;
-			if (x > this.#frameBuffer.width) {
-				x = 1;
-				y++;
-			}
-		}
-	
-		// put the altered data back into the canvas context
-		// which draw the dmd dots on the screen
-		this.#context.putImageData(this.#dmdImageData, 0, 0);
-
-
-		this.#renderFPS();
 
 		// request render next frame
 		requestAnimationFrame(this.#renderDMD.bind(this));
