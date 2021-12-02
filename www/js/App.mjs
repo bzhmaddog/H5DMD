@@ -74,6 +74,10 @@ class App {
 		this.#resources.load().then(function(resources) {
 			logger.log("Resources file loaded", resources);
 
+
+			// Start rendering frames
+			that.#dmd.run();
+
 			// Reset the DMD (show only background layer and mpf logo)
 			that.#resetDMD();
 
@@ -111,6 +115,7 @@ class App {
 			that.#wsServer.onError = that.#wsOnError.bind(that);
 			that.#wsServer.onMessage = that.#wsOnMessage.bind(that);
 			that.#wsServer.connect();
+
 		});		
     }
 
@@ -265,6 +270,14 @@ class App {
 			type : 'image',
 			src : 'images/logo.webp',
 			mimeType : 'image/webp',
+			//visible : false
+		});
+
+		this.#dmd.addLayer({
+			name :'test',
+			type : 'image',
+			src : 'images/red.png',
+			mimeType : 'image/png',
 			//visible : false
 		});
 

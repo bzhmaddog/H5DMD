@@ -1,7 +1,8 @@
 import { Buffer } from './Buffer.mjs';
 import { Layer } from './Layer.mjs';
 import { Utils } from '../utils/Utils.mjs';
-import { CPURenderer} from './CPURenderer.mjs';
+import { CPURenderer} from './renderers/CPURenderer.mjs';
+import { GPURenderer } from './renderers/GPURenderer.mjs';
 
 
 class DMD {
@@ -65,8 +66,8 @@ class DMD {
 		this.#canvas.width = cWidth;
 		this.#canvas.height = cHeight;
 
-		this.#renderer = new CPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape);
-
+		//this.#renderer = new CPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape);
+		this.#renderer = new GPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape);
 
 		if (!!showFPS) {
 			// Dom element to ouput fps value
@@ -106,10 +107,16 @@ class DMD {
 		window.debugDMD = this.debug.bind(this);
 
 		// Start rendering frames
-		requestAnimationFrame(this.#renderDMD.bind(this));
 	}
-	
-	
+
+	run() {
+		this.#renderer.init().then( device => {
+			//console.log(device);
+			console.log('here');
+			requestAnimationFrame(this.#renderDMD.bind(this));
+		});
+	}
+
 
 	/**
 	 * 
@@ -140,11 +147,13 @@ class DMD {
 			//console.log(dmdImageData);
 			that.#context.putImageData(dmdImageData, 0, 0);
 			//that.#renderFPS();
+
+			requestAnimationFrame(that.#renderDMD.bind(that));
 		});
 
 
 		// request render next frame
-		requestAnimationFrame(this.#renderDMD.bind(this));
+	
 	}	
 
 	#_renderFPS(){
