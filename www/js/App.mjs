@@ -273,13 +273,13 @@ class App {
 			//visible : false
 		});
 
-		this.#dmd.addLayer({
+		/*this.#dmd.addLayer({
 			name :'test',
 			type : 'image',
 			src : 'images/red.png',
 			mimeType : 'image/png',
 			//visible : false
-		});
+		});*/
 
 		this.#modes.initAll();
 

@@ -28,6 +28,7 @@ class DMD {
 	#zIndex;
 	#renderFPS;
 	#renderer;
+	#isRunning;
 
 	/**
 	 * 
@@ -65,6 +66,8 @@ class DMD {
 		
 		this.#canvas.width = cWidth;
 		this.#canvas.height = cHeight;
+
+		this.#isRunning = false;
 
 		//this.#renderer = new CPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape);
 		this.#renderer = new GPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape);
@@ -111,8 +114,7 @@ class DMD {
 
 	run() {
 		this.#renderer.init().then( device => {
-			//console.log(device);
-			console.log('here');
+			this.#isRunning = true;
 			requestAnimationFrame(this.#renderDMD.bind(this));
 		});
 	}
@@ -142,18 +144,14 @@ class DMD {
 		var frameImageData = this.#frameBuffer.context.getImageData(0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
 		var frameData = frameImageData.data;
 		
-		
 		this.#renderer.renderFrame(frameData).then( dmdImageData => {
-			//console.log(dmdImageData);
 			that.#context.putImageData(dmdImageData, 0, 0);
-			//that.#renderFPS();
+			that.#renderFPS();
 
-			requestAnimationFrame(that.#renderDMD.bind(that));
+			if (that.#isRunning) {
+				requestAnimationFrame(that.#renderDMD.bind(that));
+			}
 		});
-
-
-		// request render next frame
-	
 	}	
 
 	#_renderFPS(){
