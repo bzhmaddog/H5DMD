@@ -1,0 +1,10 @@
+[Unit]
+Description=Mission Pinball Media Controller - Backend
+
+[Service]
+User=mpfuser
+WorkingDirectory=/home/mpfuser/H5DMD/ws/
+ExecStart=node server.js
+
+[Install]
+WantedBy=multi-user.target

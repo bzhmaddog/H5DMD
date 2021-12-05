@@ -1,0 +1,10 @@
+ffmpeg
+?gperf
+gstreamer gst-libav gst-plugins-base gst-plugins-good gst-plugins-ugly
+? jre-openjdk-headless
+? nasm
+? ninja
+python-pip python-protobuf
+? sdl sdl2 sdl2_image sdl2_mixer
+? ufw
+? yasm

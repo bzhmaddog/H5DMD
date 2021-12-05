@@ -1,0 +1,10 @@
+[Unit]
+Description=Mission Pinball Framework Media controller - Frontend
+
+[Service]
+User=mpfuser
+WorkingDirectory=/home/mpfuser/H5DMD/www/
+ExecStart=/usr/bin/python -m http.server 8080
+
+[Install]
+WantedBy=mpf, multi-user.target
