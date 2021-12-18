@@ -30,6 +30,18 @@ class Buffer {
 	get height() {
 		return this.#canvas.height
 	}
+
+	set width(width) {
+		this.#canvas.width = width;
+	}
+
+	set height(height) {
+		this.#canvas.height = height;
+	}
+
+	clear() {
+        this.#context.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
+	}
 }
 
 export { Buffer };

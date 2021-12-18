@@ -46,7 +46,8 @@ class TextLayer {
         this.#texts = {};
         var that = this;
 
-        this.#ctx.clearRect(0, 0, this.#options.width, this.#options.height);
+        //this.#ctx.clearRect(0, 0, this.#options.width, this.#options.height);
+        this.#buffer.clear();
 
         Object.keys(texts).forEach(id => {
             var text = texts[id];

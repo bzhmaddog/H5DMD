@@ -146,7 +146,7 @@ class DMD {
 		
 		this.#renderer.renderFrame(frameData).then( dmdImageData => {
 			that.#context.putImageData(dmdImageData, 0, 0);
-			that.#renderFPS();
+			//that.#renderFPS();
 
 			if (that.#isRunning) {
 				requestAnimationFrame(that.#renderDMD.bind(that));

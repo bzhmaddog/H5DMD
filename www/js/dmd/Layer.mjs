@@ -1,6 +1,7 @@
 import { ImageLayer } from './ImageLayer.mjs';
 import { VideoLayer } from './VideoLayer.mjs';
 import { TextLayer } from './TextLayer.mjs';
+import { SpritesLayer } from './SpritesLayer.mjs';
 
 /**
  * Provide a Layer for the DMD
@@ -45,6 +46,8 @@ class Layer {
 			case 'text':
 				this.#content = new TextLayer(this.#layerId, this.#options, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this));
 				break;
+			case 'sprite':
+				this.#content = new SpritesLayer(this.#layerId, this.#options, this.#layerLoaded.bind(this));
 
 		}
 

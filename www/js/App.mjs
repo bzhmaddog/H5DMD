@@ -9,6 +9,7 @@ import { AudioManager } from './audio-manager/AudioManager.mjs';
 import { WSS } from './ws/WSS.mjs';
 import { Colors } from './colors/Colors.mjs';
 import { Utils } from './utils/Utils.mjs';
+import { Sprite } from './dmd/Sprite.mjs';
 
 class App {
 	#dlgBox;
@@ -272,6 +273,43 @@ class App {
 			mimeType : 'image/webp',
 			//visible : false
 		});
+
+
+		let spritesLayer = this.#dmd.addLayer({
+			name :'test',
+			type : 'sprite'
+		});
+
+		//console.log(spritesLayer);
+
+		let scottSprite = new Sprite("sprites/scott.png", 3, 0).then(sprite => {
+
+			sprite.addAnimation('idle', 8, 36, 59, 0, 0, .16);
+			sprite.addAnimation('walk', 6, 36, 63, 0, 59, .12);
+			sprite.addAnimation('run', 8, 53, 60, 0, 122, .20);
+			sprite.addAnimation('idle2', 4, 46, 62, 0, 182, .09);
+			sprite.addAnimation('taunt', 9, 46, 62, 0, 244, .25);
+
+			
+			spritesLayer.content.addSprite("scott", 50, 15, sprite);
+	
+			sprite.enqueueSingle('taunt', 1);
+			sprite.enqueueSingle('idle', 1);
+
+			let seq = [
+				['idle' , 3],
+				['idle2' , 3],
+				['walk' , 5],
+				['run', 4],
+				['walk' , 2],
+				['taunt', 1]
+			];
+
+			//sprite.enqueueSequence(seq, true);
+
+			sprite.run();
+		});
+
 
 		/*this.#dmd.addLayer({
 			name :'test',
