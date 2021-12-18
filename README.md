@@ -113,15 +113,7 @@ let testSprite = new Sprite("sprites/scott.png", 3, 0).then(sprite => {
     sprite.run();
 });
 
-
-
 // Start rendering
 dmd.run();
-
-
-
-
-
-
 ```
 
