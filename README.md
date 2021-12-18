@@ -1,5 +1,5 @@
 # H5DMD
-A Virtual DMD (Dot Matrix Display) powered by HTML5 (Canvas, WebSockets), controlled via Mission Pinball Framework BCP protocol (https://missionpinball.org/)
+A Virtual DMD (Dot Matrix Display) powered by HTML5 Canvas and WebGPU(optional)
 
 ![256x78 DMD on a 1280x390 display](/dmd-256x78-mp-logo.jpg?raw=true "1 dot = 4x4 pixels")
 
@@ -9,40 +9,51 @@ https://youtu.be/ItiX97USKyU
 
 https://www.youtube.com/watch?v=MtAN4vKRLQ0
 
+https://www.youtube.com/watch?v=MaJZQCTSiOg
+
 
 # Installation
-For now the process is quite manual.
+Put all mjs files in your project
 
-- HTTP service installation:
+
+# Example
+
 ```
-# Copy service into system folder (after modifying it to fit your needs)
-(sudo) cp http-server.service /etc/systemd/system/
+import { DMD } from './dmd/DMD.mjs';
 
-# Refresh systemd
-(sudo) systemctl daemon-reload
+// Output canvas
+let canvas = document.getElementById('my-canvas');
 
-# Enable service
-(sudo) systemctl enable http-server
+/**
+ * DMD(
+     {number of horizontal dots},
+     {number of vertical dots},
+     {canvas width},
+     {canvas height},
+     {width of dot},
+     {height of dot},
+     {horizontal space between dots},
+     {vertical space between dots},
+     {horizontal offset},
+     {vertical offset},
+     {dot shape},
+     {output canvas},
+     {show FPS info);
+ */
 
-# Start service (or reboot)
-(sudo) systemctl start http-server
+let dmd = new DMD(256, 78, 1280, 390, 4, 4, 1, 1, 1, 1, DMD.DotShape.Square, canvas, true);
+
+// Add Image layer
+dmd.addLayer({
+    name :'logo',
+    type : 'image',
+    src : 'images/logo.webp',
+    mimeType : 'image/webp',
+});
+
+// Start rendering
+dmd.run();
+
+
 ```
 
-# Starting the media controller
-- Run the server
-```
-./start.sh (will simply run ws/server.js)
-```
-
-- Launch Mission Pinball Framework
-```
-cd /to/your/mpf/project/folder
-mpf
-```
-
-# In progress
-- Implementing the audio manager on server side
-
-# To do
-- Create services for the controller and mpf
-- Implement x and y offset to position the dmd in the display

@@ -1,6 +1,6 @@
 import { Buffer } from './Buffer.mjs';
 import { Text } from './Text.mjs';
-import { Colors } from '../colors/Colors.mjs';
+import { Colors } from './Colors.mjs';
 
 class TextLayer {
     #id;
