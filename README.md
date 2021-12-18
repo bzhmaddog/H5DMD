@@ -16,7 +16,7 @@ https://www.youtube.com/watch?v=MaJZQCTSiOg
 Put all mjs files in your project
 
 
-# Example
+# Initialization Example
 
 ```
 import { DMD } from './dmd/DMD.mjs';
@@ -44,7 +44,14 @@ let canvas = document.getElementById('my-canvas');
 
 let dmd = new DMD(256, 78, 1280, 390, 4, 4, 1, 1, 1, 1, DMD.DotShape.Square, canvas, true);
 
-// Image layer
+// Start rendering
+dmd.run();
+```
+
+# Usage example
+
+```
+// Adding an Image layer
 dmd.addLayer({
     name :'logo',
     type : 'image',
@@ -52,7 +59,7 @@ dmd.addLayer({
     mimeType : 'image/webp',
 });
 
-// Text layer
+// Adding a text layer
 let textLayer = dmd.addLayer({ name : 'test-text', type : 'text'});
 
 // Add text with fixed position
@@ -114,7 +121,17 @@ let testSprite = new Sprite("sprites/scott.png", 3, 0).then(sprite => {
     sprite.run();
 });
 
-// Start rendering
-dmd.run();
+// Change layer visibilitity (only visible layers are rendered so if you want to hide a layer temporarly just set it's visibility to false)
+spritesLayer.setVisibility(false);
+// or
+dmd.hideLayer('test-sprites');
+// or
+dmd.showLayer('test-sprites');
+
+// Layers can be Removed if not used anymore
+dmd.removeLayer('test-sprites');
+// or
+dmd.removeLayer(spritesLayer);
+
 ```
 

@@ -231,20 +231,25 @@ class DMD {
 
 	/**
 	 * Remove specified layer
-	 * @param {string} name 
+	 * @param {string/Layer} layer 
 	 */
-	removeLayer(name) {
-		if (name === 'background') {
-			logger.log("Cannot remove background layer");
-			return;
+	removeLayer(layer) {
+		if (typeof layer === 'string') {
+			if (layer === 'background') {
+				logger.log("Cannot remove background layer");
+				return;
+			}
+
+			if (typeof this.#layers[layer] !== 'undefined') {
+				delete this.#layers[layer];
+				this.#sortedLayers = this.#sortedLayers.filter( l => {return l.name !== layer});			
+			} else {
+				logger.log('This layer does not exist');
+			}
+		} else {
+			// TODO
 		}
 
-		if (typeof this.#layers[name] !== 'undefined') {
-			delete this.#layers[name];
-			this.#sortedLayers = this.#sortedLayers.filter( l => {return l.name !== name});			
-		} else {
-			logger.log('This layer does not exist');
-		}
 	}
 
 	/**
