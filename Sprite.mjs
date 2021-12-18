@@ -44,7 +44,7 @@ class Sprite {
 
         return new Promise(resolve => {
             that.#spriteSheet.addEventListener('load', function() {
-                console.log("Spritesheet Loaded");
+                //console.log("Spritesheet Loaded");
                 that.#spriteSheetLoaded = true;
                 resolve(that);
             });
@@ -115,7 +115,7 @@ class Sprite {
      * Pop animation from the queue and play it
      */
     #processQueue() {
-        console.log(this.#queue);
+        //console.log(this.#queue);
 
         if (this.#queue.length > 0) {
             this.#animation = this.#queue.shift();

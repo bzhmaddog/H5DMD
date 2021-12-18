@@ -46,12 +46,10 @@ class TextLayer {
         this.#texts = {};
         var that = this;
 
-        //this.#ctx.clearRect(0, 0, this.#options.width, this.#options.height);
         this.#buffer.clear();
 
         Object.keys(texts).forEach(id => {
             var text = texts[id];
-            //logger.log(text);
             that.addText(id, text.getText(), text.getOptions());
         });
     }
@@ -105,7 +103,6 @@ class TextLayer {
         } else {
             this.#ctx.font = (options.fontSize) + 'px ' + options.fontFamily;
             m = this.#ctx.measureText(text);       
-            //logger.log('here');
         }
 
 
@@ -157,7 +154,8 @@ class TextLayer {
 	}
 
 	get data() {
-		return this.#image;
+		//return this.#image;
+        return this.#buffer.canvas;
 	}
 
 	get options() {

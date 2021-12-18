@@ -43,7 +43,7 @@ let canvas = document.getElementById('my-canvas');
 
 let dmd = new DMD(256, 78, 1280, 390, 4, 4, 1, 1, 1, 1, DMD.DotShape.Square, canvas, true);
 
-// Add Image layer
+// Image layer
 dmd.addLayer({
     name :'logo',
     type : 'image',
@@ -51,8 +51,76 @@ dmd.addLayer({
     mimeType : 'image/webp',
 });
 
+// Text layer
+let textLayer = dmd.addLayer({ name : 'test-text', type : 'text'});
+
+// Add text with fixed position
+textLayer.content.addText('aText', 'Hello World', {
+    fontSize : '30',
+    fontFamily : 'Arial',
+    left : 0,
+    top : 0,
+    color : 'white',
+    strokeWidth : 2,
+    strokeColor : 'black'
+});
+
+// Add text with aligment
+textLayer.content.addText('anotherText', 'Centered', {
+    fontSize : '30',
+    fontFamily : 'Arial',
+    align : 'center', // possible values are left,center,right => use along xOffset to alter position
+    vAlign : 'middle', // possible values are top,middle,bottom => use along yOffset to alter position
+    color : 'white',
+    strokeWidth : 2,
+    strokeColor : 'black'
+});
+
+// Video layer
+dmd.addLayer({
+    name :'video',
+    type : 'video',
+    src : 'intro.webm',
+    mimeType : 'image/webm',
+});
+
+// Sprites layer
+let spritesLayer = dmd.addLayer({ name :'test-sprites', type : 'sprite'});
+
+let testSprite = new Sprite("sprites/scott.png", 3, 0).then(sprite => {
+
+    sprite.addAnimation('idle', 8, 36, 59, 0, 0, .16);
+    sprite.addAnimation('walk', 6, 36, 63, 0, 59, .12);
+    sprite.addAnimation('run', 8, 53, 60, 0, 122, .20);
+    sprite.addAnimation('idle2', 4, 46, 62, 0, 182, .09);
+    sprite.addAnimation('taunt', 9, 46, 62, 0, 244, .25);
+
+    
+    spritesLayer.content.addSprite("scott", 50, 15, sprite);
+
+    sprite.enqueueSingle('taunt', 1);
+    sprite.enqueueSingle('idle', 1);
+
+    let seq = [
+        ['idle' , 3],
+        ['walk' , 5],
+        ['run', 4],
+        ['taunt', 1]
+    ];
+
+    sprite.enqueueSequence(seq, true);
+
+    sprite.run();
+});
+
+
+
 // Start rendering
 dmd.run();
+
+
+
+
 
 
 ```
