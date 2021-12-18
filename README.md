@@ -26,19 +26,20 @@ let canvas = document.getElementById('my-canvas');
 
 /**
  * DMD(
-     {number of horizontal dots},
-     {number of vertical dots},
-     {canvas width},
-     {canvas height},
-     {width of dot},
-     {height of dot},
-     {horizontal space between dots},
-     {vertical space between dots},
-     {horizontal offset},
-     {vertical offset},
-     {dot shape},
-     {output canvas},
-     {show FPS info);
+ *    {number of horizontal dots},
+ *    {number of vertical dots},
+ *    {canvas width},
+ *    {canvas height},
+ *    {width of dot},
+ *    {height of dot},
+ *    {horizontal space between dots},
+ *    {vertical space between dots},
+ *    {horizontal offset},
+ *    {vertical offset},
+ *    {dot shape},
+ *    {output canvas},
+ *    {show FPS info}
+ * )
  */
 
 let dmd = new DMD(256, 78, 1280, 390, 4, 4, 1, 1, 1, 1, DMD.DotShape.Square, canvas, true);
