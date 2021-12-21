@@ -103,7 +103,7 @@ class CPURenderer {
 	 */
 	renderFrame(frameData) {
 
-		console.log(frameData);
+		//console.log(frameData);
 
 		var dmdImageData = new ImageData(this.#screenWidth, this.#screenHeight)
 		var dmdData = dmdImageData.data;

@@ -121,14 +121,15 @@ let testSprite = new Sprite("sprites/scott.png", 3, 0).then(sprite => {
     sprite.run();
 });
 
-// Change layer visibilitity (only visible layers are rendered so if you want to hide a layer temporarly just set it's visibility to false)
+// Change layer visibilitity
 spritesLayer.setVisibility(false);
 // or
 dmd.hideLayer('test-sprites');
 // or
 dmd.showLayer('test-sprites');
 
-// Layers can be Removed if not used anymore
+// Only visible layers are rendered onto the DMD but there drawing routine still runs and consume CPU time so if you really don't need a layer anymore
+// it can be Removed
 dmd.removeLayer('test-sprites');
 // or
 dmd.removeLayer(spritesLayer);

@@ -24,7 +24,6 @@ class DMD {
 	#frames;
 	#lastFrames;
 	#fpsBox;
-	#backgroundLayer;
 	#zIndex;
 	#renderFPS;
 	#renderer;
@@ -45,7 +44,7 @@ class DMD {
 	 * @param {string} dotShape Shape of the dots (can be square or circle)
 	 * @param {*} targetCanvas Dom Element where the DMD will be drawed
 	 */
-	constructor(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, xOffset, yOffset, dotShape, targetCanvas, showFPS) {
+	constructor(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, xOffset, yOffset, dotShape, backgroundBrightness, targetCanvas, showFPS) {
 		this.#canvas = targetCanvas;
 		this.#context = this.#canvas.getContext('2d');
 		this.#xSpace = xSpace;
@@ -70,7 +69,7 @@ class DMD {
 		this.#isRunning = false;
 
 		//this.#renderer = new CPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape);
-		this.#renderer = new GPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape);
+		this.#renderer = new GPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape, backgroundBrightness);
 
 		if (!!showFPS) {
 			// Dom element to ouput fps value
@@ -95,16 +94,6 @@ class DMD {
 
 		this.#startTime = new Date().getTime();
 
-
-		this.#backgroundLayer = new Layer(this.#outputWidth, this.#outputHeight, {
-			name : 'background',
-			type : 'image',
-			src : 'images/background.webp',
-			mimeType : 'image/webp',
-			transparent : false,
-			zIndex : 0
-		});
-
 		this.reset();
 
 		window.debugDMD = this.debug.bind(this);
@@ -127,7 +116,8 @@ class DMD {
 	#renderDMD(timestamp) {
 		var that = this;
 
-		//logger.log(this.#layers);
+		// Fill black rectangle (black will be converted to lowest dot intensity)
+		this.#frameBuffer.context.fillRect(0, 0, this.#outputWidth, this.#outputHeight);
 
 		this.#sortedLayers.forEach( l =>  {
 			if (this.#layers.hasOwnProperty(l.name)) {
@@ -135,7 +125,8 @@ class DMD {
 
 				if (layer.isVisible() && layer.content.isLoaded) {
 					// Draw layer content into a buffer
-					this.#frameBuffer.context.drawImage(layer.content.data, 0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
+					this.#frameBuffer.context.drawImage(layer.data, 0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
+
 				}
 			}
 		});
@@ -143,6 +134,8 @@ class DMD {
 		// Get data from the merged layers content
 		var frameImageData = this.#frameBuffer.context.getImageData(0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
 		var frameData = frameImageData.data;
+
+		//document.getElementById('test').getContext('2d').putImageData(frameImageData,0,0);
 		
 		this.#renderer.renderFrame(frameData).then( dmdImageData => {
 			that.#context.putImageData(dmdImageData, 0, 0);
@@ -191,8 +184,8 @@ class DMD {
 	 * @returns 
 	 */
 	addLayer(_options) {
-		if (_options.name === 'background') {
-			logger.log("'background' is a reserver name. Please choose another name for you layer");
+		if (_options.name === '') {
+			logger.log("Please give a name to your layer");
 			return;
 		}
 
@@ -234,22 +227,20 @@ class DMD {
 	 * @param {string/Layer} layer 
 	 */
 	removeLayer(layer) {
-		if (typeof layer === 'string') {
-			if (layer === 'background') {
-				logger.log("Cannot remove background layer");
-				return;
-			}
+		let layerName;
 
-			if (typeof this.#layers[layer] !== 'undefined') {
-				delete this.#layers[layer];
-				this.#sortedLayers = this.#sortedLayers.filter( l => {return l.name !== layer});			
-			} else {
-				logger.log('This layer does not exist');
-			}
+		if (typeof layer === 'object') {
+			layerName = layer.name;
 		} else {
-			// TODO
+			layerName = layer;
 		}
 
+		if (typeof this.#layers[layerName] !== 'undefined') {
+			delete this.#layers[layerName];
+			this.#sortedLayers = this.#sortedLayers.filter( l => {return l.name !== layerName});			
+		} else {
+			logger.log('This layer does not exist');
+		}
 	}
 
 	/**
@@ -282,11 +273,8 @@ class DMD {
 	 * Reset DMD
 	 */
 	reset() {
-		// TODO : Cleanup objects ? does GC do it by itself ?
-		this.#layers = {
-			'background' : this.#backgroundLayer
-		};
-		this.#sortedLayers = [ {name : 'background', zIndex : 0}];
+		this.#layers = {};
+		this.#sortedLayers = [];
 	}
 
 	/**

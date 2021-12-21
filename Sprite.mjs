@@ -13,6 +13,8 @@ class Sprite {
     #queue;
     #loopSequence;
     #frameOffset;
+    #maxHeight;
+    #maxWidth;
 
 
     /**
@@ -39,6 +41,8 @@ class Sprite {
         this.#lastFrame = 0;
         this.#queue = [];
         this.#loopSequence = false;
+        this.#maxHeight = 0;
+        this.#maxWidth = 0;
 
         this.#frameOffset = frameOffset;
 
@@ -72,6 +76,9 @@ class Sprite {
                 yOffset : Yoffset,
                 speedFactor : speedFactor
             };
+
+            this.#maxHeight = Math.max(this.#maxHeight, height);
+            this.#maxWidth = Math.max(this.#maxWidth, width);
         }
     }
 
@@ -86,7 +93,10 @@ class Sprite {
 
         let xOffset = frame * (this.#animation.params.width + this.#frameOffset) + this.#animation.params.xOffset;
 
-        this.#buffer.context.drawImage(this.#spriteSheet,  xOffset,  this.#animation.params.yOffset, this.#animation.params.width, this.#animation.params.height, 0, 0, this.#animation.params.width, this.#animation.params.height);
+        // Shift vertical position so that sprites are aligned at the bottom
+        let yPos = this.#maxHeight - this.#animation.params.height;
+
+        this.#buffer.context.drawImage(this.#spriteSheet,  xOffset,  this.#animation.params.yOffset, this.#animation.params.width, this.#animation.params.height, 0, yPos, this.#animation.params.width, this.#animation.params.height);
 
         this.#counter = this.#counter + this.#animation.params.speedFactor;
 
@@ -128,7 +138,7 @@ class Sprite {
             this.#counter = 0;
             this.#isAnimating = true;
             this.#buffer.width = this.#animation.params.width;
-            this.#buffer.height =  this.#animation.params.height;
+            this.#buffer.height =  this.#maxHeight;
             this.#loop = 1;
 
             // Run current animation loop
@@ -174,7 +184,7 @@ class Sprite {
      * @param {array} An array of ids and number of loop 
      * @param {boolean} should the sequence loop indefinitely
      */
-    addSequence(queue, loop) {
+    enqueueSequence(queue, loop) {
         
         // Build array of animation
         // array[0] = animation id
@@ -214,12 +224,41 @@ class Sprite {
         return this.#buffer.canvas;
 	}
 
+    get context() {
+        return this.#buffer.context;
+    }
+
+    get width() {
+        return this.#maxWidth;
+    }
+
+    get height() {
+        return this.#maxHeight;
+    }
+
     /**
      * Is the sprite currently animating ?
      * @returns boolean
      */
     isAnimating() {
         return this.#isAnimating;
+    }
+
+    clone() {
+        return new Promise(resolve => {
+
+           new Sprite(this.#spriteSheet.src, this.#frameOffset).then( s => {
+
+                Object.keys(this.#animations).forEach(id => {
+                    //console.log(id);
+                    var a = this.#animations[id];
+                    //console.log(a);
+                    s.addAnimation(id, a.nbFrames, a.width, a.height, a.xOffset, a.yOffset, a.speedFactor);
+                });
+          
+                resolve(s);
+            });
+        });
     }
 
 }

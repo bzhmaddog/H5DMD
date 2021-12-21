@@ -5,7 +5,6 @@ import { Colors } from './Colors.mjs';
 class TextLayer {
     #id;
     #loaded;
-    #image;
     #options;
     #texts;
     #buffer;
@@ -14,17 +13,20 @@ class TextLayer {
     #updatedListener;
 
     constructor(id, _options, _loadedListener, _updatedListener) {
+        var defaultOptions = {};
         this.#id = id,
         this.#loaded = false;
-        this.#options = _options;
+        this.#options = Object.assign(defaultOptions, _options);
         this.#buffer = new Buffer(_options.width, _options.height);
         this.#ctx = this.#buffer.context;
         this.#ctx.imageSmoothingEnabled = false;
-        this.#image = new Image();
         this.#loadedListener = _loadedListener;
         this.#updatedListener = _updatedListener;
-        this.#image.addEventListener('load',  this.#onDataLoaded.bind(this));
         this.#texts = {};
+
+        this.#buffer.context.imageSmoothingEnabled = false;
+
+        this.#onDataLoaded();
     }
 
     #onDataLoaded() {
@@ -93,13 +95,13 @@ class TextLayer {
                 this.#ctx.font = options.fontSize + 'px ' + options.fontFamily;
                 m = this.#ctx.measureText(text);
    
-                if (m.width > this.#options.width && options.adjustWidth) {
+                if (m.width > this.#options.width - 5) {
                     options.fontSize--;
                 } else {
                     textOk = true;
                 }
             }
-             
+            
         } else {
             this.#ctx.font = (options.fontSize) + 'px ' + options.fontFamily;
             m = this.#ctx.measureText(text);       
@@ -141,8 +143,6 @@ class TextLayer {
         }
 
         this.#ctx.fillText(text, left, top);
-   
-        this.#image.src = this.#buffer.canvas.toDataURL("image/png");
     }
 
     get getId() {
@@ -154,7 +154,6 @@ class TextLayer {
 	}
 
 	get data() {
-		//return this.#image;
         return this.#buffer.canvas;
 	}
 

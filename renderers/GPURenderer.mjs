@@ -16,10 +16,24 @@ class GPURenderer {
     #shaderModule;
     #dmdBufferByteLength;
     #screenBufferByteLength;
+    #bgBrightness;
+    #bgColor;
 
 
-
-    constructor(dmdWidth, dmdHeight, screenWidth, screenHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape) {
+    /**
+     * 
+     * @param {*} dmdWidth 
+     * @param {*} dmdHeight 
+     * @param {*} screenWidth 
+     * @param {*} screenHeight 
+     * @param {*} pixelWidth 
+     * @param {*} pixelHeight 
+     * @param {*} xSpace 
+     * @param {*} ySpace 
+     * @param {*} dotShape 
+     * @param {*} backgroundColor 
+     */
+    constructor(dmdWidth, dmdHeight, screenWidth, screenHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape, bgBrightness) {
         this.#dmdWidth = dmdWidth;
         this.#dmdHeight = dmdHeight;
         this.#screenWidth = screenWidth;
@@ -33,11 +47,28 @@ class GPURenderer {
         this.#device;
         this.#adapter;
         this.#shaderModule;
-
         this.#dmdBufferByteLength = dmdWidth*dmdHeight * 4;
         this.#screenBufferByteLength = screenWidth * screenHeight * 4;
+
+        this.#bgBrightness = 14;
+        this.#bgColor = 4279176975;
+
+        if (typeof bgBrightness === 'number') {
+                this.#bgBrightness = bgBrightness;
+                this.#bgColor = parseInt("FF" + this.#int2Hex(bgBrightness) + this.#int2Hex(bgBrightness) + this.#int2Hex(bgBrightness), 16);
+        }
+
     }
 
+    #int2Hex(n) {
+        var hex = parseInt(n, 10).toString(16)
+
+        if (hex.length < 2) {
+            hex = "0" + hex;
+        }
+        
+        return hex;
+    }
 
     init() {
         const that = this;
@@ -71,9 +102,8 @@ class GPURenderer {
                                 //pixel = a << 24u | r << 16u | g << 8u | b;
                 
                                 // Pixels that are too dark will be hacked to look like the background of the DMD
-                                if (r < 15u && g < 15u && b < 15u ) {
-                                    pixel = 4279176975u;
-                                    //pixel = 4278190335u;
+                                if (r < ${that.#bgBrightness}u && g < ${that.#bgBrightness}u && b < ${that.#bgBrightness}u ) {
+                                    pixel = ${that.#bgColor}u;
                                 }
                 
                                 // First byte index of the output dot
@@ -99,11 +129,6 @@ class GPURenderer {
 
 
     renderFrame(frameData) {
-
-
-        //console.log(frameData);
-        //console.log(this.#dmdBufferByteLength);
-
 
         const that = this;
 
@@ -159,7 +184,7 @@ class GPURenderer {
                 }
             ]
         });
-    
+
         const computePipeline =this.#device.createComputePipeline({
             layout: this.#device.createPipelineLayout({
                 bindGroupLayouts: [bindGroupLayout]

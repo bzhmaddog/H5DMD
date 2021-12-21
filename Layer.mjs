@@ -2,6 +2,7 @@ import { ImageLayer } from './ImageLayer.mjs';
 import { VideoLayer } from './VideoLayer.mjs';
 import { TextLayer } from './TextLayer.mjs';
 import { SpritesLayer } from './SpritesLayer.mjs';
+import { Buffer } from './Buffer.mjs';
 
 /**
  * Provide a Layer for the DMD
@@ -12,6 +13,11 @@ class Layer {
 	#options;
 	#loadedListener;
 	#updatedListener;
+	#hasRenderer;
+	#outputBuffer;
+	#renderBuffer;
+	#width;
+	#height;
 	
 	constructor(_width, _height, _options, _loadedListener, _updatedListener) {
 
@@ -19,9 +25,12 @@ class Layer {
 			type : '',
 			transparent : true,
 			visible : true,
-			opacity : 1
+			opacity : 1,
+			renderer : null
 		};
 
+		this.#width = _width;
+		this.#height = _height;
 		this.#loadedListener = _loadedListener;
 		this.#updatedListener = _updatedListener;
 
@@ -32,6 +41,21 @@ class Layer {
 
 		this.#options = Object.assign({ name : this.#layerId, width : _width, height : _height }, this.#options);
 
+		if (this.#options.renderer !== null) {
+			this.#hasRenderer = true;
+			this.#outputBuffer = new Buffer(_width, _height);
+			this.#renderBuffer = new Buffer(_width, _height);
+
+			this.#renderBuffer.context.imageSmoothingEnabled = false;
+			this.#outputBuffer.context.imageSmoothingEnabled = false;
+
+			
+			requestAnimationFrame(this.#render.bind(this));
+		} else {
+			this.#hasRenderer = false;
+		}
+
+		//console.log(this.#hasRenderer);
 
 		switch(this.#options.type) {
 
@@ -52,6 +76,31 @@ class Layer {
 		}
 
 		PubSub.publish('layer.created', this);
+	}
+
+	#render() {
+		const that = this;
+
+		this.#renderBuffer.clear();
+		this.#renderBuffer.context.drawImage(this.#content.data, 0, 0);
+
+		//var img  = this.#renderBuffer.canvas.toDataURL("image/png");
+		//document.getElementById('test').src = img;
+
+		var frameImageData = this.#renderBuffer.context.getImageData(0, 0, this.#width, this.#height);
+		var frameData = frameImageData.data;
+
+
+		//document.getElementById('test').getContext('2d').putImageData(frameImageData,0,0);
+
+		this.#options.renderer.renderFrame(frameData).then(outputData => {
+
+			that.#outputBuffer.clear();
+			that.#outputBuffer.context.putImageData(outputData, 0, 0);
+
+			//console.log(outputData);
+			requestAnimationFrame(that.#render.bind(that));
+		});
 	}
 
 	#layerLoaded() {
@@ -95,6 +144,19 @@ class Layer {
 
 	get content() {
 		return this.#content;
+	}
+
+	get data() {
+		if (!this.#hasRenderer) {
+			return this.#content.data;
+		} else {
+			return this.#outputBuffer.canvas;
+			//return this.#content.data;
+		}
+	}
+
+	get rawData() {
+		return this.#content.data;
 	}
 
 	get options() {
