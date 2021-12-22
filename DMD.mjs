@@ -311,6 +311,23 @@ class DMD {
 	get context() {
 		return this.#context;
 	}
+
+	get dmdWidth() {
+		return this.#outputWidth;
+	}
+
+	get dmdHeight() {
+		return this.#outputHeight;
+	}
+
+	get canvasWidth() {
+		return this.#canvas.width;
+	}
+
+	get canvasHeight() {
+		return this.#canvas.height;
+	}
+
 }
 
 export { DMD };

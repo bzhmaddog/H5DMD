@@ -171,6 +171,7 @@ class TextLayer {
 
     removeAllTexts() {
         this.#texts = {};
+        this.#buffer.clear();
     }
 }
 
