@@ -18,6 +18,7 @@ class GPURenderer {
     #screenBufferByteLength;
     #bgBrightness;
     #bgColor;
+    #brightness;
 
 
     /**
@@ -49,6 +50,7 @@ class GPURenderer {
         this.#shaderModule;
         this.#dmdBufferByteLength = dmdWidth*dmdHeight * 4;
         this.#screenBufferByteLength = screenWidth * screenHeight * 4;
+        this.#brightness = 1;
 
         this.#bgBrightness = 14;
         this.#bgColor = 4279176975;
@@ -84,33 +86,64 @@ class GPURenderer {
 
                     that.#shaderModule = device.createShaderModule({
                         code: `
-                            [[block]] struct Image {
+                            struct UBO {
+                                brightness: f32;
+                            };
+
+                            struct Image {
                                 rgba: array<u32>;
                             };
+
+                            fn f2i(f: f32) -> u32 {
+                                return u32(ceil(f));
+                            }
+
                             [[group(0), binding(0)]] var<storage,read> inputPixels: Image;
                             [[group(0), binding(1)]] var<storage,write> outputPixels: Image;
+                            [[group(0), binding(2)]] var<uniform> uniforms : UBO;                            
                             [[stage(compute), workgroup_size(1)]]
                             fn main ([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
+                                var bgBrightness : u32 = ${that.#bgBrightness}u;
                                 var index : u32 = global_id.x + global_id.y *  ${that.#dmdWidth}u;
-                
                                 var pixel : u32 = inputPixels.rgba[index];
+                                var brightness : f32 = uniforms.brightness;
+                                var br = 0u;
+                                var bg = 0u;
+                                var bb = 0u;
                                 
-                                let a : u32 = (pixel >> 24u) & 255u;
-                                let r : u32 = (pixel >> 16u) & 255u;
+                                //let a : u32 = (pixel >> 24u) & 255u;
+                                let b : u32 = (pixel >> 16u) & 255u;
                                 let g : u32 = (pixel >> 8u) & 255u;
-                                let b : u32 = (pixel & 255u);
-                                //pixel = a << 24u | r << 16u | g << 8u | b;
+                                let r : u32 = (pixel & 255u);
+
+                                // If component is above darkest color then apply brightness limiter
+                                if (r >= bgBrightness) {
+                                    br = bgBrightness + f2i(f32(r - bgBrightness) * brightness);
+                                }
+
+                                // If component is above darkest color then apply brightness limiter
+                                if (g >= bgBrightness) {
+                                    bg = bgBrightness + f2i(f32(g - bgBrightness) * brightness);
+                                }
+
+                                // If component is above darkest color then apply brightness limiter
+                                if (b >= bgBrightness) {
+                                    bb = bgBrightness + f2i(f32(b - bgBrightness) * brightness);
+                                }
+
+                                // Recreate pixel color but force alpha to 255
+                                pixel = 255u << 24u | bb << 16u | bg << 8u | br;
                 
-                                // Pixels that are too dark will be hacked to look like the background of the DMD
-                                if (r < ${that.#bgBrightness}u && g < ${that.#bgBrightness}u && b < ${that.#bgBrightness}u ) {
+                                // Pixels that are too dark will be hacked to give the 'off' dot look of the DMD
+                                if (br < bgBrightness && bg < bgBrightness && bb < bgBrightness) {
                                     pixel = ${that.#bgColor}u;
                                 }
                 
                                 // First byte index of the output dot
                                 var resizedPixelIndex : u32 = (global_id.x * ${that.#pixelWidth}u)  + (global_id.x * ${that.#xSpace}u) + (global_id.y * ${that.#screenWidth}u * (${that.#pixelHeight}u + ${that.#ySpace}u));
                 
-                                for ( var row: u32 = 0u ; row < ${that.#pixelHeight}u; row = row + 1u) {
-                                    for ( var col: u32 = 0u ; col < ${that.#pixelWidth}u; col = col + 1u) {
+                                for ( var row: u32 = 0u ; row < ${that.#pixelHeight}u; row = row + 1u ) {
+                                    for ( var col: u32 = 0u ; col < ${that.#pixelWidth}u; col = col + 1u ) {
                                         outputPixels.rgba[resizedPixelIndex] = pixel;
                                         resizedPixelIndex = resizedPixelIndex + 1u;
                                     }
@@ -118,6 +151,13 @@ class GPURenderer {
                                 }
                             }
                         `
+                    });
+
+                    this.#shaderModule.compilationInfo().then(i=>{
+                        if (i.messages.length > 0 ) {
+                            console.log('Shader compilation error(s) found');
+                            console.log(i.messages);
+                        }
                     });
 
                     resolve(device);
@@ -131,6 +171,12 @@ class GPURenderer {
     renderFrame(frameData) {
 
         const that = this;
+
+
+        const UBOBuffer = this.#device.createBuffer({
+            size: 4,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
 
         const gpuInputBuffer = this.#device.createBuffer({
             mappedAtCreation: true,
@@ -163,7 +209,14 @@ class GPURenderer {
                     buffer: {
                         type: "storage"
                     }
-                }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: {
+                      type: "uniform",
+                    }
+                }                
             ]
         });
     
@@ -181,7 +234,13 @@ class GPURenderer {
                     resource: {
                         buffer: gpuTempBuffer
                     }
-                }
+                },
+                {
+                    binding: 2, 
+                    resource: {
+                      buffer: UBOBuffer
+                    }
+                }                
             ]
         });
 
@@ -197,9 +256,17 @@ class GPURenderer {
 
         return new Promise( resolve => {
 
+            //new Uint8Array(gpuConfBuffer.getMappedRange()).set(new Uint8Array([this.#brightness]));
+            //gpuConfBuffer.unmap();
+
             // Put original image data in the input buffer (257x78)
             new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData));
             gpuInputBuffer.unmap();
+
+            // Write values to uniform buffer object
+            const uniformData = [this.#brightness];
+            const uniformTypedArray = new Float32Array(uniformData);
+            this.#device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer);            
     
             const commandEncoder = that.#device.createCommandEncoder();
             const passEncoder = commandEncoder.beginComputePass();
@@ -220,12 +287,22 @@ class GPURenderer {
     
                 // Generate Image data usable by a canvas
                 const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that.#screenWidth, that.#screenHeight);
+
+               // console.log(imageData);
     
                 // return to caller
                 resolve(imageData);
             });
         });
 	}
+
+    /**
+	 * Set brightness of the dots between 0 and 1 (does not affect the background color)
+     * @param {float} b 
+     */
+    setBrightness(b) {
+        this.#brightness = Math.max(0, Math.min(b, 1));
+    }
 
 }
 

@@ -298,6 +298,21 @@ class DMD {
 		}
 	}
 
+	fadeOut(duration) {
+		return new Promise(resolve =>{
+
+		});
+	}
+
+	/**
+	 * Set DMD opacity betwewn 0 and 255
+	 * @param {number} b
+	 */
+	setBrightness(b) {
+		// Pass opacity converted to alpha (integer between 0 and 255) to the renderer
+		this.#renderer.setBrightness(b);
+	}
+
 	/**
 	 * Get canvas
 	 */

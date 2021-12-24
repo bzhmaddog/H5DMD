@@ -10,6 +10,7 @@ class CPURenderer {
     #dmdHeight;
     #screenWidth;
 	#screenHeight;
+	#brightness;
 
 
     constructor(dmdWidth, dmdHeight, screenWidth, screenHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape) {
@@ -22,6 +23,7 @@ class CPURenderer {
         this.#xSpace = xSpace;
         this.#ySpace = ySpace;
         this.#dotShape = dotShape;
+		this.#brightness = 1;
     }
 
 	init() {
@@ -76,6 +78,8 @@ class CPURenderer {
 					}
 				}
 
+				// TODO : Brightness
+
 				// Hack Pixels that are too dark  to make then look like the background (15,15,15)
 				// TODO : Get background color from a variable
 				if (r < 15 && g < 15 && b < 15) {
@@ -96,7 +100,7 @@ class CPURenderer {
 		}
 	}
 
-    	/**
+   	/**
 	 * Render DMD dots
 	 * @param frameData input image data
 	 * @returns 
@@ -131,6 +135,14 @@ class CPURenderer {
 
 			resolve(dmdImageData);
 		});
+	}
+
+	/**
+	 * Set brightness of the dots between 0 and 1 (does not affect the background color)
+	 * @param {float} b
+	 */
+	setBrightness(b) {
+		this.#brightness = Math.max(0, Math.min(b, 1));
 	}
 }
 
