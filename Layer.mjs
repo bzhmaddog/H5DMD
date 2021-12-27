@@ -18,6 +18,7 @@ class Layer {
 	#renderBuffer;
 	#width;
 	#height;
+	#renderQueue;
 	
 	constructor(_width, _height, _options, _loadedListener, _updatedListener) {
 
@@ -26,22 +27,46 @@ class Layer {
 			transparent : true,
 			visible : true,
 			opacity : 1,
-			renderer : null
+			renderers : [],
+			groups: []
 		};
 
 		this.#width = _width;
 		this.#height = _height;
 		this.#loadedListener = _loadedListener;
 		this.#updatedListener = _updatedListener;
+		this.#hasRenderer = false;
+		this.#renderQueue = [];
 
 		this.#options = Object.assign(defaultOptions, _options);
 
 		this.#layerId = 'layer_' + this.#options.type + '_' + this.#options.name;
 
-
 		this.#options = Object.assign({ name : this.#layerId, width : _width, height : _height }, this.#options);
 
-		if (this.#options.renderer !== null) {
+
+		if (typeof this.#options.groups === 'string') {
+			try {
+				this.#options.groups = this.#options.groups.replace(/\s*/gi,'').split(/[ ,;]/);
+			} catch(e) {
+				console.log("Incorrect list of group provided", e);
+			}
+		}
+
+		// Add default group
+		if (!this.#options.groups.includes('default')) {
+			this.#options.groups.push('default');
+		}
+
+		//console.log(`${this.#options.name}[groups] = ${this.#options.groups}`);
+
+		if (!Array.isArray(this.#options.renderers)) {
+			this.#options.renderers = [this.#options.renderers];
+		}
+
+
+		// If any renderer have been added to this layer then run rendering loop
+		if (Array.isArray(this.#options.renderers) && this.#options.renderers.length > 0) {
 			this.#hasRenderer = true;
 			this.#outputBuffer = new Buffer(_width, _height);
 			this.#renderBuffer = new Buffer(_width, _height);
@@ -50,12 +75,10 @@ class Layer {
 			this.#outputBuffer.context.imageSmoothingEnabled = false;
 
 			
-			requestAnimationFrame(this.#render.bind(this));
-		} else {
-			this.#hasRenderer = false;
+			//requestAnimationFrame(this.#render.bind(this));
 		}
 
-		//console.log(this.#hasRenderer);
+		//console.log(this.#options.renderers);
 
 		switch(this.#options.type) {
 
@@ -78,29 +101,41 @@ class Layer {
 		PubSub.publish('layer.created', this);
 	}
 
-	#render() {
+	#renderFrame() {
 		const that = this;
 
+		// clone renderers array;
+		this.#renderQueue = [...this.#options.renderers];
+
+		// draw raw layer content in tmp buffer
 		this.#renderBuffer.clear();
 		this.#renderBuffer.context.drawImage(this.#content.data, 0, 0);
 
-		//var img  = this.#renderBuffer.canvas.toDataURL("image/png");
-		//document.getElementById('test').src = img;
-
+		// get buffer data
 		var frameImageData = this.#renderBuffer.context.getImageData(0, 0, this.#width, this.#height);
-		var frameData = frameImageData.data;
 
+		// start render queue processing
+		this.#processRenderQueue(frameImageData);
+	}
 
-		//document.getElementById('test').getContext('2d').putImageData(frameImageData,0,0);
+	#processRenderQueue(frameImageData) {
+		var that = this;
 
-		this.#options.renderer.renderFrame(frameData).then(outputData => {
+		// if there is a renderer in the queue then run render pass with this renderer
+		if (this.#renderQueue.length) {
+			var renderer = this.#renderQueue.shift(); // pop renderer from render queue
 
+			// render content with current renderer then process next renderer in queue
+			renderer.renderFrame(frameImageData.data).then(outputData => {
+				that.#processRenderQueue(outputData);
+			});
+		// no more renderer in queue then draw final image and start queue process again	
+		} else {
 			that.#outputBuffer.clear();
-			that.#outputBuffer.context.putImageData(outputData, 0, 0);
-
-			//console.log(outputData);
-			requestAnimationFrame(that.#render.bind(that));
-		});
+			that.#outputBuffer.context.putImageData(frameImageData, 0, 0);
+			//console.log('here');
+			requestAnimationFrame(that.#renderFrame.bind(that));
+		}
 	}
 
 	#layerLoaded() {
@@ -112,6 +147,12 @@ class Layer {
 
 		if (typeof this.#loadedListener === 'function') {
 			this.#loadedListener(this);
+		}
+
+		// start rendering
+		if (this.#hasRenderer) {
+			console.log(this.#layerId);
+			requestAnimationFrame(this.#renderFrame.bind(this));
 		}
 	}
 
@@ -165,6 +206,10 @@ class Layer {
 
 	getId() {
 		return this.#layerId;
+	}
+
+	isTransparent() {
+		return this.#options.transparent;
 	}
 
 }

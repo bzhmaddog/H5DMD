@@ -34,7 +34,7 @@ class GPURenderer {
      * @param {*} dotShape 
      * @param {*} backgroundColor 
      */
-    constructor(dmdWidth, dmdHeight, screenWidth, screenHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape, bgBrightness) {
+    constructor(dmdWidth, dmdHeight, screenWidth, screenHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape, bgBrightness, brightness) {
         this.#dmdWidth = dmdWidth;
         this.#dmdHeight = dmdHeight;
         this.#screenWidth = screenWidth;
@@ -50,16 +50,20 @@ class GPURenderer {
         this.#shaderModule;
         this.#dmdBufferByteLength = dmdWidth*dmdHeight * 4;
         this.#screenBufferByteLength = screenWidth * screenHeight * 4;
-        this.#brightness = 1;
+
 
         this.#bgBrightness = 14;
         this.#bgColor = 4279176975;
+        this.#brightness = 1;
 
         if (typeof bgBrightness === 'number') {
                 this.#bgBrightness = bgBrightness;
                 this.#bgColor = parseInt("FF" + this.#int2Hex(bgBrightness) + this.#int2Hex(bgBrightness) + this.#int2Hex(bgBrightness), 16);
         }
 
+        if (typeof bgBrightness === 'number') {
+            this.setBrightness(brightness);
+        }
     }
 
     #int2Hex(n) {
@@ -86,11 +90,11 @@ class GPURenderer {
 
                     that.#shaderModule = device.createShaderModule({
                         code: `
-                            struct UBO {
+                            [[block]] struct UBO {
                                 brightness: f32;
                             };
 
-                            struct Image {
+                            [[block]] struct Image {
                                 rgba: array<u32>;
                             };
 
@@ -133,10 +137,18 @@ class GPURenderer {
 
                                 // Recreate pixel color but force alpha to 255
                                 pixel = 255u << 24u | bb << 16u | bg << 8u | br;
+
+                                var t : u32 = br + bg + bb;
                 
                                 // Pixels that are too dark will be hacked to give the 'off' dot look of the DMD
-                                if (br < bgBrightness && bg < bgBrightness && bb < bgBrightness) {
+                                //if ( (br < bgBrightness && bg < bgBrightness && bb < bgBrightness) || brightness == 0f) {
+                                //    pixel = ${that.#bgColor}u;
+                                    //pixel = 4278190335u;
+                                //}
+
+                                if (t < bgBrightness*3u) {
                                     pixel = ${that.#bgColor}u;
+                                    //pixel = 4294901760u;
                                 }
                 
                                 // First byte index of the output dot
@@ -155,8 +167,7 @@ class GPURenderer {
 
                     this.#shaderModule.compilationInfo().then(i=>{
                         if (i.messages.length > 0 ) {
-                            console.log('Shader compilation error(s) found');
-                            console.log(i.messages);
+                            console.log('GPURenderer:compilationInfo()', i.messages);
                         }
                     });
 
@@ -301,7 +312,15 @@ class GPURenderer {
      * @param {float} b 
      */
     setBrightness(b) {
-        this.#brightness = Math.max(0, Math.min(b, 1));
+        var b = Math.max(0, Math.min(Number.parseFloat(b), 1));
+
+        this.#brightness = Math.round(b * 1e3) / 1e3;
+
+        //console.log(this.#brightness);
+    }
+
+    get brightness() {
+        return this.#brightness;
     }
 
 }

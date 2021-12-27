@@ -1,6 +1,7 @@
 import { Buffer } from './Buffer.mjs';
 import { Layer } from './Layer.mjs';
-import { Utils } from '../utils/Utils.mjs';
+import { Utils } from './Utils.mjs';
+import { Easing } from './Easing.mjs';
 import { CPURenderer} from './renderers/CPURenderer.mjs';
 import { GPURenderer } from './renderers/GPURenderer.mjs';
 
@@ -20,6 +21,7 @@ class DMD {
 	#outputHeight;
 	#dmdBuffer;
 	#frameBuffer;
+	#transparencyBuffer;
 	#startTime;
 	#frames;
 	#lastFrames;
@@ -44,7 +46,7 @@ class DMD {
 	 * @param {string} dotShape Shape of the dots (can be square or circle)
 	 * @param {*} targetCanvas Dom Element where the DMD will be drawed
 	 */
-	constructor(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, xOffset, yOffset, dotShape, backgroundBrightness, targetCanvas, showFPS) {
+	constructor(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, xOffset, yOffset, dotShape, backgroundBrightness, brightness, targetCanvas, showFPS) {
 		this.#canvas = targetCanvas;
 		this.#context = this.#canvas.getContext('2d');
 		this.#xSpace = xSpace;
@@ -56,6 +58,7 @@ class DMD {
 		this.#outputHeight = oHeight;
 		this.#dmdBuffer = new Buffer(cWidth, cHeight);
 		this.#frameBuffer = new Buffer(oWidth, oHeight);
+		this.#transparencyBuffer = new Buffer(oWidth, oHeight);
 		this.#startTime = 0;
 		this.#frames = 0;
 		this.#lastFrames = 0;
@@ -69,7 +72,7 @@ class DMD {
 		this.#isRunning = false;
 
 		//this.#renderer = new CPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape);
-		this.#renderer = new GPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape, backgroundBrightness);
+		this.#renderer = new GPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape, backgroundBrightness, brightness);
 
 		if (!!showFPS) {
 			// Dom element to ouput fps value
@@ -190,7 +193,7 @@ class DMD {
 		}
 
 		// add zIndex if not specified
-		var options = Object.assign({ zIndex: this.#zIndex}, _options);
+		var options = Object.assign({ zIndex: this.#zIndex, visible : true}, _options);
 
 		// Only background can have zIndex = 0 this is to make sure it is the first layer to be rendered
 		if (options.zIndex === 0) {
@@ -299,8 +302,53 @@ class DMD {
 	}
 
 	fadeOut(duration) {
-		return new Promise(resolve =>{
+		var start = window.performance.now();
+		var that = this;
 
+		var startBrightness = that.#renderer.brightness;
+
+		return new Promise(resolve => {
+			var cb = function () {
+				var delta = window.performance.now() - start;
+				var b = startBrightness - Easing.easeOutSine(delta, 0, startBrightness, duration);
+				that.#renderer.setBrightness(b);
+				
+				if (that.#renderer.brightness <= 0 || delta > duration) {
+					that.#renderer.setBrightness(0);
+					resolve();
+				} else {
+					setTimeout(cb, 1);
+				}
+			}
+			cb();
+		});
+	}
+
+	fadeIn(duration) {
+		var start = window.performance.now();
+		var that = this;
+
+		var startBrightness = that.#renderer.brightness;
+
+		var cnt = 0;
+
+		return new Promise(resolve => {
+			var cb = function () {
+				cnt++;
+				var delta = window.performance.now() - start;
+				//console.log(delta);
+				var b = Easing.easeOutSine(delta, startBrightness, 1, duration);
+				that.#renderer.setBrightness(b);
+				
+				if (that.#renderer.brightness >= 1 || delta > duration) {
+					that.#renderer.setBrightness(1);
+					//console.log(cnt);
+					resolve();
+				} else {
+					setTimeout(cb, 1);
+				}
+			}
+			cb();
 		});
 	}
 
@@ -311,6 +359,10 @@ class DMD {
 	setBrightness(b) {
 		// Pass opacity converted to alpha (integer between 0 and 255) to the renderer
 		this.#renderer.setBrightness(b);
+	}
+
+	get brightness() {
+		return this.#renderer.brightness;
 	}
 
 	/**
