@@ -1,6 +1,7 @@
 import { Buffer } from "./Buffer.mjs";
 
 class Sprite {
+    #id;
     #buffer;
     #spriteSheet;
     #animations;
@@ -15,7 +16,7 @@ class Sprite {
     #frameOffset;
     #maxHeight;
     #maxWidth;
-
+    #endOfQueueListener;
 
     /**
      * 
@@ -23,9 +24,10 @@ class Sprite {
      * @param {number} frameOffset Distance between each frame (horizontaly)
      * @returns 
      */
-    constructor(spriteSheetSrc, frameOffset) {
+    constructor(id, spriteSheetSrc, frameOffset) {
         const that = this;
 
+        this.#id = id;
         this.#spriteSheet = new Image();
 
         this.#buffer = new Buffer(0 ,0);
@@ -67,6 +69,7 @@ class Sprite {
      * @param {float} speedFactor Magic value to make the animation faster or slower
      */
     addAnimation(id, nbFrames, width, height, xOffset, Yoffset, speedFactor) {
+
         if (typeof this.#animations[id] === 'undefined') {
             this.#animations[id] = {
                 width: width,
@@ -79,6 +82,8 @@ class Sprite {
 
             this.#maxHeight = Math.max(this.#maxHeight, height);
             this.#maxWidth = Math.max(this.#maxWidth, width);
+        } else {
+            throw new Error(`Animation [${id} already exists in sprite [${this.#id}]`);
         }
     }
 
@@ -143,6 +148,11 @@ class Sprite {
 
             // Run current animation loop
             this.#doAnimation();
+        } else {
+            this.#isAnimating = false;
+            if (typeof this.#endOfQueueListener === 'function') {
+                this.#endOfQueueListener(this.#id);
+            }
         }
     }
 
@@ -163,18 +173,6 @@ class Sprite {
             params : this.#animations[id],
             loop : (typeof nbLoop === 'number') ? nbLoop : 0
         });
-
-        //console.log(this.#queue);
-
-        /*this.#counter = 0;
-        this.#isAnimating = true;
-        this.#buffer.width = this.#animations[id].width;
-        this.#buffer.height =  this.#animations[id].height;
-        this.#loop = 1;*/
-
-        // Start animation
-        //this.#doAnimation();
-        //this.#processQueue();
     }
 
 
@@ -184,15 +182,16 @@ class Sprite {
      * @param {array} An array of ids and number of loop 
      * @param {boolean} should the sequence loop indefinitely
      */
-    enqueueSequence(queue, loop) {
-        
+    enqueueSequence(seq, loop) {
+
+      
         // Build array of animation
         // array[0] = animation id
         // array[1] = number of loop
-        for (var i = 0 ; i < queue.length ; i++) {
+        for (var i = 0 ; i < seq.length ; i++) {
             this.#queue.push({
-                params : this.#animations[queue[i][0]],
-                loop : Math.max(1, queue[i][1])
+                params : this.#animations[seq[i][0]],
+                loop : Math.max(1, seq[i][1])
             });
         }
 
@@ -261,6 +260,11 @@ class Sprite {
         });
     }
 
+    setEndOfQueueListener(_listener) {
+        if (typeof _listener === 'function') {
+            this.#endOfQueueListener = _listener;
+        }
+    }
 }
 
 export { Sprite };

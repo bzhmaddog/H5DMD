@@ -22,11 +22,15 @@ class TextLayer {
         this.#ctx.imageSmoothingEnabled = false;
         this.#loadedListener = _loadedListener;
         this.#updatedListener = _updatedListener;
-        this.#texts = {};
+        this.#texts = [];
 
         this.#buffer.context.imageSmoothingEnabled = false;
 
-        this.#onDataLoaded();
+        this.#buffer.context.fillStyle = 'transparent';
+        this.#buffer.clear();
+
+        // Delay onDataLoaded a bit otherwise #content is undefined in Layer.mjs
+        setTimeout(this.#onDataLoaded.bind(this), 1);
     }
 
     #onDataLoaded() {
@@ -39,47 +43,28 @@ class TextLayer {
     #onTextUpdated() {
         this.#redrawLayer();
         if (typeof this.#updatedListener === 'function') {
-            //this.#updatedListener(this);
+            this.#updatedListener(this);
         }
     }
 
     #redrawLayer() {
-        var texts = this.#texts;
-        this.#texts = {};
+        //var texts = this.#texts;
+        //this.#texts = {};
         var that = this;
 
         this.#buffer.clear();
 
-        Object.keys(texts).forEach(id => {
-            var text = texts[id];
-            that.addText(id, text.getText(), text.getOptions());
-        });
+        console.log(this.#texts);
+
+        for (var i = 0 ; i < this.#texts.length ; i++) {
+            var text = this.#texts[i].text;
+            console.log(text);
+
+            that.#drawText(text.getText(), text.getOptions());
+        };
     }
 
-
-    addText(id, text, _options) {
-        var defaultOptions = {
-            top : 0,
-            left: 0,
-            color: Colors.white,
-            align : 'left',
-            fontSize : '12',
-            fontFamily : 'Arial',
-            textBaseline : 'top',
-            xOffset : 0,
-            yOffset : 0,
-            strokeWidth : 0,
-            strokeColor : Colors.black,
-            adjustWidth : false
-        },
-        options = Object.assign(defaultOptions, _options);
-
-        if (typeof text === 'undefined' || text === '') {
-            return;
-        }
-
-        this.#texts[id] = new Text(text, options, this.#onTextUpdated.bind(this));
-
+    #drawText(text, options) {
         var left = options.left;
         var top = options.top;
 
@@ -107,8 +92,6 @@ class TextLayer {
             m = this.#ctx.measureText(text);       
         }
 
-
-
         if (options.align === 'center') {
             left = (this.#options.width/2) - (m.width / 2);
         } else if (options.align === 'right') {
@@ -133,8 +116,18 @@ class TextLayer {
             }
         }
 
+        // Add offsets
         left += options.xOffset;
         top += options.yOffset;
+
+        // Add stroke width and height
+        left += options.strokeWidth;
+
+        //console.log(left);
+        //console.log(top);
+
+        top -= options.strokeWidth;
+        //top -= 5;
 
         if (options.strokeWidth > 0) {
             this.#ctx.strokeStyle = options.strokeColor;
@@ -143,6 +136,42 @@ class TextLayer {
         }
 
         this.#ctx.fillText(text, left, top);
+
+        //console.log(text);
+    }
+
+
+    addText(id, text, _options) {
+        var defaultOptions = {
+            top : 0,
+            left: 0,
+            color: Colors.white,
+            align : 'left',
+            fontSize : '12',
+            fontFamily : 'Arial',
+            textBaseline : 'top',
+            xOffset : 0,
+            yOffset : 0,
+            strokeWidth : 0,
+            strokeColor : Colors.black,
+            adjustWidth : false
+        },
+        options = Object.assign(defaultOptions, _options);
+
+        if (typeof text === 'undefined' || text === '') {
+            return;
+        }
+
+        this.#texts.push({
+            id : id,
+            text : new Text(text, options, this.#onTextUpdated.bind(this))
+        });
+
+        this.#drawText(text, options);
+
+        if (typeof this.#updatedListener === 'function') {
+            this.#updatedListener(this);
+        }
     }
 
     get getId() {
@@ -157,6 +186,10 @@ class TextLayer {
         return this.#buffer.canvas;
 	}
 
+    get context() {
+        return this.#ctx;
+    }
+
 	get options() {
 		return this.#options;
 	}
@@ -166,12 +199,15 @@ class TextLayer {
     }
 
     getText(id) {
-        return this.#texts[id];
+        return this.#texts.filter( t => {return t.id === id})[0].text;
     }
 
     removeAllTexts() {
-        this.#texts = {};
+        this.#texts = [];
         this.#buffer.clear();
+        if (typeof this.#updatedListener === 'function') {
+            this.#updatedListener(this);
+        }
     }
 }
 

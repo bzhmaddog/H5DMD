@@ -121,6 +121,89 @@ let testSprite = new Sprite("sprites/scott.png", 3, 0).then(sprite => {
     sprite.run();
 });
 
+// Or
+var spriteLayer = dmd.addLayer({
+    name :'sprite-layer',
+    type : 'sprite'
+});
+
+PubSub.subscribe("sprite.queue.finished", function(event, data){
+    console.log("Queue finished", data);
+});
+
+spriteLayer.content.createSprite(
+    "scott",
+    "sprites/scott.png",
+    3,
+    0,
+    [
+        ['idle', 8, 36, 59, 0, 0, .16],
+        ['walk', 6, 36, 63, 0, 59, .12],
+        ['run', 8, 53, 60, 0, 122, .20],
+        ['idle2', 4, 46, 62, 0, 182, .09],
+        ['taunt', 9, 46, 62, 0, 244, .25]
+    ],
+    10,
+    2
+).then( () => {
+
+    let seq = [
+        ['idle' , 3],
+        ['walk' , 5],
+        ['run', 4],
+        ['taunt', 1]
+    ];
+
+    s.content.enqueueSequence('scott', seq, false);
+    s.content.run('scott');
+
+});
+
+// Canvas layer
+var canvasLayer = dmd.addLayer({
+    name :'sprite-layer',
+    type : 'canvas'
+});
+
+canvasLayer.content.drawImage('images/test.png', 0, 0, 100, 100); // width and height are optional
+
+var img = new Image();
+
+img.onload = function() {
+    canvasLayer.content.drawImage(img, 0, 0, 100, 100); // width and height are optional
+}
+
+img.src = "test.src";
+
+// Animation layer
+var animLayer = this.#dmd.addLayer({
+    name :'anim',
+    type : 'animation',
+    loop : true,
+    duration : 800,
+});
+
+animLayer.content.loadImages([
+    'animations/boss-mode/0.webp',
+    'animations/boss-mode/1.webp',
+    'animations/boss-mode/2.webp',
+    'animations/boss-mode/3.webp',
+    'animations/boss-mode/4.webp',
+    'animations/boss-mode/5.webp',
+    'animations/boss-mode/6.webp',
+    'animations/boss-mode/7.webp',
+    'animations/boss-mode/8.webp',
+    'animations/boss-mode/9.webp',
+    'animations/boss-mode/10.webp',
+    'animations/boss-mode/11.webp',
+    'animations/boss-mode/12.webp',
+    'animations/boss-mode/13.webp',
+    'animations/boss-mode/14.webp'
+]).then(() => {
+    animLayer.content.play();
+});
+
+
 // Change layer visibilitity
 spritesLayer.setVisibility(false);
 // or

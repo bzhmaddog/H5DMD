@@ -115,7 +115,7 @@ class GPURenderer {
                                 var bg = 0u;
                                 var bb = 0u;
                                 
-                                //let a : u32 = (pixel >> 24u) & 255u;
+                                let a : u32 = (pixel >> 24u) & 255u;
                                 let b : u32 = (pixel >> 16u) & 255u;
                                 let g : u32 = (pixel >> 8u) & 255u;
                                 let r : u32 = (pixel & 255u);
@@ -315,8 +315,6 @@ class GPURenderer {
         var b = Math.max(0, Math.min(Number.parseFloat(b), 1));
 
         this.#brightness = Math.round(b * 1e3) / 1e3;
-
-        //console.log(this.#brightness);
     }
 
     get brightness() {

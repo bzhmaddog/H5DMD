@@ -4,6 +4,7 @@ import { Utils } from './Utils.mjs';
 import { Easing } from './Easing.mjs';
 import { CPURenderer} from './renderers/CPURenderer.mjs';
 import { GPURenderer } from './renderers/GPURenderer.mjs';
+import { ChangeAlphaRenderer } from './renderers/ChangeAlphaRenderer.mjs';
 
 
 class DMD {
@@ -19,17 +20,20 @@ class DMD {
 	#sortedLayers;
 	#outputWidth;
 	#outputHeight;
-	#dmdBuffer;
 	#frameBuffer;
-	#transparencyBuffer;
-	#startTime;
-	#frames;
-	#lastFrames;
 	#fpsBox;
 	#zIndex;
 	#renderFPS;
 	#renderer;
 	#isRunning;
+	#fps;
+	#lastRenderTime;
+	#layerRenderers;
+	#initDone;
+	#testCtx;
+	#backgroundColor;
+	#cnt;
+
 
 	/**
 	 * 
@@ -56,12 +60,7 @@ class DMD {
 		this.#dotShape = dotShape;
 		this.#outputWidth = oWidth;
 		this.#outputHeight = oHeight;
-		this.#dmdBuffer = new Buffer(cWidth, cHeight);
 		this.#frameBuffer = new Buffer(oWidth, oHeight);
-		this.#transparencyBuffer = new Buffer(oWidth, oHeight);
-		this.#startTime = 0;
-		this.#frames = 0;
-		this.#lastFrames = 0;
 		this.#zIndex = 1;
 		this.#sortedLayers = [];
 		this.#renderFPS = function() {}; // Does nothing
@@ -69,10 +68,24 @@ class DMD {
 		this.#canvas.width = cWidth;
 		this.#canvas.height = cHeight;
 
+		this.#cnt = 0;
+
+		this.#backgroundColor = `rgba(14,14,14,255)`;
+
 		this.#isRunning = false;
+		this.#fps = 0;
+		this.#layerRenderers = {};
 
 		//this.#renderer = new CPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape);
 		this.#renderer = new GPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape, backgroundBrightness, brightness);
+
+		this.#layerRenderers = {
+			opacity : new ChangeAlphaRenderer(oWidth, oHeight)
+		};
+
+		this.#initDone = false;
+
+		//this.#layerRenderers['opacity'].init();
 
 		if (!!showFPS) {
 			// Dom element to ouput fps value
@@ -95,20 +108,47 @@ class DMD {
 
 		this.#dotShape = dotShape || DMD.DotShape.Circle;
 
-		this.#startTime = new Date().getTime();
+		//this.#startTime = window.performance.now();
+
+		this.#testCtx = document.getElementById('test').getContext('2d');
 
 		this.reset();
-
-		window.debugDMD = this.debug.bind(this);
-
-		// Start rendering frames
 	}
 
-	run() {
-		this.#renderer.init().then( device => {
-			this.#isRunning = true;
-			requestAnimationFrame(this.#renderDMD.bind(this));
+	/**
+	 * Init DMD renderer then all layer renderers
+	 * @returns Promise
+	 */
+	init() {
+		var that = this;
+
+		return new Promise( resolve => {
+			var renderers = [];
+			Object.keys(this.#layerRenderers).forEach( id => {
+				renderers.push(this.#layerRenderers[id].init());
+			});
+
+			this.#renderer.init().then( device => {
+				Utils.chainPromises(renderers)
+				.then(() => {
+					this.#initDone = true;
+					resolve();
+				});
+			});
 		});
+	}
+
+	/**
+	 * Start rendering layers
+	 */
+	run() {
+		if (!this.#initDone) {
+			throw new Error("call DMD.init() first");
+		}
+
+		this.#isRunning = true;
+		this.#lastRenderTime =  window.performance.now();
+		requestAnimationFrame(this.#renderDMD.bind(this));		
 	}
 
 
@@ -120,7 +160,13 @@ class DMD {
 		var that = this;
 
 		// Fill black rectangle (black will be converted to lowest dot intensity)
+		this.#frameBuffer.context.fillStyle = this.#backgroundColor;
+		//this.#frameBuffer.context.fillStyle = 'black';
+		//this.#frameBuffer.context.fillStyle = 'transparent';
+
 		this.#frameBuffer.context.fillRect(0, 0, this.#outputWidth, this.#outputHeight);
+
+		//this.#frameBuffer.context.drawImage(layer.data, 0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
 
 		this.#sortedLayers.forEach( l =>  {
 			if (this.#layers.hasOwnProperty(l.name)) {
@@ -129,7 +175,6 @@ class DMD {
 				if (layer.isVisible() && layer.content.isLoaded) {
 					// Draw layer content into a buffer
 					this.#frameBuffer.context.drawImage(layer.data, 0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
-
 				}
 			}
 		});
@@ -138,35 +183,45 @@ class DMD {
 		var frameImageData = this.#frameBuffer.context.getImageData(0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
 		var frameData = frameImageData.data;
 
-		//document.getElementById('test').getContext('2d').putImageData(frameImageData,0,0);
-		
-		this.#renderer.renderFrame(frameData).then( dmdImageData => {
-			that.#context.putImageData(dmdImageData, 0, 0);
-			that.#renderFPS();
+		/*if (this.#cnt < 20) {
+			console.log(`Render : ${this.#cnt}`, frameData);
+		}*/
 
-			if (that.#isRunning) {
-				requestAnimationFrame(that.#renderDMD.bind(that));
-			}
+		createImageBitmap(frameImageData).then( bitmap => {
+			this.#testCtx.drawImage(bitmap, 0, 0);
+		});
+
+		this.#renderer.renderFrame(frameData).then( dmdImageData => {
+
+			createImageBitmap(dmdImageData).then( bitmap => {
+
+				that.#context.clearRect(0, 0, that.#canvas.width, that.#canvas.height);
+				that.#context.drawImage(bitmap, 0, 0);
+
+				that.#renderFPS();
+
+
+				var now = window.performance.now();
+				var delta = (now - that.#lastRenderTime);
+				that.#lastRenderTime = now;
+	
+				this.#fps = Math.round( (1000 / delta) * 1e2) / 1e2;
+	
+				if (that.#isRunning) {
+				 	requestAnimationFrame(that.#renderDMD.bind(that));
+					that.#cnt++;
+				}
+	
+			});
+
 		});
 	}	
 
 	#_renderFPS(){
-		// calculate FPS rate
-		var now = new Date().getTime();
-		var dt = now - this.#startTime;
-		var df = this.#frames - this.#lastFrames;
-
-		this.#startTime = now;
-		this.#lastFrames = this.#frames;
-
-		var fps = (df * 1000) / dt;
-
-		this.#frames++;
-
-		this.#fpsBox.innerHTML = Math.round(fps) + 'fps';
+		this.#fpsBox.innerHTML = `${this.#fps} fps`;
 	}
 
-	#layerdLoaded() {
+	#layerLoaded() {
 		//logger.log("Layer loaded");
 		//requestAnimationFrame(this.#renderDMD.bind(this));
 	}
@@ -202,7 +257,7 @@ class DMD {
 
 		if (options.hasOwnProperty('name') && typeof this.#layers[options.name] === 'undefined') {
 			if (options.hasOwnProperty('type')) {
-				this.#layers[options.name] = new Layer(this.#outputWidth, this.#outputHeight, options, this.#layerdLoaded.bind(this), this.#layerUpdated.bind(this));
+				this.#layers[options.name] = new Layer(this.#outputWidth, this.#outputHeight, options, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this), this.#layerRenderers);
 
 				if (options.zIndex === this.#zIndex) {
 					this.#zIndex++;
@@ -239,8 +294,14 @@ class DMD {
 		}
 
 		if (typeof this.#layers[layerName] !== 'undefined') {
+
+			this.#layers[layerName].destroy(); // Force stop rendering since delete does seems to GC
+
+			// Remove Layer object from array
 			delete this.#layers[layerName];
-			this.#sortedLayers = this.#sortedLayers.filter( l => {return l.name !== layerName});			
+
+			// Sort layers without deleted layer
+			this.#sortedLayers = this.#sortedLayers.filter( l => {return l.name !== layerName});
 		} else {
 			logger.log('This layer does not exist');
 		}
@@ -361,6 +422,25 @@ class DMD {
 		this.#renderer.setBrightness(b);
 	}
 
+	addRenderer(id, renderer) {
+
+		if (this.#isRunning) {
+			throw new Error("Renderers must be added before calling DMD.init()")
+		}
+
+
+		// TODO check if renderer is a renderer class
+		if (typeof this.#layerRenderers[id] === 'undefined') {
+			if (typeof renderer === 'object' && typeof renderer.renderFrame === 'function') {
+				this.#layerRenderers[id] = renderer;
+			} else {
+				throw new Error("Renderer object might not be a Renderer class");
+			}
+		} else {
+			throw new Error(`A renderer with this id[${id}] already exists`);
+		}
+	}
+
 	get brightness() {
 		return this.#renderer.brightness;
 	}
@@ -393,6 +473,10 @@ class DMD {
 
 	get canvasHeight() {
 		return this.#canvas.height;
+	}
+
+	getFPS() {
+		return this.#fps;
 	}
 
 }
