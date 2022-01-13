@@ -1,55 +1,64 @@
-import { Buffer } from "./Buffer.mjs";
+import { BaseLayer } from "./BaseLayer.mjs";
 
-class AnimationLayer {
+class AnimationLayer extends BaseLayer {
     #images;
-    #id;
-    #loaded;
-    #listener;
-    #options;
-    #playing;
-    #frameIndex;
+	#isPlaying;
+    #isPaused;
     #loop;
-    #startTime;
-    #frameDuration;
-    #outputBuffer;
-    #renderNextFrame;
+	#renderNextFrame;
     #onPlayListener;
 	#onPauseListener;
+    #onStopListener;
+    #frameIndex;
+    #startTime;
+    #frameDuration;
 
 
-    constructor(id, _options, _listener, _onPlayListener, _onPauseListener) {
-        var _defaultOptions = { loop: false, autoplay: false};
+	constructor(_id, _width, _height, _options, _renderers, _loadedListener, _updatedListener, _playListener, _pauseListener, _stopListener) {
 
-        this.#id = id;
-        this.#loaded = false;
-        this.#listener = _listener;
-		this.#onPlayListener = _onPlayListener;
-		this.#onPauseListener = _onPauseListener;
+		var options = Object.assign({loop : false, autoplay : false, width: _width, height: _height}, _options);
 
-        this.#options = Object.assign(_defaultOptions, _options);
+        super(_id, _width, _height, options, _renderers, _loadedListener, _updatedListener);
+
+        this._setType('animation');
+
+		this.#onPlayListener = _playListener;
+		this.#onPauseListener = _pauseListener;
+        this.#onStopListener = _stopListener;
         this.#images = [new Image()];
-        this.#playing = false;
+        this.#isPlaying = false;
+        this.#isPaused = false;
         this.#frameIndex = 0;
-        this.#loop = this.#options.loop;
-        this.#outputBuffer = new Buffer(this.#options.width, this.#options.height);
+        this.#loop = options.loop;
         this.#renderNextFrame = function(){};
 
-        if (typeof this.#options.duration !== 'number') {
-            throw new Error("You must provide a duration");
+        if (!Array.isArray(options.images)) {
+            throw new Error("options.images is required (array of paths to images)");
         }
+
+        if (typeof options.duration !== 'number') {
+            throw new Error("options.duration is required (value in milliseconds)");
+        }
+
+        this.#loadImages(options.images);
     }
 
-    #onDataLoaded() {
-        this.#loaded =  true;
+    #onImagesLoaded() {
 
-        this.#outputBuffer.clear();
-        this.#outputBuffer.context.drawImage(this.#images[this.#frameIndex], 0, 0, this.#outputBuffer.width, this.#outputBuffer.height);
+        // calculate how long each frame should be displayed
+        this.#frameDuration = this._options.duration / this.#images.length;
 
+        console.log(`Frame duration = ${this.#frameDuration}`);
 
-//        console.log('onDataLoaded', this);
-        if (typeof this.#listener === 'function') {
-            this.#listener(this);
-        }
+        this._contentBuffer.clear();
+        this._contentBuffer.context.drawImage(this.#images[this.#frameIndex], 0, 0, this.width, this.height);
+
+        this._layerLoaded();
+
+		if (this._options.autoplay) {
+			this.play();
+		}
+
     }
 
     #renderFrame(t) {
@@ -69,12 +78,14 @@ class AnimationLayer {
 
         if (!this.#loop && frameIndex >= this.#images.length) {
 //            console.log("End = ", position);
+            this.stop();
             return;
         }
 
-        /*if (frameIndex != this.#frameIndex) {
-            console.log(frameIndex);
-        }*/
+        if (frameIndex != this.#frameIndex) {
+            //console.log(frameIndex);
+            //console.log(this.#images[this.#frameIndex]);
+        }
 
 
         if (frameIndex >= this.#images.length) {
@@ -84,11 +95,8 @@ class AnimationLayer {
 
         this.#frameIndex = frameIndex;
 
-        this.#outputBuffer.clear();
-
-        //console.log(this.#images[this.#frameIndex]);
-
-        this.#outputBuffer.context.drawImage(this.#images[this.#frameIndex], 0, 0, this.#outputBuffer.width, this.#outputBuffer.height);
+        this._contentBuffer.clear();
+        this._contentBuffer.context.drawImage(this.#images[this.#frameIndex], 0, 0, this.width, this.height);
 
         this.#renderNextFrame();
     }
@@ -97,84 +105,54 @@ class AnimationLayer {
         requestAnimationFrame(this.#renderFrame.bind(this));        
     }
 
-    /**
-     * Fetch image from server
-     * @param {string} src 
-     * @returns 
-     */
-     async #loadImage(src, index) {
-        let response = await fetch(src);
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          } else {
-            return { 
-                blob : response.blob(),
-                index : index
-            };
-          }        
-    }
-
-
-    loadImages(images) {
+    #loadImages(images) {
         var tmpImages = [];
         var that = this;
         var cnt = 0;
 
-        return new Promise( (resolve, reject) => {
+        for(var i = 0 ; i < images.length ; i++) {
 
-            if (images.length) {
-                this.#loaded =  false;
+            tmpImages.push(null);
 
-                for(var i = 0 ; i < images.length ; i++) {
+            // Index is used to put loaded image in the correct position in the array
+            this._loadImageSynced(images[i], i).then( response => {
 
-                    tmpImages.push(null);
+                response.blob.then( blob => {
 
-                    this.#loadImage(images[i], i).then( response => {
+                    createImageBitmap(blob).then( bitmap => {
 
-                        response.blob.then( blob => {
+                        //console.log(response.index, bitmap);
 
-                            createImageBitmap(blob).then( bitmap => {
+                        tmpImages[response.index] = bitmap;
 
-                                //console.log(response.index, bitmap);
-
-                                tmpImages[response.index] = bitmap;
-
-                                cnt++;
-                                if (cnt === images.length) {
-                                    that.#images = [...tmpImages];
-                                    //console.log(that.#images);
-                                    that.#onDataLoaded();
-                                    resolve();
-                                }
-                            });
-                        });
+                        cnt++;
+                        if (cnt === images.length) {
+                            that.#images = [...tmpImages];
+                            that.#onImagesLoaded();
+                        }
                     });
-                }
-            } else {
-                reject();
-            }
-        });
+                });
+            });
+        }
     }
 
     play(loop) {
-        if (!this.#playing && this.#loaded) {
+        if (this.isLoaded() && !this.#isPlaying) {
             
-            // calculate how long each frame should be displayed
-            this.#frameDuration = this.#options.duration / this.#images.length;
-
-            //console.log(this.#frameDuration);
-            //console.log(this.#images.length);
-
             if (typeof loop !== 'undefined') {
                 this.#loop = !!loop;
+            } else if (!this.#isPaused) {
+                this.#loop = this._options.loop;
             }
 
             this.#startTime = null;
-            this.#playing = true;
+            this.#isPlaying = true;
+            this.#isPaused = false;
 
             this.#renderNextFrame = this.#requestRenderNextFrame;
             this.#requestRenderNextFrame();
+
+            this._startRendering();
 
             if (typeof this.#onPlayListener === 'function') {
                 this.#onPlayListener();
@@ -183,57 +161,62 @@ class AnimationLayer {
     }
 
     stop() {
-        if (this.#playing) {
-            this.#playing = false;
+        if (this.#isPlaying) {
+            this.#isPlaying = false;
+            this.#isPaused = false;
             this.#frameIndex = 0;
             this.#renderNextFrame = function(){};
+            this._stopRendering();
+
+            if (typeof this.#onStopListener === 'function') {
+                this.#onStopListener();
+            }
         }
     }
 
     pause() {
-        if (this.#playing) {
-            this.#playing = false;
-            this.#renderNextFrame = function(){};
+        if (this.#isPlaying) {
 
-            if (typeof this.#onPauseListener === 'function') {
-                this.#onPauseListener();
+            console.log(this.#loop);
+            // Only looping animation can be paused
+            if (this.#loop) {
+                this.#isPlaying = false;
+                this.#isPaused = true;
+                this.#renderNextFrame = function(){};
+                if (typeof this.#onPauseListener === 'function') {
+                    this.#onPauseListener();
+                }
+            } else {
+                console.log("Only looping animation can be paused");
+                this.stop();
             }
+        }
+    }
+
+    resume() {
+        if (this.#isPaused) {
+            this.play();
+        } else {
+            console.log("This video is not paused");
         }
     }
 
 
     get isPlaying() {
-        return this.#playing;
+        return this.#isPlaying;
+    }
+
+    get isPaused() {
+        return this.#isPaused; 
     }
     
-    get getId() {
-		return this.#id;
-	}
-
-	get isLoaded() {
-		return this.#loaded;
-	}
-
-    get data() {
-        return this.#outputBuffer.canvas;
-    }
-
-    get context() {
-        return this.#outputBuffer.context;
-    }
-
-	get rawData() {
+	/*get rawData() {
         if (this.#frameIndex > this.#images.length - 1) {
             throw new Error(`Index out of bound : ${this.#frameIndex}`);
         }
         //console.log("frameIndex = ", this.#frameIndex);
 		return this.#images[this.#frameIndex];
-	}
-
-    get options() {
-        return this.#options;
-    }
-
+	}*/
 }
 
 export { AnimationLayer };

@@ -1,4 +1,6 @@
-class ChangeAlphaRenderer {
+import { Utils } from '../Utils.mjs';
+
+class OutlineRenderer {
 
     #adapter;
     #device;
@@ -6,8 +8,6 @@ class ChangeAlphaRenderer {
     #height;
     #shaderModule;
     #bufferByteLength;
-    #opacity;
-    #cnt;
     #initDone;
 
     /**
@@ -22,7 +22,6 @@ class ChangeAlphaRenderer {
         this.#width = _width;
         this.#height = _height;
         this.#bufferByteLength = _width * _height * 4;
-        this.#cnt = 0;
         this.#initDone = false;
     }
 
@@ -40,15 +39,13 @@ class ChangeAlphaRenderer {
                     that.#shaderModule = device.createShaderModule({
                         code: `
                             [[block]] struct UBO {
-                                opacity: f32;
+                                innerColor: u32;
+                                outerColor: u32;
+                                lineWidth: u32;
                             };
                             [[block]] struct Image {
                                 rgba: array<u32>;
                             };
-
-                            fn f2u(f: f32) -> u32 {
-                                return u32(ceil(f));
-                            }
 
                             [[group(0), binding(0)]] var<storage,read> inputPixels: Image;
                             [[group(0), binding(1)]] var<storage,write> outputPixels: Image;
@@ -56,36 +53,75 @@ class ChangeAlphaRenderer {
                             [[stage(compute), workgroup_size(1)]]
                             fn main ([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
                                 let index : u32 = global_id.x + global_id.y * ${that.#width}u;
+                                let lineSize : u32 = ${that.#width}u;
+
                                 let pixelColor : u32 = inputPixels.rgba[index];
-                                let opacity : f32 = uniforms.opacity;
+                                let innerColor : u32 = uniforms.innerColor;
+                                let outerColor : u32 = uniforms.outerColor;
+                                let lineWidth : u32 = uniforms.lineWidth;
 
                                 
                                 var a : u32 = (pixelColor >> 24u) & 255u;
                                 let b : u32 = (pixelColor >> 16u) & 255u;
                                 let g : u32 = (pixelColor >> 8u) & 255u;
                                 let r : u32 = (pixelColor & 255u);
+                                
 
-                                var aa = f2u(floor(f32(a) * opacity));
+                                // if inner color pixel found check pixels around
+                                if (pixelColor != innerColor) {
 
-                                // Hack : Todo find why floor not working (0 * anything) should give 0
-                                if (opacity == 0f) {
-                                    aa = 0u;
+                                    var innerColorFound = false;
+                                    
+                                    if (global_id.x > 0u && global_id.x < ${that.#width - 1}u && global_id.y > 0u && global_id.y < ${that.#height - 1}u) {
+                                        let topPixel = index - lineSize * lineWidth;
+                                        let bottomPixel = index + lineSize * lineWidth;
+                                        let leftPixel = index - lineWidth;
+                                        let rightPixel = index + lineWidth;
+                                        let topLeftPixel = topPixel - lineWidth;
+                                        let topRightPixel = topPixel + lineWidth;
+                                        let bottomLeftPixel = bottomPixel - lineWidth;
+                                        let bottomRightPixel = bottomPixel + lineWidth;
+
+                                        if (
+                                            inputPixels.rgba[topPixel] == innerColor ||
+                                            inputPixels.rgba[rightPixel] == innerColor ||
+                                            inputPixels.rgba[bottomPixel] == innerColor ||
+                                            inputPixels.rgba[leftPixel] == innerColor ||
+                                            inputPixels.rgba[topLeftPixel] == innerColor ||
+                                            inputPixels.rgba[topRightPixel] == innerColor ||
+                                            inputPixels.rgba[bottomLeftPixel] == innerColor ||
+                                            inputPixels.rgba[bottomRightPixel] == innerColor
+                                        ) {
+                                            innerColorFound = true;
+                                        }
+                                    }
+
+
+                                    if (innerColorFound) {
+                                        outputPixels.rgba[index] = outerColor;                                        
+                                    } else {
+                                        outputPixels.rgba[index] = pixelColor;
+                                        //outputPixels.rgba[index] = 4294967040u;
+                                    }
+
+                                } else {
+                                    outputPixels.rgba[index] = pixelColor;
                                 }
-               
-                                outputPixels.rgba[index] = aa << 24u | b << 16u | g << 8u | r;
+
+                                //outputPixels.rgba[index] = 4278190335u;
                             }
                         `
                     });
 
                     this.#shaderModule.compilationInfo().then(i => {
 
-                        console.log('ChangeAlphaRenderer:init()');
+                        console.log('OutlineRenderer:init()');
 
                         this.#initDone = true;
                         resolve();
 
                         if (i.messages.length > 0 ) {
-                            console.log("ChangeAlphaRenderer:compilationInfo() ", i.messages);
+                            console.log("OutlineRenderer:compilationInfo() ", i.messages);
                         }
                     });
                 });    
@@ -95,19 +131,19 @@ class ChangeAlphaRenderer {
     }
 
 
-    renderFrame(frameData, opacity) {
+    renderFrame(frameData, innerColor, outerColor, width) {
+
+        //console.log(Utils.rgba2abgr(innerColor));
 
         if (!this.#initDone) {
             console.log("init not done");
             return new Promise(resolve =>{resolve(frameData)});
         }
 
-        var o = opacity || 1;
-
         const that = this;
 
         const UBOBuffer = this.#device.createBuffer({
-            size: 4,
+            size: 3 * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
 
@@ -187,18 +223,24 @@ class ChangeAlphaRenderer {
             }
         });        
 
-
         return new Promise( resolve => {
 
             // Put original image data in the input buffer (257x78)
             new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData));
             gpuInputBuffer.unmap();
 
+    
+
             // Write values to uniform buffer object
-            const uniformData = [o];
-            const uniformTypedArray = new Float32Array(uniformData);
+            const uniformData = [
+                Utils.hexColorToInt(Utils.rgba2abgr(innerColor)),
+                Utils.hexColorToInt(Utils.rgba2abgr(outerColor)),
+                width
+            ];
 
             //console.log(uniformData);
+
+            const uniformTypedArray = new Int32Array(uniformData);
 
             this.#device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer);            
     
@@ -223,11 +265,14 @@ class ChangeAlphaRenderer {
                 // Generate Image data usable by a canvas
                 const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that.#width, that.#height);
 
+                //console.log(imageData.data);
+
                 // return to caller
                 resolve(imageData);
             });
         });
 	}
+
 }
 
-export { ChangeAlphaRenderer }
+export { OutlineRenderer }

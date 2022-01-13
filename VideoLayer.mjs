@@ -1,14 +1,10 @@
-import { Buffer } from "./Buffer.mjs";
+import { BaseLayer } from "./BaseLayer.mjs";
 
-class VideoLayer {
-	#loaded;
+class VideoLayer extends BaseLayer {
+
 	#video;
-	#id;
-	#options;
-	#listener;
-	#outputBuffer;
-	#renderNextFrame;
 	#isPlaying;
+	#renderNextFrame;
 	#onPlayListener;
 	#onPauseListener;
 
@@ -18,28 +14,23 @@ class VideoLayer {
 	 * @param width {integer} The width of the video
  	 * @param height {integer} The height of the video
  	 */
-	constructor(id, _options, _listener, _onPlayListener, _onPauseListener) {
-		var defaultOptions = {
-								loop : false,
-								autoplay : false,
-								mimeType : 'video/webm'
-							};
-		this.#loaded = false;
-		this.#id = id;
-		this.#options = Object.assign(defaultOptions, _options);
-		this.#listener = _listener;
-		this.#onPlayListener = _onPlayListener;
-		this.#onPauseListener = _onPauseListener;
+	//constructor(id, _options, _listener, _onPlayListener, _onPauseListener) {
+	constructor(_id, _width, _height, _options, _renderers, _loadedListener, _updatedListener, _playListener, _pauseListener) {
 
-		this.#outputBuffer = new Buffer(this.#options.width, this.#options.height);
+		var options = Object.assign({loop : false, autoplay : false, width: _width, height: _height}, _options);
+
+		super(_id, _width, _height, options, _renderers, _loadedListener, _updatedListener);
+
+		this.#onPlayListener = _playListener;
+		this.#onPauseListener = _pauseListener;
 
 		// Create a video element
 		this.#video = document.createElement('video'); // create a video element (not attached to the dom
 		
 		// set the dimensions
-		this.#video.width = this.#options.width;
-		this.#video.height = this.#options.height;
-		this.#video.loop = this.#options.loop;
+		this.#video.width = options.width;
+		this.#video.height = options.height;
+		this.#video.loop = options.loop;
 
 		this.#isPlaying = false;
 		
@@ -47,36 +38,47 @@ class VideoLayer {
 
 		// Bind loaded event of the video to publish an event so the client 
 		// can do whatever it want (example: play the video) 
-		this.#video.addEventListener('loadeddata', this.#onDataLoaded.bind(this));
+		this.#video.addEventListener('loadeddata', this.#onVideoLoaded.bind(this));
 		this.#video.addEventListener('play', this.#onVideoPlayed.bind(this));
 		this.#video.addEventListener('pause', this.#onVideoPaused.bind(this));
+
+		if (typeof options.src === 'string') {
+			this.load(options.src);
+		}
 	}
 
-    #onDataLoaded() {
-        this.#loaded =  true;
+    #onVideoLoaded() {
 
-		this.#outputBuffer.context.drawImage(this.#video,0 , 0, this.#options.width, this.#options.height);
+		this._contentBuffer.context.drawImage(this.#video,0 , 0, this._options.width, this._options.height);
 
+		if (this._options.autoplay) {
+			this.play();
+		}
 
-        if (typeof this.#listener === 'function') {
-            this.#listener(this)
-        }
+		this._layerLoaded();
     }
 
 	#onVideoPlayed() {
-		if (typeof this.#onPlayListener === 'function')	 {
+		this.#renderNextFrame = this.#requestRenderNextFrame;
+		this.#requestRenderNextFrame();
+
+		if (typeof this.#onPlayListener === 'function') {
 			this.#onPlayListener();
 		}
 	}
 
 	#onVideoPaused() {
-		if (typeof this.#onPauseListener === 'function')	 {
+		this.#renderNextFrame = function(){console.log('End of video rendering')};
+		this._stopRendering();
+
+		if (typeof this.#onPauseListener === 'function') {
 			this.#onPauseListener();
 		}
 	}
 
 	#renderFrame() {
-		this.#outputBuffer.context.drawImage(this.#video, 0, 0, this.#options.width, this.#options.height);
+		this._contentBuffer.clear();
+		this._contentBuffer.context.drawImage(this.#video, 0, 0, this._options.width, this._options.height);
 		this.#renderNextFrame();
 	}
 
@@ -89,7 +91,7 @@ class VideoLayer {
 	 * Load a media in the video element
 	 */
 	load(src, mimeType) {
-		this.#video.type = mimeType;
+		//this.#video.type = mimeType;
 		this.#video.src = src; // load the video
 	}
 
@@ -101,6 +103,8 @@ class VideoLayer {
 		this.#renderNextFrame = this.#requestRenderNextFrame;
 		this.#requestRenderNextFrame();
 		this.#video.play();
+
+		this._startRendering();
 	}
 
 	stop(reset) {
@@ -111,32 +115,13 @@ class VideoLayer {
 			this.#video.currentTime = 0
 		}
 
-		this.#renderNextFrame = function(){};
+		this.#renderNextFrame = function(){"End of video rendering"};
 	}
 
-	get getId() {
-		return this.#id;
+	isPlaying() {
+		return this.#isPlaying;
 	}
 
-	get isLoaded() {
-		return this.#loaded;
-	}
-
-	get data() {
-		return this.#outputBuffer.canvas;
-	}
-
-	get context() {
-		return this.#outputBuffer.context;
-	}
-
-	get video() {
-		return this.#video;
-	}
-
-	get options() {
-		return this.#options;
-	}
 }
 
 export { VideoLayer };

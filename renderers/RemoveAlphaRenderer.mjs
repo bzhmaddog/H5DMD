@@ -1,4 +1,6 @@
-class ChangeAlphaRenderer {
+import { Buffer } from "../dmd/Buffer.mjs";
+
+class RemoveAlphaRenderer {
 
     #adapter;
     #device;
@@ -6,9 +8,6 @@ class ChangeAlphaRenderer {
     #height;
     #shaderModule;
     #bufferByteLength;
-    #opacity;
-    #cnt;
-    #initDone;
 
     /**
      * @param {*} _width 
@@ -22,8 +21,6 @@ class ChangeAlphaRenderer {
         this.#width = _width;
         this.#height = _height;
         this.#bufferByteLength = _width * _height * 4;
-        this.#cnt = 0;
-        this.#initDone = false;
     }
 
     init() {
@@ -39,55 +36,36 @@ class ChangeAlphaRenderer {
 
                     that.#shaderModule = device.createShaderModule({
                         code: `
-                            [[block]] struct UBO {
-                                opacity: f32;
-                            };
                             [[block]] struct Image {
                                 rgba: array<u32>;
                             };
-
-                            fn f2u(f: f32) -> u32 {
-                                return u32(ceil(f));
-                            }
-
                             [[group(0), binding(0)]] var<storage,read> inputPixels: Image;
                             [[group(0), binding(1)]] var<storage,write> outputPixels: Image;
-                            [[group(0), binding(2)]] var<uniform> uniforms : UBO;                            
                             [[stage(compute), workgroup_size(1)]]
                             fn main ([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
                                 let index : u32 = global_id.x + global_id.y * ${that.#width}u;
-                                let pixelColor : u32 = inputPixels.rgba[index];
-                                let opacity : f32 = uniforms.opacity;
 
+                                var pixel : u32 = inputPixels.rgba[index];
                                 
-                                var a : u32 = (pixelColor >> 24u) & 255u;
-                                let b : u32 = (pixelColor >> 16u) & 255u;
-                                let g : u32 = (pixelColor >> 8u) & 255u;
-                                let r : u32 = (pixelColor & 255u);
-
-                                var aa = f2u(floor(f32(a) * opacity));
-
-                                // Hack : Todo find why floor not working (0 * anything) should give 0
-                                if (opacity == 0f) {
-                                    aa = 0u;
-                                }
+                                //let a : u32 = (pixel >> 24u) & 255u;                                
+                                let b : u32 = (pixel >> 16u) & 255u;
+                                let g : u32 = (pixel >> 8u) & 255u;
+                                let r : u32 = (pixel & 255u);
                
-                                outputPixels.rgba[index] = aa << 24u | b << 16u | g << 8u | r;
+                                outputPixels.rgba[index] = 255u << 24u | b << 16u | g << 8u | r;
                             }
                         `
                     });
 
-                    this.#shaderModule.compilationInfo().then(i => {
-
-                        console.log('ChangeAlphaRenderer:init()');
-
-                        this.#initDone = true;
-                        resolve();
-
+                    this.#shaderModule.compilationInfo().then(i=>{
                         if (i.messages.length > 0 ) {
-                            console.log("ChangeAlphaRenderer:compilationInfo() ", i.messages);
+                            console.log("RemoveAlphaRenderer:compilationInfo() ", i.messages);
                         }
                     });
+
+                    console.log('RemoveAlphaRenderer:init()');
+
+                    resolve();
                 });    
             });
        });
@@ -95,21 +73,9 @@ class ChangeAlphaRenderer {
     }
 
 
-    renderFrame(frameData, opacity) {
-
-        if (!this.#initDone) {
-            console.log("init not done");
-            return new Promise(resolve =>{resolve(frameData)});
-        }
-
-        var o = opacity || 1;
+    renderFrame(frameData) {
 
         const that = this;
-
-        const UBOBuffer = this.#device.createBuffer({
-            size: 4,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        });
 
         const gpuInputBuffer = this.#device.createBuffer({
             mappedAtCreation: true,
@@ -142,13 +108,6 @@ class ChangeAlphaRenderer {
                     buffer: {
                         type: "storage"
                     }
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: {
-                      type: "uniform",
-                    }
                 }
             ]
         });
@@ -167,12 +126,6 @@ class ChangeAlphaRenderer {
                     resource: {
                         buffer: gpuTempBuffer
                     }
-                },
-                {
-                    binding: 2, 
-                    resource: {
-                      buffer: UBOBuffer
-                    }
                 }
             ]
         });
@@ -187,20 +140,11 @@ class ChangeAlphaRenderer {
             }
         });        
 
-
         return new Promise( resolve => {
-
+          
             // Put original image data in the input buffer (257x78)
             new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData));
             gpuInputBuffer.unmap();
-
-            // Write values to uniform buffer object
-            const uniformData = [o];
-            const uniformTypedArray = new Float32Array(uniformData);
-
-            //console.log(uniformData);
-
-            this.#device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer);            
     
             const commandEncoder = that.#device.createCommandEncoder();
             const passEncoder = commandEncoder.beginComputePass();
@@ -228,6 +172,7 @@ class ChangeAlphaRenderer {
             });
         });
 	}
+
 }
 
-export { ChangeAlphaRenderer }
+export { RemoveAlphaRenderer }

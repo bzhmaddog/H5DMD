@@ -32,7 +32,7 @@ class Sprite {
 
         this.#buffer = new Buffer(0 ,0);
 
-        this.#buffer.context.imageSmoothingEnabled = false;
+        //this.#buffer.context.imageSmoothingEnabled = false;
 
         this.#animations = {};
         this.#animation = null;

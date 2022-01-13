@@ -1,14 +1,19 @@
 import { Buffer } from './Buffer.mjs';
-import { Layer } from './Layer.mjs';
 import { Utils } from './Utils.mjs';
 import { Easing } from './Easing.mjs';
-import { CPURenderer} from './renderers/CPURenderer.mjs';
+import { CPURenderer } from './renderers/CPURenderer.mjs';
 import { GPURenderer } from './renderers/GPURenderer.mjs';
 import { ChangeAlphaRenderer } from './renderers/ChangeAlphaRenderer.mjs';
-
+import { ImageLayer } from './ImageLayer.mjs';
+import { CanvasLayer } from './CanvasLayer.mjs';
+import { AnimationLayer } from './AnimationLayer.mjs';
+import { VideoLayer } from './VideoLayer.mjs';
+import { TextLayer } from './TextLayer.mjs';
+import { SpritesLayer } from './SpritesLayer.mjs';
 
 class DMD {
-	static DotShape = Utils.createEnum(['Square','Circle']);
+	static DotShape = Utils.createEnum(['Square', 'Circle']);
+	static LayerType = Utils.createEnum(['Image', 'Canvas', 'Text', 'Video', 'Animation', 'Sprites']);
 	#canvas;
 	#context;
 	#xSpace;
@@ -33,6 +38,7 @@ class DMD {
 	#testCtx;
 	#backgroundColor;
 	#cnt;
+	#testImage;
 
 
 	/**
@@ -63,12 +69,15 @@ class DMD {
 		this.#frameBuffer = new Buffer(oWidth, oHeight);
 		this.#zIndex = 1;
 		this.#sortedLayers = [];
-		this.#renderFPS = function() {}; // Does nothing
-		
+		this.#renderFPS = function () { }; // Does nothing
+
 		this.#canvas.width = cWidth;
 		this.#canvas.height = cHeight;
 
 		this.#cnt = 0;
+
+		this.#testImage = new Image();
+		this.#testImage.src = "/resources/tests/white.png";
 
 		this.#backgroundColor = `rgba(14,14,14,255)`;
 
@@ -80,7 +89,7 @@ class DMD {
 		this.#renderer = new GPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape, backgroundBrightness, brightness);
 
 		this.#layerRenderers = {
-			opacity : new ChangeAlphaRenderer(oWidth, oHeight)
+			'opacity' : new ChangeAlphaRenderer(oWidth, oHeight)
 		};
 
 		this.#initDone = false;
@@ -122,18 +131,18 @@ class DMD {
 	init() {
 		var that = this;
 
-		return new Promise( resolve => {
+		return new Promise(resolve => {
 			var renderers = [];
-			Object.keys(this.#layerRenderers).forEach( id => {
+			Object.keys(this.#layerRenderers).forEach(id => {
 				renderers.push(this.#layerRenderers[id].init());
 			});
 
-			this.#renderer.init().then( device => {
+			this.#renderer.init().then(device => {
 				Utils.chainPromises(renderers)
-				.then(() => {
-					this.#initDone = true;
-					resolve();
-				});
+					.then(() => {
+						this.#initDone = true;
+						resolve();
+					});
 			});
 		});
 	}
@@ -147,8 +156,8 @@ class DMD {
 		}
 
 		this.#isRunning = true;
-		this.#lastRenderTime =  window.performance.now();
-		requestAnimationFrame(this.#renderDMD.bind(this));		
+		this.#lastRenderTime = window.performance.now();
+		requestAnimationFrame(this.#renderDMD.bind(this));
 	}
 
 
@@ -168,17 +177,23 @@ class DMD {
 
 		//this.#frameBuffer.context.drawImage(layer.data, 0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
 
-		this.#sortedLayers.forEach( l =>  {
+		this.#sortedLayers.forEach(l => {
 			if (this.#layers.hasOwnProperty(l.name)) {
 				var layer = this.#layers[l.name];
 
-				if (layer.isVisible() && layer.content.isLoaded) {
+				if (layer.isVisible() && layer.isLoaded()) {
 					// Draw layer content into a buffer
-					this.#frameBuffer.context.drawImage(layer.data, 0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
+					//this.#frameBuffer.context.drawImage(layer.data, 0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
+					//createImageBitmap(layer.canvas).then(bitmap => {
+					//createImageBitmap(this.#testImage).then(bitmap => {
+					this.#frameBuffer.context.drawImage(layer.canvas, 0, 0);
+					//});
+
 				}
 			}
 		});
 
+	
 		// Get data from the merged layers content
 		var frameImageData = this.#frameBuffer.context.getImageData(0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
 		var frameData = frameImageData.data;
@@ -187,13 +202,13 @@ class DMD {
 			console.log(`Render : ${this.#cnt}`, frameData);
 		}*/
 
-		createImageBitmap(frameImageData).then( bitmap => {
+		createImageBitmap(frameImageData).then(bitmap => {
 			this.#testCtx.drawImage(bitmap, 0, 0);
 		});
 
-		this.#renderer.renderFrame(frameData).then( dmdImageData => {
+		this.#renderer.renderFrame(frameData).then(dmdImageData => {
 
-			createImageBitmap(dmdImageData).then( bitmap => {
+			createImageBitmap(dmdImageData).then(bitmap => {
 
 				that.#context.clearRect(0, 0, that.#canvas.width, that.#canvas.height);
 				that.#context.drawImage(bitmap, 0, 0);
@@ -204,79 +219,108 @@ class DMD {
 				var now = window.performance.now();
 				var delta = (now - that.#lastRenderTime);
 				that.#lastRenderTime = now;
-	
-				this.#fps = Math.round( (1000 / delta) * 1e2) / 1e2;
-	
+
+				this.#fps = Math.round((1000 / delta) * 1e2) / 1e2;
+
 				if (that.#isRunning) {
-				 	requestAnimationFrame(that.#renderDMD.bind(that));
+					requestAnimationFrame(that.#renderDMD.bind(that));
 					that.#cnt++;
 				}
-	
+
 			});
 
 		});
-	}	
+	}
 
-	#_renderFPS(){
+	#_renderFPS() {
 		this.#fpsBox.innerHTML = `${this.#fps} fps`;
 	}
 
 	#layerLoaded() {
-		//logger.log("Layer loaded");
+		//console.log("Layer loaded");
 		//requestAnimationFrame(this.#renderDMD.bind(this));
 	}
 
 	#layerUpdated() {
-		//logger.log('here');
+		//console.log('here');
 		//requestAnimationFrame(this.#renderDMD.bind(this));
+	}
+
+	#layerOnPlay() {
+
+	}
+
+	#layerOnPause() {
+
+	}
+
+	#layerOnStop() {
+
 	}
 
 	/**
 	 * Add a new layer
+	 * @param {string} id : mandatory
+	 * @param {string} type : mandatory
 	 * @param {object} options
-	 * {
-	 *  name : mandatory
-	 * 	type : mandatory
-	 *  @see Layer for available options
-	 * }
-	 * @returns 
+	 * @see BaseLayer for available options
+	 * @return layer
 	 */
-	addLayer(_options) {
-		if (_options.name === '') {
-			logger.log("Please give a name to your layer");
-			return;
+	addLayer(type, id, _options, _layerLoadedListener, _layerUpdatedListener, _layerOnPlayListener, _layerOnPauseListener, _layerOnStopListener) {
+
+		if (typeof type !== 'string') {
+			throw new TypeError("Layers must have a type[image,canvas,animation,text,sprite,video]");
+		}
+
+		if (typeof id !== 'string') {
+			throw new TypeError("Layers must have a unique id");
 		}
 
 		// add zIndex if not specified
-		var options = Object.assign({ zIndex: this.#zIndex, visible : true}, _options);
+		var options = Object.assign({ zIndex: this.#zIndex, visible: true }, _options);
 
-		// Only background can have zIndex = 0 this is to make sure it is the first layer to be rendered
-		if (options.zIndex === 0) {
-			options.zIndex = options.zIndex + 1;
-		}
 
-		if (options.hasOwnProperty('name') && typeof this.#layers[options.name] === 'undefined') {
-			if (options.hasOwnProperty('type')) {
-				this.#layers[options.name] = new Layer(this.#outputWidth, this.#outputHeight, options, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this), this.#layerRenderers);
+		if (typeof this.#layers[id] === 'undefined') {
+
+				var layer;
+				switch(type) {
+					case DMD.LayerType.Image:
+						layer = new ImageLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this));
+						break;
+					case DMD.LayerType.Canvas:
+						layer = new CanvasLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this));
+						break;
+					case DMD.LayerType.Animation:
+						layer = new AnimationLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this), this.#layerOnPlay.bind(this), this.#layerOnPause.bind(this), this.#layerOnStop.bind(this));
+						break;
+					case DMD.LayerType.Text:
+						layer = new TextLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this));
+						break;
+					case DMD.LayerType.Video:
+						layer = new VideoLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this), this.#layerOnPlay.bind(this), this.#layerOnPause.bind(this));
+						break;
+					case DMD.LayerType.Sprites:
+						layer = new SpritesLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this));
+						break;
+					default:
+						throw new TypeError(`Invalid layer type : ${type}`);
+				}
+
+				this.#layers[id] = layer;
 
 				if (options.zIndex === this.#zIndex) {
 					this.#zIndex++;
 				}
 
 				// Add new layer to sorted array
-				this.#sortedLayers.push({ name : options.name, zIndex : options.zIndex});
-		
-				// Sort by zIndex inc
-				this.#sortedLayers = this.#sortedLayers.sort((a,b)=> (a.zIndex > b.zIndex) ? 1 : -1);
+				this.#sortedLayers.push({ name: id, zIndex: options.zIndex });
 
-				return this.#layers[options.name]
-			} else {
-				logger.log(`Cannot create layer ${options.name}] without a type`);
-				return null;
-			}
+				// Sort by zIndex inc
+				this.#sortedLayers = this.#sortedLayers.sort((a, b) => (a.zIndex > b.zIndex) ? 1 : -1);
+
+				return this.#layers[id]
 		} else {
-			logger.log(`Layer [${options.name}] already exists`);
-			return this.#layers[options.name]
+			throw new Error(`Layer [${id}] already exists`);
 		}
 	}
 
@@ -285,52 +329,64 @@ class DMD {
 	 * @param {string/Layer} layer 
 	 */
 	removeLayer(layer) {
-		let layerName;
+		let layerId;
 
 		if (typeof layer === 'object') {
-			layerName = layer.name;
+			layerId = layer.id;
 		} else {
-			layerName = layer;
+			layerId = layer;
 		}
 
-		if (typeof this.#layers[layerName] !== 'undefined') {
+		if (typeof this.#layers[layerId] !== 'undefined') {
 
-			this.#layers[layerName].destroy(); // Force stop rendering since delete does seems to GC
+			this.#layers[layerId].destroy(); // Force stop rendering since delete does seems to GC
 
 			// Remove Layer object from array
-			delete this.#layers[layerName];
+			delete this.#layers[layerId];
 
 			// Sort layers without deleted layer
-			this.#sortedLayers = this.#sortedLayers.filter( l => {return l.name !== layerName});
+			this.#sortedLayers = this.#sortedLayers.filter(l => { return l.id !== layerId });
+
+			console.log(`Removing layer : ${layerId}`);
 		} else {
-			logger.log('This layer does not exist');
+			console.log('This layer does not exist');
 		}
 	}
 
 	/**
 	 * Show specified layer
-	 * @param {string} name 
+	 * @param {string} id 
 	 */
-	showLayer(name) {
-		if (typeof this.#layers[name] !== 'undefined') {
-			this.#layers[name].setVisibility(true);
+	showLayer(id) {
+		if (typeof this.#layers[id] !== 'undefined') {
+			this.#layers[id].setVisibility(true);
 		}
 	}
 
 	/**
 	 * Hide specified layer
-	 * @param {string} name 
+	 * @param {string} id 
 	 */
-	hideLayer(name) {
-		if (name === 'background') {
-			logger.log("Cannot hide background layer");
-			return;
+	hideLayer(id) {
+		if (typeof this.#layers[id] !== 'undefined') {
+			this.#layers[id].setVisibility(false);
 		}
+	}
 
-		if (typeof this.#layers[name] !== 'undefined') {
-			logger.log('hideLayer', name);
-			this.#layers[name].setVisibility(false);
-		}
+	showLayerGroup(name) {
+		this.setGroupVisibility(name, true);
+	}
+
+	hideLayerGroup(name) {
+		this.setGroupVisibility(name, false);
+	}
+
+	setGroupVisibility(name, state) {
+		Object.keys(this.#layers).forEach(key => {
+			if (this.#layers[key].groups.includes(name)) {
+				this.#layers[key].setVisibility(!!state);
+			}
+		});
 	}
 
 	/**
@@ -345,8 +401,8 @@ class DMD {
 	 * Output some info in the console
 	 */
 	debug() {
-		logger.log(this.#layers);
-		logger.log(this.#sortedLayers);
+		console.log(this.#layers);
+		console.log(this.#sortedLayers);
 	}
 
 	/**
@@ -373,7 +429,7 @@ class DMD {
 				var delta = window.performance.now() - start;
 				var b = startBrightness - Easing.easeOutSine(delta, 0, startBrightness, duration);
 				that.#renderer.setBrightness(b);
-				
+
 				if (that.#renderer.brightness <= 0 || delta > duration) {
 					that.#renderer.setBrightness(0);
 					resolve();
@@ -400,7 +456,7 @@ class DMD {
 				//console.log(delta);
 				var b = Easing.easeOutSine(delta, startBrightness, 1, duration);
 				that.#renderer.setBrightness(b);
-				
+
 				if (that.#renderer.brightness >= 1 || delta > duration) {
 					that.#renderer.setBrightness(1);
 					//console.log(cnt);

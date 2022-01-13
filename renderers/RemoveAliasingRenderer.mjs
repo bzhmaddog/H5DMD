@@ -1,4 +1,6 @@
-class ChangeAlphaRenderer {
+import { Utils } from '../Utils.mjs';
+
+class RemoveAliasingRenderer {
 
     #adapter;
     #device;
@@ -6,9 +8,6 @@ class ChangeAlphaRenderer {
     #height;
     #shaderModule;
     #bufferByteLength;
-    #opacity;
-    #cnt;
-    #initDone;
 
     /**
      * @param {*} _width 
@@ -22,8 +21,6 @@ class ChangeAlphaRenderer {
         this.#width = _width;
         this.#height = _height;
         this.#bufferByteLength = _width * _height * 4;
-        this.#cnt = 0;
-        this.#initDone = false;
     }
 
     init() {
@@ -40,54 +37,95 @@ class ChangeAlphaRenderer {
                     that.#shaderModule = device.createShaderModule({
                         code: `
                             [[block]] struct UBO {
-                                opacity: f32;
+                                treshold : u32;
+                                baseColor : u32;
                             };
                             [[block]] struct Image {
                                 rgba: array<u32>;
                             };
-
-                            fn f2u(f: f32) -> u32 {
-                                return u32(ceil(f));
-                            }
-
                             [[group(0), binding(0)]] var<storage,read> inputPixels: Image;
                             [[group(0), binding(1)]] var<storage,write> outputPixels: Image;
-                            [[group(0), binding(2)]] var<uniform> uniforms : UBO;                            
+                            [[group(0), binding(2)]] var<uniform> uniforms : UBO;                                                        
                             [[stage(compute), workgroup_size(1)]]
                             fn main ([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
-                                let index : u32 = global_id.x + global_id.y * ${that.#width}u;
-                                let pixelColor : u32 = inputPixels.rgba[index];
-                                let opacity : f32 = uniforms.opacity;
+                                let lineSize : u32 = ${that.#width}u;
+                                let lineWidth : u32 = 1u;
 
+                                let index : u32 = global_id.x + global_id.y * lineSize;
+                                var pixelColor : u32 = inputPixels.rgba[index];
                                 
-                                var a : u32 = (pixelColor >> 24u) & 255u;
+                                let a : u32 = (pixelColor >> 24u) & 255u;                                
                                 let b : u32 = (pixelColor >> 16u) & 255u;
                                 let g : u32 = (pixelColor >> 8u) & 255u;
                                 let r : u32 = (pixelColor & 255u);
 
-                                var aa = f2u(floor(f32(a) * opacity));
+                                outputPixels.rgba[index] = pixelColor;
 
-                                // Hack : Todo find why floor not working (0 * anything) should give 0
-                                if (opacity == 0f) {
-                                    aa = 0u;
+                                //let innerColor: u32 =  255u << 24u | a << 16u | g << 8u | r;
+                                //let innerColor: u32 = 255u << 24u | 0u << 16u | 0u << 8u | 255u;
+                                //let innerColor: u32 = 255u << 24u | 255u << 16u | 255u << 8u | 255u;
+                                let innerColor = uniforms.baseColor;
+
+                                if (a > 0u && pixelColor != innerColor) {
+
+                                    var innerColorFound = false;
+
+                                    if (global_id.x > 0u && global_id.x < ${that.#width - 1}u && global_id.y > 0u && global_id.y < ${that.#height - 1}u) {
+
+                                        //outputPixels.rgba[index] = 255u << 24u | 255u << 16u | 255u << 8u | 0u;
+
+                                        let topPixel = index - lineSize * lineWidth;
+                                        let bottomPixel = index + lineSize * lineWidth;
+                                        let leftPixel = index - lineWidth;
+                                        let rightPixel = index + lineWidth;
+                                        let topLeftPixel = topPixel - lineWidth;
+                                        let topRightPixel = topPixel + lineWidth;
+                                        let bottomLeftPixel = bottomPixel - lineWidth;
+                                        let bottomRightPixel = bottomPixel + lineWidth;
+
+                                        if (
+                                            inputPixels.rgba[topPixel] == innerColor ||
+                                            inputPixels.rgba[rightPixel] == innerColor ||
+                                            inputPixels.rgba[bottomPixel] == innerColor ||
+                                            inputPixels.rgba[leftPixel] == innerColor ||
+                                            inputPixels.rgba[topLeftPixel] == innerColor ||
+                                            inputPixels.rgba[topRightPixel] == innerColor ||
+                                            inputPixels.rgba[bottomLeftPixel] == innerColor ||
+                                            inputPixels.rgba[bottomRightPixel] == innerColor
+                                        ) {
+                                            innerColorFound = true;
+                                        }
+                                    }
+
+
+                                    if (innerColorFound && a >= uniforms.treshold && a < 255u) {
+                                        outputPixels.rgba[index] = 255u << 24u | b << 16u | g << 8u | r;
+                                        //outputPixels.rgba[index] = 255u << 24u | 255u << 16u | 255u << 8u | 0u;
+                                    } else {
+                                        outputPixels.rgba[index] = 0u << 24u | b << 16u | g << 8u | r;
+                                        //outputPixels.rgba[index] = 255u << 24u | 0u << 16u | 0u << 8u | 255u;
+                                    }
+
                                 }
-               
-                                outputPixels.rgba[index] = aa << 24u | b << 16u | g << 8u | r;
+                                // else {
+                                    //outputPixels.rgba[index] = 200u << 24u | 0u << 16u | 0u << 8u | 0u;
+                               // }
+
+                               //outputPixels.rgba[index] = 255u << 24u | 255u << 16u | 255u << 8u | 255u;
+             
                             }
                         `
                     });
 
-                    this.#shaderModule.compilationInfo().then(i => {
-
-                        console.log('ChangeAlphaRenderer:init()');
-
-                        this.#initDone = true;
-                        resolve();
-
+                    this.#shaderModule.compilationInfo().then(i=>{
                         if (i.messages.length > 0 ) {
-                            console.log("ChangeAlphaRenderer:compilationInfo() ", i.messages);
+                            console.log("RemoveAliasingRenderer:compilationInfo() ", i.messages);
                         }
                     });
+
+                    console.log('RemoveAliasingRenderer:init()');
+
+                    resolve();
                 });    
             });
        });
@@ -95,19 +133,14 @@ class ChangeAlphaRenderer {
     }
 
 
-    renderFrame(frameData, opacity) {
+    renderFrame(frameData, treshold, baseColor) {
 
-        if (!this.#initDone) {
-            console.log("init not done");
-            return new Promise(resolve =>{resolve(frameData)});
-        }
-
-        var o = opacity || 1;
+        //console.log(arguments);
 
         const that = this;
 
         const UBOBuffer = this.#device.createBuffer({
-            size: 4,
+            size: 8,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
 
@@ -187,21 +220,21 @@ class ChangeAlphaRenderer {
             }
         });        
 
-
         return new Promise( resolve => {
 
             // Put original image data in the input buffer (257x78)
             new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData));
             gpuInputBuffer.unmap();
+        
+           // Write values to uniform buffer object
+            const uniformData = [treshold, Utils.hexColorToInt(Utils.rgba2abgr(baseColor))];
 
-            // Write values to uniform buffer object
-            const uniformData = [o];
-            const uniformTypedArray = new Float32Array(uniformData);
+            const uniformTypedArray = new Int32Array(uniformData);
 
             //console.log(uniformData);
 
-            this.#device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer);            
-    
+            this.#device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer);      
+
             const commandEncoder = that.#device.createCommandEncoder();
             const passEncoder = commandEncoder.beginComputePass();
 
@@ -223,11 +256,14 @@ class ChangeAlphaRenderer {
                 // Generate Image data usable by a canvas
                 const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that.#width, that.#height);
 
+                //console.log(imageData.data);
+
                 // return to caller
                 resolve(imageData);
             });
         });
 	}
+
 }
 
-export { ChangeAlphaRenderer }
+export { RemoveAliasingRenderer }

@@ -1,64 +1,40 @@
-import { Buffer } from "./Buffer.mjs";
+import { BaseLayer } from "./BaseLayer.mjs";
 import { Sprite } from "./Sprite.mjs";
 
-class SpritesLayer {
-	#id;
-	#options;
-    #listener;
-    #loaded;
+class SpritesLayer extends BaseLayer {
     #sprites;
-    #outputBuffer;
-    #ctx;
     #runningSprites;
     #renderNextFrame;
 
-	constructor(id, _options, _listener) {
+	constructor(_id, _width, _height, _options, _renderers, _loadedListener, _updatedListener) {
 		var defaultOptions = {
             loop : false,
             autoplay : false,
             mimeType : 'video/webm'
         };
-        this.#loaded = false;
-        this.#id = id;
-        this.#options = Object.assign(defaultOptions, _options);
-        this.#listener = _listener;
+
+        super(_id, _width, _height, Object.assign(defaultOptions, _options), _renderers, _loadedListener, _updatedListener);
+
+        this._setType('sprites');
+
         this.#sprites = {};
-        this.#outputBuffer = new Buffer(this.#options.width, this.#options.height);
-        this.#ctx = this.#outputBuffer.context;
-        this.#ctx.imageSmoothingEnabled = false;
         this.#runningSprites = 0;
         this.#renderNextFrame = function(){};
+        setTimeout(this._layerLoaded.bind(this), 1);
 	}
 
-    get getId() {
-		return this.#id;
-	}
-
-	get isLoaded() {
-		return this.#loaded;
-	}
-
-	get data() {
-        return  this.#outputBuffer.canvas;
-	}
-
-    get context() {
-        return this.#outputBuffer.context;
-    }
-
-	get options() {
-		return this.#options;
-	}    
-
-    #renderSprites() {
+    #renderFrame() {
         const that = this;
 
-        this.#outputBuffer.clear();
+        this._contentBuffer.clear();
         
         Object.keys(this.#sprites).forEach(id => {
             if (this.#sprites[id].visible) {
-                const data = that.#sprites[id].sprite.data;
-                this.#outputBuffer.context.drawImage(data, that.#sprites[id].x, that.#sprites[id].y);
+                this._contentBuffer.context.drawImage(
+                    that.#sprites[id].sprite.data,
+                    that.#sprites[id].x,
+                    that.#sprites[id].y
+                );
             }
         });
 
@@ -66,7 +42,7 @@ class SpritesLayer {
     }
 
     #requestRenderNextFrame() {
-        requestAnimationFrame(this.#renderSprites.bind(this));        
+        requestAnimationFrame(this.#renderFrame.bind(this));        
     }
 
     createSprite(id, src, hFrameOffset, vFrameOffset, animations, x, y) {
@@ -106,23 +82,18 @@ class SpritesLayer {
             visible : true
         };
 
-        if (!this.#loaded && typeof this.#listener === 'function') {
-            this.#listener(this);
-        }
-
-        this.#loaded = true;
-
         sprite.setEndOfQueueListener(this.#onQueueEnded.bind(this));
+
+        this._layerUpdated();
     }
 
     #onQueueEnded(id) {
         this.#runningSprites--;
 
-        PubSub.publish("sprite.queue.finished", id);
-
         if (this.#runningSprites <= 0) {
             this.#runningSprites = 0;
             this.#renderNextFrame = function(){};
+            this._stopRendering();
         }
     }
 
@@ -149,6 +120,8 @@ class SpritesLayer {
 
     run(id) {
         if (typeof this.#sprites[id] !== 'undefined') {
+
+            this._startRendering();
 
             if (!this.#sprites[id].sprite.isAnimating()) {
                 this.#runningSprites++;
