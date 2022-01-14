@@ -51,6 +51,8 @@ class TextLayer extends BaseLayer {
             throw new Error("'Remove aliasing' or 'outline' filter not found");
         }
 
+        setTimeout(this._layerLoaded.bind(this), 1);
+
         //this.#buffer.context.fillStyle = 'transparent';
 
         if (typeof this._options.text !== 'undefined') {
@@ -64,14 +66,14 @@ class TextLayer extends BaseLayer {
 
                 //console.log(this._id, this.#text);
                 this.#drawText().then( () => {
-                    setTimeout(that._layerLoaded.bind(that), 1);
+                    setTimeout(that._layerUpdated.bind(that), 1);
                 });
-            } else {
-                setTimeout(this._layerLoaded.bind(this), 1);
-            }
-        } else {
+            }/* else {
+                setTimeout(this._layerUpdated.bind(this), 1);
+            }*/
+        }/* else {
             setTimeout(this._layerLoaded.bind(this), 1);
-        }
+        }*/
 
         // Delay onDataLoaded a bit otherwise #content is undefined in Layer.mjs
         //setTimeout(this.#onDataLoaded.bind(this), 1);
@@ -182,7 +184,7 @@ class TextLayer extends BaseLayer {
 
             //this.#ctx.imageSmoothingEnabled = false;
 
-            this._startRendering();
+            //this._startRendering();
 
             if (options.strokeWidth > 0) {
                 this.#textBuffer.context.strokeStyle = options.strokeColor;

@@ -35,7 +35,7 @@ class DMD {
 	#lastRenderTime;
 	#layerRenderers;
 	#initDone;
-	#testCtx;
+	//#testCtx;
 	#backgroundColor;
 	#cnt;
 	#testImage;
@@ -119,7 +119,7 @@ class DMD {
 
 		//this.#startTime = window.performance.now();
 
-		this.#testCtx = document.getElementById('test').getContext('2d');
+		//this.#testCtx = document.getElementById('test').getContext('2d');
 
 		this.reset();
 	}
@@ -202,9 +202,9 @@ class DMD {
 			console.log(`Render : ${this.#cnt}`, frameData);
 		}*/
 
-		createImageBitmap(frameImageData).then(bitmap => {
+		/*createImageBitmap(frameImageData).then(bitmap => {
 			this.#testCtx.drawImage(bitmap, 0, 0);
-		});
+		});*/
 
 		this.#renderer.renderFrame(frameData).then(dmdImageData => {
 

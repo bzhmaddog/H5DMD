@@ -23,6 +23,7 @@ class BaseLayer {
     #outputBuffer;
     #loaded;
     #rendererParams;
+    #frame;
 
 
     constructor(_id, _width, _height, _options, _renderers, _loadedListener, _updatedListener) {
@@ -50,6 +51,7 @@ class BaseLayer {
         this.#loaded = false;
         this.#rendererParams = {};
         this.#groups = ['default'];
+        this.#frame = 0;
 
 
         this._options = Object.assign(defaultOptions, _options);
@@ -108,12 +110,14 @@ class BaseLayer {
         this.setRendererParams('no-antialiasing', [this._options.aaTreshold]);
 
 
-        //console.log(this.#defaultRenderQueue);
-
+        // set opacity from options if needed
         if (typeof this._options.opacity === 'number') {
-            this.setOpacity(this._options.opacity);
-        }
+            var opacity = Math.max(0, Math.min(Number.parseFloat(this._options.opacity), 1));
+            this.#opacity = Math.round(opacity * 1e3) / 1e3;
 
+            // set opacity renderer param value
+            this.setRendererParams('opacity', [this.#opacity]);
+        }
     }
 
     getRendererParams(id) {
@@ -128,12 +132,22 @@ class BaseLayer {
         this.#rendererParams[id] = value;
     }
 
+    /**
+     * Request rendering of layer frame
+     */
     #requestAnimationFrame() {
         requestAnimationFrame(this.#renderFrame.bind(this));
     }
 
+    /**
+     * Start rendering process
+     */
     #renderFrame() {
         const that = this;
+
+        this.#frame++;
+
+        //console.log(`Layer[${this._id}] : Rendering frame ${this.#frame}`);
 
         // clone renderers array;
         this.#renderQueue = [...this.#defaultRenderQueue] || [];
@@ -146,8 +160,6 @@ class BaseLayer {
             });
         }
 
-        //console.log(this._id,[...this.#renderQueue]);
-
         // Get initial data from layer content
         var frameImageData = this._contentBuffer.context.getImageData(0, 0, this.#width, this.#height);
 
@@ -155,6 +167,11 @@ class BaseLayer {
         this.#processRenderQueue(frameImageData);
     }
 
+    /**
+     * Process image data provided through current renderer in queue and call it self recursively until no more renderer in queue
+     * @param {ImageData} frameImageData 
+     * @returns {ImageData} result data of the renderer
+     */
     #processRenderQueue(frameImageData) {
         var that = this;
 
@@ -162,32 +179,30 @@ class BaseLayer {
         if (this.#renderQueue.length) {
             var renderer = this.#renderQueue.shift(); // pop renderer from render queue
 
-
+            // First param is always the image data
             var params = [frameImageData.data];
 
-            // Merge renderer params with array
+            // Merge renderer params with array of params specific to this renderer if any
             if (this.getRendererParams(renderer.id) !== null) {
                 params = params.concat(this.getRendererParams(renderer.id));
             } 
 
             //console.log(this._id, params);
             
-            // render content with current renderer then process next renderer in queue
+            // Apply 'filter' to provided content with current renderer then process next renderer in queue
             renderer.instance.renderFrame.apply(renderer.instance, params).then(outputData => {
                 that.#processRenderQueue(outputData);
             });
-            // no more renderer in queue then draw final image and start queue process again	
+        // no more renderer in queue then draw final image and start queue process again	
         } else {
 
-            //console.log(frameImageData.data);
+            // Erase current output buffer content
+            that.#outputBuffer.clear();
 
-           that.#outputBuffer.clear();
-
+            // Put final frame data into output buffer and start process again (if needed)
             createImageBitmap(frameImageData).then(bitmap => {
-
                 // Put final layer data in the output buffer
                 that.#outputBuffer.context.drawImage(bitmap, 0, 0);
-
                 // request next frame rendering
                 that.#renderNextFrame();
             });
@@ -199,7 +214,7 @@ class BaseLayer {
 
         this.#loaded = true;
 
-        //console.log(this._id, "layer loaded");
+        console.log(`Layer [${this._id}] : Loaded`);
 
         if (this.#defaultRenderQueue.length === 0 && this.#opacity === 1) {
             // Put content data in output buffer
@@ -225,6 +240,9 @@ class BaseLayer {
     }
 
     _layerUpdated() {
+
+        console.log(`Layer [${this._id}] : Updated`);
+
         this.#renderFrame();
 
         if (typeof this.#updatedListener === 'function') {
@@ -237,6 +255,8 @@ class BaseLayer {
     }
 
     _startRendering() {
+        console.log(`Layer [${this._id}] : Start rendering`);
+
         this.#renderNextFrame = this.#requestAnimationFrame;
         this.#requestAnimationFrame();
     }
@@ -323,7 +343,6 @@ class BaseLayer {
 
     haveRenderer() {
         return this.#defaultRenderQueue.length > 0;
-        //return this.#defaultRenderQueue.length > 0 || (this.#opacity > 0 && this.#opacity < 1);
     }
 
     setOpacity(o) {
@@ -332,6 +351,8 @@ class BaseLayer {
 
         // set opacity renderer param value
         this.setRendererParams('opacity', [this.#opacity]);
+
+        console.log(`Layer [${this._id}] : Opacity changed to ${this.#opacity}`);
 
         this._layerUpdated();
     }
@@ -345,7 +366,6 @@ class BaseLayer {
     redraw() {
         this.#requestAnimationFrame();
     }
-
 
     isLoaded() {
 		return this.#loaded;
