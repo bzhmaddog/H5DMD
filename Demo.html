@@ -30,7 +30,7 @@
                         // Start rendering dmd
                         dmd.run();
 
-                        /*dmd.addLayer(DMD.LayerType.Image, 'bg', {
+                        dmd.addLayer(DMD.LayerType.Image, 'bg', {
                             src : '/images/boss-mode-bg.png'
                         });
 
@@ -90,7 +90,7 @@
                             'text' : "Scott Pilgrim",
                             align : 'left',
                             vAlign : 'top',
-                            size : 12
+                            fontSize : 12
                         });
 
                         var textLayer2 = dmd.addLayer(DMD.LayerType.Text, 'text2', {
@@ -124,35 +124,17 @@
                             fontSize : 12,
                             xOffset : -1
                         });
-
-                        */
+                        
                         var canvasLayer = dmd.addLayer(DMD.LayerType.Canvas, 'canvas', {}, function() {
                             var img = new Image();
 
 		                    img.onload = function() {
-			                    canvasLayer.drawImage(img,10,2, 75, 75);
+			                    canvasLayer.drawImage(img,127,12, 129, 54);
 		                    }
 
-                            //img.src = 'images/boss-matthew-big.png';
-                            img.src = 'images/html5-logo.png';
+                            img.src = 'images/boss-matthew-big.png';
                         });
-
-                        var textLayer4 = dmd.addLayer(DMD.LayerType.Text, 'text4', {
-                            'text' : "D.M.D",
-                            align : 'right',
-                            vAlign : 'middle',
-                            xOffset : -20,
-                            fontSize : 50,
-                            fontStyle : 'bold',
-                            strokeWidth: 5,
-                            strokeColor: "#E44D26",
-                        });
-
-
-
                     });
- 
-
                 },false);
             })();
         </script>
