@@ -19,6 +19,7 @@ class TextLayer extends BaseLayer {
             align : 'left',
             fontSize : '12',
             fontFamily : 'Arial',
+            fontStyle : 'normal',
             textBaseline : 'top',
             xOffset : 0,
             yOffset : 0,
@@ -120,7 +121,7 @@ class TextLayer extends BaseLayer {
             this.#textBuffer.context.fillStyle = options.color;
 
             if (typeof options.letterSpacing === 'number') {
-                console.log(options.letterSpacing)
+                //console.log(options.letterSpacing)
                 this.#textBuffer.canvas.style.letterSpacing = options.letterSpacing + 'px';                
                 this.#textBuffer.context.textAlign = 'center';
             }
@@ -130,7 +131,7 @@ class TextLayer extends BaseLayer {
                 var textOk = false;
 
                 while(!textOk) {
-                    this.#textBuffer.context.font = options.fontSize + 'px ' + options.fontFamily;
+                    this.#textBuffer.context.font = options.fontStyle + " " + options.fontSize + 'px ' + options.fontFamily;
                     m = this.#textBuffer.context.measureText(this.#text);
     
                     if (m.width > this.width - 5) {
@@ -141,7 +142,7 @@ class TextLayer extends BaseLayer {
                 }
                 
             } else {
-                this.#textBuffer.context.font = (options.fontSize) + 'px ' + options.fontFamily;
+                this.#textBuffer.context.font = options.fontStyle + " " + options.fontSize + 'px ' + options.fontFamily;
                 m = this.#textBuffer.context.measureText(this.#text);       
             }
 

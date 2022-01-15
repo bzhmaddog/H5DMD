@@ -4,6 +4,8 @@ import { Easing } from './Easing.mjs';
 import { CPURenderer } from './renderers/CPURenderer.mjs';
 import { GPURenderer } from './renderers/GPURenderer.mjs';
 import { ChangeAlphaRenderer } from './renderers/ChangeAlphaRenderer.mjs';
+import { RemoveAliasingRenderer } from './renderers/RemoveAliasingRenderer.mjs';
+import { OutlineRenderer } from './renderers/OutlineRenderer.mjs';
 import { ImageLayer } from './ImageLayer.mjs';
 import { CanvasLayer } from './CanvasLayer.mjs';
 import { AnimationLayer } from './AnimationLayer.mjs';
@@ -88,13 +90,14 @@ class DMD {
 		//this.#renderer = new CPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape);
 		this.#renderer = new GPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape, backgroundBrightness, brightness);
 
+		// Add renderers needed for layers rendering
 		this.#layerRenderers = {
-			'opacity' : new ChangeAlphaRenderer(oWidth, oHeight)
+			'opacity' : new ChangeAlphaRenderer(oWidth, oHeight), // used by layer with opacity < 1
+			'no-antialiasing' : new RemoveAliasingRenderer(oWidth, oHeight), // used by TextLayer if antialiasing  = false
+			'outline' : new OutlineRenderer(oWidth, oHeight)  // used by TextLayer when outlineWidth > 1
 		};
 
 		this.#initDone = false;
-
-		//this.#layerRenderers['opacity'].init();
 
 		if (!!showFPS) {
 			// Dom element to ouput fps value
@@ -236,28 +239,6 @@ class DMD {
 		this.#fpsBox.innerHTML = `${this.#fps} fps`;
 	}
 
-	#layerLoaded() {
-		//console.log("Layer loaded");
-		//requestAnimationFrame(this.#renderDMD.bind(this));
-	}
-
-	#layerUpdated() {
-		//console.log('here');
-		//requestAnimationFrame(this.#renderDMD.bind(this));
-	}
-
-	#layerOnPlay() {
-
-	}
-
-	#layerOnPause() {
-
-	}
-
-	#layerOnStop() {
-
-	}
-
 	/**
 	 * Add a new layer
 	 * @param {string} id : mandatory
@@ -285,22 +266,22 @@ class DMD {
 				var layer;
 				switch(type) {
 					case DMD.LayerType.Image:
-						layer = new ImageLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this));
+						layer = new ImageLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, _layerLoadedListener,_layerUpdatedListener);
 						break;
 					case DMD.LayerType.Canvas:
-						layer = new CanvasLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this));
+						layer = new CanvasLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, _layerLoadedListener,_layerUpdatedListener);
 						break;
 					case DMD.LayerType.Animation:
-						layer = new AnimationLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this), this.#layerOnPlay.bind(this), this.#layerOnPause.bind(this), this.#layerOnStop.bind(this));
+						layer = new AnimationLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, _layerLoadedListener,_layerUpdatedListener, _layerOnPlayListener, _layerOnPauseListener, _layerOnStopListener);
 						break;
 					case DMD.LayerType.Text:
-						layer = new TextLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this));
+						layer = new TextLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, _layerLoadedListener,_layerUpdatedListener);
 						break;
 					case DMD.LayerType.Video:
-						layer = new VideoLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this), this.#layerOnPlay.bind(this), this.#layerOnPause.bind(this));
+						layer = new VideoLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, _layerLoadedListener,_layerUpdatedListener, _layerOnPlayListener, _layerOnPauseListener);
 						break;
 					case DMD.LayerType.Sprites:
-						layer = new SpritesLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, this.#layerLoaded.bind(this), this.#layerUpdated.bind(this));
+						layer = new SpritesLayer(id, this.#outputWidth, this.#outputHeight, options, this.#layerRenderers, _layerLoadedListener, _layerUpdatedListener);
 						break;
 					default:
 						throw new TypeError(`Invalid layer type : ${type}`);
@@ -354,33 +335,20 @@ class DMD {
 	}
 
 	/**
-	 * Show specified layer
+	 * Show/Hide specified layer
 	 * @param {string} id 
 	 */
-	showLayer(id) {
+	setLayerVisibility(id, state) {
 		if (typeof this.#layers[id] !== 'undefined') {
-			this.#layers[id].setVisibility(true);
+			this.#layers[id].setVisibility(!!state);
 		}
 	}
 
 	/**
-	 * Hide specified layer
-	 * @param {string} id 
+	 * Show/hid group of layers
+	 * @param {string} name 
+	 * @param {boolean} state 
 	 */
-	hideLayer(id) {
-		if (typeof this.#layers[id] !== 'undefined') {
-			this.#layers[id].setVisibility(false);
-		}
-	}
-
-	showLayerGroup(name) {
-		this.setGroupVisibility(name, true);
-	}
-
-	hideLayerGroup(name) {
-		this.setGroupVisibility(name, false);
-	}
-
 	setGroupVisibility(name, state) {
 		Object.keys(this.#layers).forEach(key => {
 			if (this.#layers[key].groups.includes(name)) {

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            body {
+                background:  black;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="output" width="1280" height="390" style="border:1px solid red"></canvas>
+        <script type="module">
+            import { DMD } from './js/DMD.mjs';
+            import { Utils } from './js/Utils.mjs';
+            import { Colors } from './js/Colors.mjs';
+
+            (function () {
+                'use strict';
+
+                // When dom is loaded create the objects and bind the events
+                document.addEventListener('DOMContentLoaded', function () {
+
+                    var output = document.getElementById('output');
+
+
+                    var dmd = new DMD(256, 78, 1280, 390, 4, 4, 1, 1, 1, 1, DMD.DotShape.Square, 14, 1, output, true);
+
+                    			// Init DMD then
+        			dmd.init().then( () => {
+                        // Start rendering dmd
+                        dmd.run();
+
+                        dmd.addLayer(DMD.LayerType.Image, 'bg', {
+                            src : '/images/boss-mode-bg.png'
+                        });
+
+                        dmd.addLayer(DMD.LayerType.Animation, 'animation', {
+                            images : [
+                                'images/animation/0.webp',
+                                'images/animation/1.webp',
+                                'images/animation/2.webp',
+                                'images/animation/3.webp',
+                                'images/animation/4.webp',
+                                'images/animation/5.webp',
+                                'images/animation/6.webp',
+                                'images/animation/7.webp',
+                                'images/animation/8.webp',
+                                'images/animation/9.webp',
+                                'images/animation/10.webp',
+                                'images/animation/11.webp',
+                                'images/animation/12.webp',
+                                'images/animation/13.webp',
+                                'images/animation/14.webp'
+                            ],
+                            duration : 800,
+                            autoplay : true,
+                            loop : true
+                        });
+
+                        var spriteLayer = dmd.addLayer(DMD.LayerType.Sprites, 'sprite', {}, function() {
+                            spriteLayer.createSprite(
+                                'scott',
+                                'images/scott.png',
+                                3,
+                                0,
+                                [
+                                    ['idle', 8, 36, 59, 0, 0, .16],
+                                    ['walk', 6, 36, 63, 0, 59, .12],
+                                    ['run', 8, 53, 60, 0, 122, .20],
+                                    ['idle2', 4, 46, 62, 0, 182, .09],
+                                    ['taunt', 9, 46, 62, 0, 244, .25]
+                                ],
+                                10,
+                                10
+                            ).then(() => {
+                                console.log('here');
+                                let seq = [
+                                            ['idle' , 3],
+                                            ['walk' , 5],
+                                            ['run', 4],
+                                            ['taunt', 1]
+                                        ];
+
+                                spriteLayer.enqueueSequence('scott', seq, true);
+                                spriteLayer.run('scott');
+                            });
+                        });
+
+                        var textLayer1 = dmd.addLayer(DMD.LayerType.Text, 'text1', {
+                            'text' : "Scott Pilgrim",
+                            align : 'left',
+                            vAlign : 'top',
+                            size : 12
+                        });
+
+                        var textLayer2 = dmd.addLayer(DMD.LayerType.Text, 'text2', {
+                            'text' : "VS",
+                            align : 'center',
+                            vAlign : 'middle',
+                            fontFamily : 'Arial',
+                            fontSize : 30,
+                            fontStyle : 'italic bold',
+                            color : '#FFFFFF80', // RGBA
+                            xOffset : -40
+                        });
+
+                        var textLayer3 = dmd.addLayer(DMD.LayerType.Text, 'text3', {
+                            'text' : "VS",
+                            align : 'center',
+                            vAlign : 'middle',
+                            fontFamily : 'Arial',
+                            fontSize : 30,
+                            fontStyle : 'italic bold',
+                            color : '#00000000', // totally transparent
+                            strokeWidth : 2,
+                            strokeColor : Colors.red,
+                            xOffset : -40
+                        });
+
+                        var textLayer4 = dmd.addLayer(DMD.LayerType.Text, 'text4', {
+                            'text' : "Matthew Patel",
+                            align : 'right',
+                            vAlign : 'bottom',                            
+                            size : 12,
+                            xOffset : -1
+                        });
+
+                        var canvasLayer = dmd.addLayer(DMD.LayerType.Canvas, 'canvas', {}, function() {
+                            var img = new Image();
+
+		                    img.onload = function() {
+			                    canvasLayer.drawImage(img,127,12, 129, 54);
+		                    }
+
+                            img.src = 'images/boss-matthew-big.png';
+                        });
+
+
+
+                    });
+ 
+
+                },false);
+            })();
+        </script>
+    </body>
+</html>

@@ -235,8 +235,6 @@ class BaseLayer {
         if (typeof this.#loadedListener === 'function') {
             this.#loadedListener(this);
         }
-
-        PubSub.publish('layer.loaded', this);
     }
 
     _layerUpdated() {
