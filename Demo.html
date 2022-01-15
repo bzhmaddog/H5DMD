@@ -30,7 +30,7 @@
                         // Start rendering dmd
                         dmd.run();
 
-                        dmd.addLayer(DMD.LayerType.Image, 'bg', {
+                        /*dmd.addLayer(DMD.LayerType.Image, 'bg', {
                             src : '/images/boss-mode-bg.png'
                         });
 
@@ -125,6 +125,7 @@
                             xOffset : -1
                         });
 
+                        */
                         var canvasLayer = dmd.addLayer(DMD.LayerType.Canvas, 'canvas', {}, function() {
                             var img = new Image();
 
@@ -132,7 +133,8 @@
 			                    canvasLayer.drawImage(img,127,12, 129, 54);
 		                    }
 
-                            img.src = 'images/boss-matthew-big.png';
+                            //img.src = 'images/boss-matthew-big.png';
+                            img.src = 'images/html5-logo.png';
                         });
 
 
