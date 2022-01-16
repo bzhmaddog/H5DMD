@@ -32,8 +32,6 @@ class Sprite {
 
         this.#buffer = new Buffer(0 ,0);
 
-        //this.#buffer.context.imageSmoothingEnabled = false;
-
         this.#animations = {};
         this.#animation = null;
         this.#counter = 0;
@@ -217,20 +215,29 @@ class Sprite {
     }
 
     /**
-     * return current image
+     * Return current image
      */
     get data() {
         return this.#buffer.canvas;
 	}
 
+    /**
+     * Get output buffer context
+     */
     get context() {
         return this.#buffer.context;
     }
 
+    /**
+     * Get sprite width
+     */
     get width() {
         return this.#maxWidth;
     }
 
+    /**
+     * Get sprite height
+     */
     get height() {
         return this.#maxHeight;
     }
@@ -243,6 +250,20 @@ class Sprite {
         return this.#isAnimating;
     }
 
+    /**
+     * Set the End of queue listener that will be called when current queue is empty
+     * @param {function} _listener 
+     */
+    setEndOfQueueListener(_listener) {
+        if (typeof _listener === 'function') {
+            this.#endOfQueueListener = _listener;
+        }
+    }
+
+    /**
+     * Clone this sprite and return it
+     * @returns Sprite
+     */
     clone() {
         return new Promise(resolve => {
 
@@ -258,12 +279,6 @@ class Sprite {
                 resolve(s);
             });
         });
-    }
-
-    setEndOfQueueListener(_listener) {
-        if (typeof _listener === 'function') {
-            this.#endOfQueueListener = _listener;
-        }
     }
 }
 

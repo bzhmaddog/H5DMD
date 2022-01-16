@@ -37,6 +37,12 @@ class Utils {
 		});
 	}
 
+	/**
+	 * Add alpha component to a RGB string
+	 * @param {string} str 
+	 * @param {string of number} alpha 
+	 * @returns {string}
+	 */
 	static hexRGBToHexRGBA(str, alpha) {
 		if (typeof alpha === 'number' && alpha >= 0 && alpha <= 255) {
 			return str + alpha.toString(16);
@@ -47,17 +53,33 @@ class Utils {
 		}
 	}
 
+	/**
+	 * Return int value of an hax color
+	 * @param {string} str 
+	 * @param {*} prefix 
+	 * @returns {number}
+	 */
 	static hexColorToInt(str, prefix) {
 		var p = prefix || "";
 
 		return parseInt(str.replace(/^#/gi, p), 16);
 	}
 
+	/**
+	 * Revert RGBA components
+	 * @param {string} rgba 
+	 * @returns {string} abgr string
+	 */
 	static rgba2abgr(rgba) {
 		var arr = rgba.match(/.{2}/g);
 		return arr[3] + arr[2] + arr[1] + arr[0];
 	}
 
+	/**
+	 * Convert an hexadecimal string to an array of hex byte
+	 * @param {*} hex 
+	 * @returns {array<string>}
+	 */
 	static hexToArray(hex) {
 		return hex.match(/.{2}/g);
 	}

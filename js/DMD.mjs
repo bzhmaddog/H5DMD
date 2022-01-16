@@ -1,7 +1,7 @@
 import { Buffer } from './Buffer.mjs';
 import { Utils } from './Utils.mjs';
 import { Easing } from './Easing.mjs';
-import { CPURenderer } from './renderers/CPURenderer.mjs';
+//import { CPURenderer } from './renderers/CPURenderer.mjs';
 import { GPURenderer } from './renderers/GPURenderer.mjs';
 import { ChangeAlphaRenderer } from './renderers/ChangeAlphaRenderer.mjs';
 import { RemoveAliasingRenderer } from './renderers/RemoveAliasingRenderer.mjs';
@@ -16,13 +16,13 @@ import { SpritesLayer } from './SpritesLayer.mjs';
 class DMD {
 	static DotShape = Utils.createEnum(['Square', 'Circle']);
 	static LayerType = Utils.createEnum(['Image', 'Canvas', 'Text', 'Video', 'Animation', 'Sprites']);
-	#canvas;
-	#context;
+	
+	#outputCanvas;
+	#outputContext;
 	#xSpace;
 	#ySpace;
-	#pixelWidth;
-	#pixelHeight;
-	#dotShape;
+	#xOffset;
+	#yOffset;
 	#layers;
 	#sortedLayers;
 	#outputWidth;
@@ -37,11 +37,8 @@ class DMD {
 	#lastRenderTime;
 	#layerRenderers;
 	#initDone;
-	//#testCtx;
 	#backgroundColor;
-	#cnt;
-	#testImage;
-
+	#renderNextFrame;
 
 	/**
 	 * 
@@ -55,40 +52,32 @@ class DMD {
 	 * @param {integer} ySpace number of 'black' pixels between each row (horizontal lines between dots)
 	 * @param {integer} xOffset // TODO : horizontal shifting
 	 * @param {integer} yOffset  // TODO : vertical shifting
-	 * @param {string} dotShape Shape of the dots (can be square or circle)
+	 * @param {string} dotShape // TODO(GPU) : Shape of the dots (can be square or circle)
 	 * @param {*} targetCanvas Dom Element where the DMD will be drawed
 	 */
 	constructor(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, xOffset, yOffset, dotShape, backgroundBrightness, brightness, targetCanvas, showFPS) {
-		this.#canvas = targetCanvas;
-		this.#context = this.#canvas.getContext('2d');
+		this.#outputCanvas = targetCanvas;
+		this.#outputContext = this.#outputCanvas.getContext('2d');
 		this.#xSpace = xSpace;
 		this.#ySpace = ySpace;
-		this.#pixelWidth = pixelWidth;
-		this.#pixelHeight = pixelHeight;
-		this.#dotShape = dotShape;
+		this.#xOffset = xOffset;
+		this.#yOffset = yOffset;
 		this.#outputWidth = oWidth;
 		this.#outputHeight = oHeight;
 		this.#frameBuffer = new Buffer(oWidth, oHeight);
 		this.#zIndex = 1;
 		this.#sortedLayers = [];
 		this.#renderFPS = function () { }; // Does nothing
-
-		this.#canvas.width = cWidth;
-		this.#canvas.height = cHeight;
-
-		this.#cnt = 0;
-
-		this.#testImage = new Image();
-		this.#testImage.src = "/resources/tests/white.png";
-
+		this.#outputCanvas.width = cWidth;
+		this.#outputCanvas.height = cHeight;
 		this.#backgroundColor = `rgba(14,14,14,255)`;
-
 		this.#isRunning = false;
 		this.#fps = 0;
-		this.#layerRenderers = {};
+		this.#renderNextFrame = function(){};
+
 
 		//this.#renderer = new CPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape);
-		this.#renderer = new GPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape, backgroundBrightness, brightness);
+		this.#renderer = new GPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape || DMD.DotShape.Circle, backgroundBrightness, brightness);
 
 		// Add renderers needed for layers rendering
 		this.#layerRenderers = {
@@ -99,6 +88,7 @@ class DMD {
 
 		this.#initDone = false;
 
+		// IF needed create and show fps div in hte top right corner of the screen
 		if (!!showFPS) {
 			// Dom element to ouput fps value
 			// TODO : Remove later
@@ -118,12 +108,7 @@ class DMD {
 			this.#renderFPS = this.#_renderFPS; // Enable fps rendering on top of dmd
 		}
 
-		this.#dotShape = dotShape || DMD.DotShape.Circle;
-
-		//this.#startTime = window.performance.now();
-
-		//this.#testCtx = document.getElementById('test').getContext('2d');
-
+		// Reset layers
 		this.reset();
 	}
 
@@ -160,83 +145,82 @@ class DMD {
 
 		this.#isRunning = true;
 		this.#lastRenderTime = window.performance.now();
-		requestAnimationFrame(this.#renderDMD.bind(this));
+		this.#renderNextFrame = this.#requestNextFrame;
+		this.#renderNextFrame();
 	}
 
+	/**
+	 * Stop DMD rendering
+	 */
+	stop() {
+		this.#isRunning = false;
+		this.#renderNextFrame = function(){console.log("DMD render stopped")};
+	}
 
 	/**
-	 * 
-	 * @param {integer} timestamp 
+	 * Render output DMD
 	 */
-	#renderDMD(timestamp) {
+	#renderDMD() {
 		var that = this;
 
-		// Fill black rectangle (black will be converted to lowest dot intensity)
+		// Fill rectangle with background color
 		this.#frameBuffer.context.fillStyle = this.#backgroundColor;
-		//this.#frameBuffer.context.fillStyle = 'black';
-		//this.#frameBuffer.context.fillStyle = 'transparent';
-
 		this.#frameBuffer.context.fillRect(0, 0, this.#outputWidth, this.#outputHeight);
 
-		//this.#frameBuffer.context.drawImage(layer.data, 0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
-
+		// Draw each visible layer on top of previous one to create the final screen
 		this.#sortedLayers.forEach(l => {
 			if (this.#layers.hasOwnProperty(l.name)) {
 				var layer = this.#layers[l.name];
 
 				if (layer.isVisible() && layer.isLoaded()) {
 					// Draw layer content into a buffer
-					//this.#frameBuffer.context.drawImage(layer.data, 0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
-					//createImageBitmap(layer.canvas).then(bitmap => {
-					//createImageBitmap(this.#testImage).then(bitmap => {
 					this.#frameBuffer.context.drawImage(layer.canvas, 0, 0);
-					//});
-
 				}
 			}
 		});
 
-	
 		// Get data from the merged layers content
 		var frameImageData = this.#frameBuffer.context.getImageData(0, 0, this.#frameBuffer.width, this.#frameBuffer.height);
-		var frameData = frameImageData.data;
 
-		/*if (this.#cnt < 20) {
-			console.log(`Render : ${this.#cnt}`, frameData);
-		}*/
-
-		/*createImageBitmap(frameImageData).then(bitmap => {
-			this.#testCtx.drawImage(bitmap, 0, 0);
-		});*/
-
-		this.#renderer.renderFrame(frameData).then(dmdImageData => {
+		// Generate DMD frame
+		this.#renderer.renderFrame(frameImageData.data).then(dmdImageData => {
 
 			createImageBitmap(dmdImageData).then(bitmap => {
 
-				that.#context.clearRect(0, 0, that.#canvas.width, that.#canvas.height);
-				that.#context.drawImage(bitmap, 0, 0);
+				// Clear target canvas
+				that.#outputContext.clearRect(0, 0, that.#outputCanvas.width, that.#outputCanvas.height);
 
+				// Render final DMD image onto target canvas
+				that.#outputContext.drawImage(bitmap, 0, 0);
+
+				// Render FPS box if needed
 				that.#renderFPS();
-
 
 				var now = window.performance.now();
 				var delta = (now - that.#lastRenderTime);
 				that.#lastRenderTime = now;
 
+				// Calculate FPS
 				this.#fps = Math.round((1000 / delta) * 1e2) / 1e2;
 
-				if (that.#isRunning) {
-					requestAnimationFrame(that.#renderDMD.bind(that));
-					that.#cnt++;
-				}
-
+				this.#renderNextFrame();
 			});
 
 		});
 	}
 
+	/**
+	 * Update FPS output div with current fps value
+	 */
 	#_renderFPS() {
 		this.#fpsBox.innerHTML = `${this.#fps} fps`;
+	}
+
+	/**
+	 * Request next Frame rendering cycle
+	 */
+	#requestNextFrame() {
+		requestAnimationFrame(this.#renderDMD.bind(this));
 	}
 
 	/**
@@ -349,7 +333,7 @@ class DMD {
 	 * @param {string} name 
 	 * @param {boolean} state 
 	 */
-	setGroupVisibility(name, state) {
+	setLayerGroupVisibility(name, state) {
 		Object.keys(this.#layers).forEach(key => {
 			if (this.#layers[key].groups.includes(name)) {
 				this.#layers[key].setVisibility(!!state);
@@ -442,16 +426,21 @@ class DMD {
 	 * @param {number} b
 	 */
 	setBrightness(b) {
-		// Pass opacity converted to alpha (integer between 0 and 255) to the renderer
+		// Pass brightness to the renderer
 		this.#renderer.setBrightness(b);
 	}
 
+	/**
+	 * Add a renderer instance to the DMD
+	 * TODO : Check if really a renderer class
+	 * @param {string} id (unique)
+	 * @param {object} renderer 
+	 */
 	addRenderer(id, renderer) {
 
 		if (this.#isRunning) {
 			throw new Error("Renderers must be added before calling DMD.init()")
 		}
-
 
 		// TODO check if renderer is a renderer class
 		if (typeof this.#layerRenderers[id] === 'undefined') {
@@ -465,6 +454,9 @@ class DMD {
 		}
 	}
 
+	/**
+	 * Get DMD brightness
+	 */
 	get brightness() {
 		return this.#renderer.brightness;
 	}
@@ -473,36 +465,50 @@ class DMD {
 	 * Get canvas
 	 */
 	get canvas() {
-		return this.#canvas;
+		return this.#outputCanvas;
 	}
 
 	/**
 	 * Get canvas context
 	 */
 	get context() {
-		return this.#context;
+		return this.#outputContext;
 	}
 
+	/**
+	 * Return width of the DND (dots)
+	 */
 	get dmdWidth() {
 		return this.#outputWidth;
 	}
 
+	/**
+	 * Return height of the DND (dots)
+	 */
 	get dmdHeight() {
 		return this.#outputHeight;
 	}
 
-	get canvasWidth() {
-		return this.#canvas.width;
+	/**
+	 * Return width of the canvas (pixels)
+	 */
+	get screenWidth() {
+		return this.#outputCanvas.width;
 	}
 
-	get canvasHeight() {
-		return this.#canvas.height;
+	/**
+	 * Return height of the canvas (pixels)
+	 */
+	get screenHeight() {
+		return this.#outputCanvas.height;
 	}
 
-	getFPS() {
+	/**
+	 * Get current fps value
+	 */
+	get fps() {
 		return this.#fps;
 	}
-
 }
 
 export { DMD };

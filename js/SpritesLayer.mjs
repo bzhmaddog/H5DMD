@@ -23,6 +23,9 @@ class SpritesLayer extends BaseLayer {
         setTimeout(this._layerLoaded.bind(this), 1);
 	}
 
+    /**
+     * Render frame with all sprites data
+     */
     #renderFrame() {
         const that = this;
 
@@ -38,13 +41,26 @@ class SpritesLayer extends BaseLayer {
             }
         });
 
-        this.#renderNextFrame();
+        this.#renderNextFrame(); // if needed
     }
 
+    /**
+     * Request rendering of next frame
+     */
     #requestRenderNextFrame() {
         requestAnimationFrame(this.#renderFrame.bind(this));        
     }
 
+    /**
+     * Create a sprite and add it to the layer
+     * @param {string} id 
+     * @param {string} src 
+     * @param {number} hFrameOffset  (horizontal distance between frames)
+     * @param {number} vFrameOffset  (vertical distance between frames)
+     * @param {array<string>} animations 
+     * @param {number} x (horizontal position on layer)
+     * @param {number} y (vertical position on layer)
+     */
     createSprite(id, src, hFrameOffset, vFrameOffset, animations, x, y) {
         var that = this;
 
@@ -69,27 +85,54 @@ class SpritesLayer extends BaseLayer {
         });
     }
 
-    addSprite(id, sprite, x, y) {
-        if (typeof this.#sprites[id] !== 'undefined') {
-            console.log('Already exists : ' + id);
+    /**
+     * Add an existing Sprite object to the layer ad x,y position
+     * @param {string} id 
+     * @param {Sprite} sprite 
+     * @param {number} x 
+     * @param {number} y 
+     * @returns {boolean} true if sprite was assed false otherwise
+     */
+    addSprite(id, sprite, x, y, v) {
+        var isVisible = true;
+
+        if (typeof sprite === 'object' && sprite.constructor !== Sprite) {
+            console.error("Provided sprite is not a Sprite object");
             return false;
+        }
+
+        if (typeof this.#sprites[id] !== 'undefined') {
+            console.error('Already exists : ' + id);
+            return false;
+        }
+
+        if (typeof v !== 'undefined') {
+            isVisible = !!v;
         }
 
         this.#sprites[id] = {
             x : x,
             y : y,
             sprite : sprite,
-            visible : true
+            visible : isVisible
         };
 
+        // set sprite listener to this layer
         sprite.setEndOfQueueListener(this.#onQueueEnded.bind(this));
 
         this._layerUpdated();
+
+        return true;
     }
 
+    /**
+     * End of quest listener
+     * @param {string} id : sprite queue which ended
+     */
     #onQueueEnded(id) {
         this.#runningSprites--;
 
+        // If not more sprite is running then no need to keep rendering new frames
         if (this.#runningSprites <= 0) {
             this.#runningSprites = 0;
             this.#renderNextFrame = function(){};
@@ -105,19 +148,38 @@ class SpritesLayer extends BaseLayer {
         }
     }*/
 
-    moveSprite(id,x,y) {
-        this.#sprites[id].x = x;
-        this.#sprites[id].x = y;
+    /**
+     * Change sprite position to x,y
+     * @param {string} id 
+     * @param {number} x 
+     * @param {number} y 
+     */
+    moveSprite(id, x, y) {
+        if (typeof this.#sprites[id] !== 'undefined') {
+            this.#sprites[id].x = x;
+            this.#sprites[id].x = y;
+        } else {
+            console.error(`Layer[${this.getId()}] : sprite [${id}] does not exist`);
+        }
     }
 
-    hideSprite(id) {
-        this.#sprites[id].visible = false;
+    /**
+     * Change sprite visibility
+     * @param {string} id 
+     * @param {boolean} v 
+     */
+    setSpriteVisibility(id, v) {
+        if (typeof this.#sprites[id] !== 'undefined') {
+            this.#sprites[id].visible = !!v;
+        } else {
+            console.error(`Layer[${this.getId()}] : sprite [${id}] does not exist`);
+        }
     }
     
-    showSprite(id) {
-        this.#sprites[id].visible = true;
-    }
-
+    /**
+     * Run sprite current animation
+     * @param {string} id 
+     */
     run(id) {
         if (typeof this.#sprites[id] !== 'undefined') {
 
@@ -133,10 +195,14 @@ class SpritesLayer extends BaseLayer {
                 }
             }
         } else {
-            throw new Error(`No sprite named : ${id} found in layer [#{this.#id}]`);
+            console.error(`Layer[${this.getId()}] : sprite [${id}] does not exist`);
         }
     }
 
+    /**
+     * Stop sprite current animation
+     * @param {string} id 
+     */
     stop(id) {
         if (typeof this.#sprites[id] !== 'undefined') {
             if (this.#sprites[id].sprite.isAnimating()) {
@@ -144,20 +210,27 @@ class SpritesLayer extends BaseLayer {
                 this.#sprites[id].sprite.stop();
             }
         } else {
-            throw new Error(`No sprite named : ${id} found in layer [#{this.#id}]`);
+            console.error(`Layer[${this.getId()}] : sprite [${id}] does not exist`);
         }
 
+        // Stop rendering if no sprite running
         if (this.#runningSprites <= 0) {
             this.#runningSprites = 0;
             this.#renderNextFrame = function(){};
         }
     }
 
+    /**
+     * Add sequence of animations to sprite queue
+     * @param {string} id 
+     * @param {array} queue 
+     * @param {boolean} loop 
+     */
     enqueueSequence(id, queue, loop) {
         if (typeof this.#sprites[id] !== 'undefined') {
             this.#sprites[id].sprite.enqueueSequence(queue, loop);
         } else {
-            throw new Error(`No sprite named : ${id} found in layer [#{this.#id}]`);
+            console.error(`Layer[${this.getId()}] : sprite [${id}] does not exist`);
         }
     }
 

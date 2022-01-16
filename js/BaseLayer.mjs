@@ -23,8 +23,6 @@ class BaseLayer {
     #outputBuffer;
     #loaded;
     #rendererParams;
-    #frame;
-
 
     constructor(_id, _width, _height, _options, _renderers, _loadedListener, _updatedListener) {
 
@@ -51,7 +49,6 @@ class BaseLayer {
         this.#loaded = false;
         this.#rendererParams = {};
         this.#groups = ['default'];
-        this.#frame = 0;
 
 
         this._options = Object.assign(defaultOptions, _options);
@@ -120,6 +117,11 @@ class BaseLayer {
         }
     }
 
+    /**
+     * get render parameters for specified renderer key
+     * @param {string} id 
+     * @returns 
+     */
     getRendererParams(id) {
         if (typeof this.#rendererParams[id] !== 'undefined') {
             return this.#rendererParams[id];
@@ -128,6 +130,12 @@ class BaseLayer {
         }
     }
 
+    /**
+     * Set renderer parameters
+     * TODO : Improve that by creating Classes provided by renderers themself
+     * @param {string} id 
+     * @param {array} value 
+     */
     setRendererParams(id, value) {
         this.#rendererParams[id] = value;
     }
@@ -144,10 +152,6 @@ class BaseLayer {
      */
     #renderFrame() {
         const that = this;
-
-        this.#frame++;
-
-        //console.log(`Layer[${this._id}] : Rendering frame ${this.#frame}`);
 
         // clone renderers array;
         this.#renderQueue = [...this.#defaultRenderQueue] || [];
@@ -209,6 +213,10 @@ class BaseLayer {
         }
     }
 
+    /**
+     * Layer is loaded : Start rendering and call the callback if needed
+     * @param {boolean} startRenderingLoop 
+     */
     _layerLoaded(startRenderingLoop) {
         var that = this;
 
@@ -216,6 +224,7 @@ class BaseLayer {
 
         console.log(`Layer [${this._id}] : Loaded`);
 
+        // If no renderer in the queue then just render the frame data once
         if (this.#defaultRenderQueue.length === 0 && this.#opacity === 1) {
             // Put content data in output buffer
             var frameImageData = this._contentBuffer.context.getImageData(0, 0, this.#width, this.#height);
@@ -232,26 +241,39 @@ class BaseLayer {
 			this.#requestAnimationFrame();
 		}
 
+        // Call callback if there is one
         if (typeof this.#loadedListener === 'function') {
             this.#loadedListener(this);
         }
     }
 
+    /**
+     * Layer was updated
+     */
     _layerUpdated() {
 
         console.log(`Layer [${this._id}] : Updated`);
 
+        // Re-render frame
+        // Todo check if needed because when rendering is started the next frame should be automatically rendered
         this.#renderFrame();
 
+        // Callback parent if available
         if (typeof this.#updatedListener === 'function') {
             this.#updatedListener(this);
         }
     }
 
+    /**
+     * Stop rendering of the layer
+     */
     _stopRendering() {
         this.#renderNextFrame = function() {console.log(`Rendering stopped : ${this._id}`)}
     }
 
+    /**
+     * Start rendering of the layer
+     */
     _startRendering() {
         console.log(`Layer [${this._id}] : Start rendering`);
 
@@ -260,7 +282,7 @@ class BaseLayer {
     }
 
     /**
-     * Fetch image from server
+     * Fetch an image from remote server
      * @param {string} src 
      * @returns 
      */
@@ -275,7 +297,7 @@ class BaseLayer {
     }
 
     /**
-     * Fetch image from server
+     * Fetch image from server with an index used to determine position
      * @param {string} src 
      * @param {number} index
      * @returns 
@@ -293,11 +315,18 @@ class BaseLayer {
         }        
     }
 
-
+    /**
+     * Return visibility state of the layer
+     * @returns boolean
+     */
     isVisible() {
         return this.#visible;
     }
 
+    /**
+     * Set visibility state of the layer
+     * @param {boolean} state 
+     */
     setVisibility(state) {
 
         // State didn't change do nothing
@@ -315,18 +344,38 @@ class BaseLayer {
         } else {
             this.#renderNextFrame = function() { console.log('End of rendering :' + this._id) };
         }
-
-        PubSub.publish('layer.visibilityChanged', this);
     }
 
+    /**
+     * Toggle layer visibility and return the new state
+     * @returns boolean
+     */
+    toggleVisibility() {
+        this.#visible = !this.#visible;
+        return this.#visible;
+    }
+
+    /**
+     * Return the type of the layer
+     * @returns string
+     */
     getType() {
         return this.#type;
     }
 
+    /**
+     * Return layer id
+     * @returns string
+     */
     getId() {
         return this._id;
     }
 
+    /**
+     * Return requested renderer instance
+     * @param {string} id 
+     * @returns object
+     */
     _getRendererInstance(id) {
         if (typeof this.#availableRenderers[id] !== 'undefined') {
            return  this.#availableRenderers[id];
@@ -335,14 +384,18 @@ class BaseLayer {
         }
     }
 
-    toggleVisibility() {
-        this.#visible = !this.#visible;
-    }
-
+    /**
+     * Return if the layer have renderer in the queue
+     * @returns boolean
+     */
     haveRenderer() {
         return this.#defaultRenderQueue.length > 0;
     }
 
+    /**
+     * Set layer opacity (0 -> 1)
+     * @param {float} o 
+     */
     setOpacity(o) {
         var opacity = Math.max(0, Math.min(Number.parseFloat(o), 1));
         this.#opacity = Math.round(opacity * 1e3) / 1e3;
@@ -352,70 +405,112 @@ class BaseLayer {
 
         console.log(`Layer [${this._id}] : Opacity changed to ${this.#opacity}`);
 
+        // Layer need to be redrawn
         this._layerUpdated();
     }
 
-    // Clear canvases
+    /**
+     * Clear buffers
+     */
     clear() {
         this._contentBuffer.clear();
         this.#outputBuffer.clear();
     }
 
+    /**
+     * Redraw layer
+     */
     redraw() {
         this.#requestAnimationFrame();
     }
 
+    /**
+     * Return loading state of the layer
+     * @returns boolean
+     */
     isLoaded() {
 		return this.#loaded;
 	}
 
+    /**
+     * Set layer type 
+     * @param {*} t 
+     */
     _setType(t) {
         this.#type = t;
     }
 
+    /**
+     * Enable/Disable antialiasing
+     * TODO : Fix not working as expected
+     * @param {*} enabled 
+     */
     _setAntialiasing(enabled) {
         this.#outputBuffer.context.imageSmoothingEnabled = enabled;
     }
 
+    /**
+     * Get current image data
+     */
     get imageData() {
         return this.#outputBuffer.context.getImageData(0,0, this.#width, this.#height);
     }
 
+    /**
+     * Get output canvas
+     */
     get canvas() {
         return this.#outputBuffer.canvas;
     }
 
+    /**
+     * Get content canvas (whith any filter)
+     */
     get originalCanvas() {
         return this._contentBuffer.canvas;
     }
 
+    /**
+     * Get output canvas context
+     */
     get context() {
         return this.#outputBuffer.context;
     }
 
+    /**
+     * Get layer options
+     */
     get options() {
         return this._options;
     }
     
+    /**
+     * Get layer width
+     */
     get width() {
         return this.#outputBuffer.width;
     }
 
+    /**
+     * Get layer height
+     */
     get height() {
         return this.#outputBuffer.height;
     }
+
+    /**
+     * Get groups the layer belong to
+     */
     get groups() {
         return this.#groups;
     }
 
+    /**
+     * Destroy layer (for now it just mean stopping rendering)
+     */
     destroy() {
         this.#renderNextFrame = function() { console.log(`Destroying layer : ${this._id}`) };
     }
-
-    renderNextFrame() {
-        this.#requestAnimationFrame();
-    }
-
 }
 
 export { BaseLayer };

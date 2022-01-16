@@ -8,7 +8,6 @@ class ImageLayer extends CanvasLayer {
 
         this._setType('image');
 
-        //setTimeout(this._layerLoaded.bind(this), 1);
         if (typeof _options.src === 'undefined') {
             throw new TypeError("Missing src property in options object");
         } else {

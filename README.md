@@ -31,10 +31,12 @@ See Demo.html
 // Change layer visibilitity
 spritesLayer.setVisibility(false);
 // or
-dmd.setLayerVisibility('test-sprites', false);
+dmd.setLayerVisibility('test-sprites', {true/false});
 
-// Only visible layers are rendered onto the DMD but there drawing routine still runs and consume CPU time so if you really don't need a layer anymore
-// it can be Removed via its name
+// Change Layer group visibility
+dmd.setLayerGroupVisibility('mygroup', {true/false});
+
+// Only visible layers are rendered onto the DMD but if you don't need a layer anymore it can be Removed via its name
 dmd.removeLayer('test-sprites');
 // or its object itself
 dmd.removeLayer(spritesLayer);

@@ -8,10 +8,9 @@ class Buffer {
 	#context;
 
 	constructor(width, height) {
-		this.#canvas = document.createElement('canvas');
+		this.#canvas = document.createElement('canvas'); // Offscreen canvas
 		this.#canvas.width = width;
 		this.#canvas.height = height;
-
 		this.#context = this.#canvas.getContext('2d');
 	}
 

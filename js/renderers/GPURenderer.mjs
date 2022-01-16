@@ -312,9 +312,8 @@ class GPURenderer {
      * @param {float} b 
      */
     setBrightness(b) {
-        var b = Math.max(0, Math.min(Number.parseFloat(b), 1));
-
-        this.#brightness = Math.round(b * 1e3) / 1e3;
+        var b = Math.max(0, Math.min(Number.parseFloat(b), 1)); // normalize
+        this.#brightness = Math.round(b * 1e3) / 1e3; // round to 1 digit after dot
     }
 
     get brightness() {

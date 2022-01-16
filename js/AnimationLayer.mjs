@@ -43,16 +43,20 @@ class AnimationLayer extends BaseLayer {
         this.#loadImages(options.images);
     }
 
+    /**
+     * Called when all images are finished loading
+     */
     #onImagesLoaded() {
 
         // calculate how long each frame should be displayed
         this.#frameDuration = this._options.duration / this.#images.length;
 
-        console.log(`Frame duration = ${this.#frameDuration}`);
+        //console.log(`Frame duration = ${this.#frameDuration}`);
 
         this._contentBuffer.clear();
         this._contentBuffer.context.drawImage(this.#images[this.#frameIndex], 0, 0, this.width, this.height);
 
+        // Call parent loaded callback
         this._layerLoaded();
 
 		if (this._options.autoplay) {
@@ -61,33 +65,32 @@ class AnimationLayer extends BaseLayer {
 
     }
 
+    /**
+     * Render current frame in content buffer
+     * @param {number} t 
+     * @returns 
+     */
     #renderFrame(t) {
 
         var now = t;
+        var previousFrameIndex = this.#frameIndex;
 
         if (!this.#startTime) {
             this.#startTime = now;
-//            console.log("Start Time = ", this.#startTime);
         }
 
         var position = now - this.#startTime;
 
         var frameIndex = Math.floor(position / this.#frameDuration);
 
-        //console.log(frameIndex);
 
+        // If not looping stop at the last image in the array
         if (!this.#loop && frameIndex >= this.#images.length) {
-//            console.log("End = ", position);
             this.stop();
             return;
         }
 
-        if (frameIndex != this.#frameIndex) {
-            //console.log(frameIndex);
-            //console.log(this.#images[this.#frameIndex]);
-        }
-
-
+        // Loop back to the first image
         if (frameIndex >= this.#images.length) {
             this.#startTime = null;
             frameIndex = 0;
@@ -95,16 +98,28 @@ class AnimationLayer extends BaseLayer {
 
         this.#frameIndex = frameIndex;
 
-        this._contentBuffer.clear();
-        this._contentBuffer.context.drawImage(this.#images[this.#frameIndex], 0, 0, this.width, this.height);
+        // If it is the same frame as last call then no need to redraw it
+        if (frameIndex !== previousFrameIndex) {
+            // Update content buffer with current frame data
+            this._contentBuffer.clear();
+            this._contentBuffer.context.drawImage(this.#images[this.#frameIndex], 0, 0, this.width, this.height);
+        }
 
+        // Render next frame if needed
         this.#renderNextFrame();
     }
 
+    /**
+     * Request rendering of next frame
+     */
     #requestRenderNextFrame() {
         requestAnimationFrame(this.#renderFrame.bind(this));        
     }
 
+    /**
+     * Load animation images
+     * @param {array of string or Image} images 
+     */
     #loadImages(images) {
         var tmpImages = [];
         var that = this;
@@ -128,7 +143,7 @@ class AnimationLayer extends BaseLayer {
                         cnt++;
                         if (cnt === images.length) {
                             that.#images = [...tmpImages];
-                            that.#onImagesLoaded();
+                            that.#onImagesLoaded(); // All images are loaded
                         }
                     });
                 });
@@ -136,6 +151,10 @@ class AnimationLayer extends BaseLayer {
         }
     }
 
+    /**
+     * Play animation with current images array
+     * @param {boolean} loop 
+     */
     play(loop) {
         if (this.isLoaded() && !this.#isPlaying) {
             
@@ -160,6 +179,9 @@ class AnimationLayer extends BaseLayer {
         }
     }
 
+    /**
+     * Stop animation (frame index goes back to 0)
+     */
     stop() {
         if (this.#isPlaying) {
             this.#isPlaying = false;
@@ -174,10 +196,12 @@ class AnimationLayer extends BaseLayer {
         }
     }
 
+    /**
+     * Pause animation to current frame index (if started with loop=true otherwise duration will be wrong)
+     * TODO : Maybe it is still possible to finish the animation
+     */
     pause() {
         if (this.#isPlaying) {
-
-            console.log(this.#loop);
             // Only looping animation can be paused
             if (this.#loop) {
                 this.#isPlaying = false;
@@ -193,6 +217,9 @@ class AnimationLayer extends BaseLayer {
         }
     }
 
+    /**
+     * Resumed a paused animation
+     */
     resume() {
         if (this.#isPaused) {
             this.play();
@@ -201,22 +228,19 @@ class AnimationLayer extends BaseLayer {
         }
     }
 
-
+    /**
+     * return state of animation
+     */
     get isPlaying() {
         return this.#isPlaying;
     }
 
+    /**
+     * return state of animation
+     */
     get isPaused() {
         return this.#isPaused; 
     }
-    
-	/*get rawData() {
-        if (this.#frameIndex > this.#images.length - 1) {
-            throw new Error(`Index out of bound : ${this.#frameIndex}`);
-        }
-        //console.log("frameIndex = ", this.#frameIndex);
-		return this.#images[this.#frameIndex];
-	}*/
 }
 
 export { AnimationLayer };
