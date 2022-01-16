@@ -8,7 +8,8 @@ class RemoveAliasingRenderer {
     #height;
     #shaderModule;
     #bufferByteLength;
-
+    renderFrame;
+    
     /**
      * @param {*} _width 
      * @param {*} _height 
@@ -21,6 +22,7 @@ class RemoveAliasingRenderer {
         this.#width = _width;
         this.#height = _height;
         this.#bufferByteLength = _width * _height * 4;
+        this.renderFrame = this.#doNothing;
     }
 
     init() {
@@ -117,14 +119,15 @@ class RemoveAliasingRenderer {
                         `
                     });
 
-                    this.#shaderModule.compilationInfo().then(i=>{
+                    console.log('RemoveAliasingRenderer:init()');
+
+                    that.#shaderModule.compilationInfo().then(i=>{
                         if (i.messages.length > 0 ) {
-                            console.log("RemoveAliasingRenderer:compilationInfo() ", i.messages);
+                            console.warn("RemoveAliasingRenderer:compilationInfo() ", i.messages);
                         }
                     });
 
-                    console.log('RemoveAliasingRenderer:init()');
-
+                    that.renderFrame = that.#doRendering;
                     resolve();
                 });    
             });
@@ -132,11 +135,19 @@ class RemoveAliasingRenderer {
     
     }
 
+    /**
+     * Do nothing (place holder until init is done to prevent having to have a if() in #doRendering)
+     * @param {*} frameDate 
+     * @returns 
+     */
+    #doNothing(frameData) {
+        console.log("Init not done cannot apply filter");
+        return new Promise(resolve =>{
+            resolve(frameData);
+        });        
+    }
 
-    renderFrame(frameData, treshold, baseColor) {
-
-        //console.log(arguments);
-
+    #doRendering(frameData, treshold, baseColor) {
         const that = this;
 
         const UBOBuffer = this.#device.createBuffer({
@@ -230,8 +241,6 @@ class RemoveAliasingRenderer {
             const uniformData = [treshold, Utils.hexColorToInt(Utils.rgba2abgr(baseColor))];
 
             const uniformTypedArray = new Int32Array(uniformData);
-
-            //console.log(uniformData);
 
             this.#device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer);      
 

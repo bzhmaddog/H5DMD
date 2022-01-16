@@ -1,7 +1,6 @@
 
 class GPURenderer {
 
-    #initDone;
     #adapter;
     #device;
     #dmdWidth;
@@ -19,6 +18,7 @@ class GPURenderer {
     #bgBrightness;
     #bgColor;
     #brightness;
+    renderFrame;
 
 
     /**
@@ -44,12 +44,12 @@ class GPURenderer {
         this.#xSpace = xSpace;
         this.#ySpace = ySpace;
         this.#dotShape = dotShape;
-        this.#initDone = false;
         this.#device;
         this.#adapter;
         this.#shaderModule;
         this.#dmdBufferByteLength = dmdWidth*dmdHeight * 4;
         this.#screenBufferByteLength = screenWidth * screenHeight * 4;
+        this.renderFrame = this.#doNothing;
 
 
         this.#bgBrightness = 14;
@@ -86,7 +86,6 @@ class GPURenderer {
             
                 adapter.requestDevice().then( device => {
                     that.#device = device;
-                    that.#initDone = true;
 
                     that.#shaderModule = device.createShaderModule({
                         code: `
@@ -165,12 +164,15 @@ class GPURenderer {
                         `
                     });
 
+                    console.log("GPURenderer:init()");
+
                     this.#shaderModule.compilationInfo().then(i=>{
                         if (i.messages.length > 0 ) {
-                            console.log('GPURenderer:compilationInfo()', i.messages);
+                            console.warn('GPURenderer:compilationInfo()', i.messages);
                         }
                     });
 
+                    that.renderFrame = that.#doRendering;
                     resolve(device);
                 });    
             });
@@ -178,11 +180,26 @@ class GPURenderer {
     
     }
 
+    /**
+     * Do nothing (place holder until init is done to prevent having to have a if() in #doRendering)
+     * @param {*} frameData
+     * @returns 
+     */
+     #doNothing(frameData) {
+        console.log("Init not done cannot apply filter");
+        return new Promise(resolve =>{
+            resolve(frameData);
+        });        
+    }
 
-    renderFrame(frameData) {
+    /**
+     * Render a DMD frame
+     * @param {ImageData} frameData 
+     * @returns {ImageData}
+     */
+    #doRendering(frameData) {
 
         const that = this;
-
 
         const UBOBuffer = this.#device.createBuffer({
             size: 4,

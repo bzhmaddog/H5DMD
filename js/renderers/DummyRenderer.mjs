@@ -6,7 +6,7 @@ class DummyRenderer {
     #height;
     #shaderModule;
     #bufferByteLength;
-    #initDone;
+    renderFrame;
 
     /**
      * @param {*} _width 
@@ -20,7 +20,7 @@ class DummyRenderer {
         this.#width = _width;
         this.#height = _height;
         this.#bufferByteLength = _width * _height * 4;
-        this.#initDone = false;
+        this.renderFrame = this.#doNothing;
     }
 
     init() {
@@ -40,7 +40,6 @@ class DummyRenderer {
                                 rgba: array<u32>;
                             };
 
-
                             [[group(0), binding(0)]] var<storage,read> inputPixels: Image;
                             [[group(0), binding(1)]] var<storage,write> outputPixels: Image;
                             [[stage(compute), workgroup_size(1)]]
@@ -52,31 +51,39 @@ class DummyRenderer {
                         `
                     });
 
+                    console.warn('ChangeAlphaRenderer:init() : Are you sure you wanted to use this renderer ?');
+
                     this.#shaderModule.compilationInfo().then(i => {
-
-                        console.log('ChangeAlphaRenderer:init()');
-
-                        this.#initDone = true;
-                        resolve();
-
                         if (i.messages.length > 0 ) {
-                            console.log("ChangeAlphaRenderer:compilationInfo() ", i.messages);
+                            console.warn("ChangeAlphaRenderer:compilationInfo() ", i.messages);
                         }
                     });
+
+                    that.#renderFrame = that.#doRendering;
+                    resolve();
                 });    
             });
        });
     
     }
 
+    /**
+     * Does nothing except returning passed data (placeholder until init is done)
+     * @param {ImageData} frameData 
+     * @returns {ImageData}
+     */
+    #doNothing(frameData) {
+        return new Promise(resolve =>{
+            resolve(frameData);
+        });
+    }
 
-    renderFrame(frameData) {
-
-        if (!this.#initDone) {
-            console.log("init not done");
-            return new Promise(resolve =>{resolve(frameData)});
-        }
-
+    /**
+     * This renderer serve as a template for other renderers. It does nothing but returning the exact array of pixels it was provided
+     * @param {ImageData} frameData 
+     * @returns {ImageData}
+     */
+    #doRendering(frameData) {
         const that = this;
 
         const gpuInputBuffer = this.#device.createBuffer({

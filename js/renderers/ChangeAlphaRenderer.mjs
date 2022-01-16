@@ -6,9 +6,7 @@ class ChangeAlphaRenderer {
     #height;
     #shaderModule;
     #bufferByteLength;
-    #opacity;
-    #cnt;
-    #initDone;
+    renderFrame;
 
     /**
      * @param {*} _width 
@@ -22,8 +20,7 @@ class ChangeAlphaRenderer {
         this.#width = _width;
         this.#height = _height;
         this.#bufferByteLength = _width * _height * 4;
-        this.#cnt = 0;
-        this.#initDone = false;
+        this.renderFrame = this.#doNothing;
     }
 
     init() {
@@ -77,30 +74,42 @@ class ChangeAlphaRenderer {
                         `
                     });
 
-                    this.#shaderModule.compilationInfo().then(i => {
+                    console.log('ChangeAlphaRenderer:init()');
 
-                        console.log('ChangeAlphaRenderer:init()');
-
-                        this.#initDone = true;
-                        resolve();
+                    that.#shaderModule.compilationInfo().then(i => {
 
                         if (i.messages.length > 0 ) {
-                            console.log("ChangeAlphaRenderer:compilationInfo() ", i.messages);
+                            console.warn("ChangeAlphaRenderer:compilationInfo() ", i.messages);
                         }
                     });
+
+                    that.renderFrame = that.#doRendering;
+                    resolve();
                 });    
             });
        });
     
     }
 
+    /**
+     * Do nothing (place holder until init is done to prevent having to have a if() in #doRendering)
+     * @param {ImageData} frameData 
+     * @returns {ImageData}
+     */
+    #doNothing(frameData) {
+        console.log("Init not done cannot apply filter");
+        return new Promise(resolve =>{
+            resolve(frameData);
+        });        
+    }
 
-    renderFrame(frameData, opacity) {
-
-        if (!this.#initDone) {
-            console.log("init not done");
-            return new Promise(resolve =>{resolve(frameData)});
-        }
+    /**
+     * Apply filter to provided data then return altered data
+     * @param {ImageData} frameData 
+     * @param {float} opacity 
+     * @returns {ImageData}
+     */
+    #doRendering(frameData, opacity) {
 
         var o = opacity || 1;
 
@@ -197,8 +206,6 @@ class ChangeAlphaRenderer {
             // Write values to uniform buffer object
             const uniformData = [o];
             const uniformTypedArray = new Float32Array(uniformData);
-
-            //console.log(uniformData);
 
             this.#device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer);            
     

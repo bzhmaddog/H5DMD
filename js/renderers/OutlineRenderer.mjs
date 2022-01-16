@@ -9,6 +9,7 @@ class OutlineRenderer {
     #shaderModule;
     #bufferByteLength;
     #initDone;
+    renderFrame;
 
     /**
      * @param {*} _width 
@@ -23,6 +24,7 @@ class OutlineRenderer {
         this.#height = _height;
         this.#bufferByteLength = _width * _height * 4;
         this.#initDone = false;
+        this.renderFrame = this.#doNothing;
     }
 
     init() {
@@ -113,33 +115,35 @@ class OutlineRenderer {
                         `
                     });
 
-                    this.#shaderModule.compilationInfo().then(i => {
+                    console.log('OutlineRenderer:init()');
 
-                        console.log('OutlineRenderer:init()');
-
-                        this.#initDone = true;
-                        resolve();
-
+                    that.#shaderModule.compilationInfo().then(i => {
                         if (i.messages.length > 0 ) {
-                            console.log("OutlineRenderer:compilationInfo() ", i.messages);
+                            console.warn("OutlineRenderer:compilationInfo() ", i.messages);
                         }
                     });
+
+                    that.renderFrame = that.#doRendering;
+                    resolve();
                 });    
             });
        });
     
     }
 
+        /**
+     * Do nothing (place holder until init is done to prevent having to have a if() in #doRendering)
+     * @param {*} frameDate 
+     * @returns 
+     */
+    #doNothing(frameData) {
+        console.log("Init not done cannot apply filter");
+        return new Promise(resolve =>{
+            resolve(frameData);
+        });        
+    }
 
-    renderFrame(frameData, innerColor, outerColor, width) {
-
-        //console.log(Utils.rgba2abgr(innerColor));
-
-        if (!this.#initDone) {
-            console.log("init not done");
-            return new Promise(resolve =>{resolve(frameData)});
-        }
-
+    #doRendering(frameData, innerColor, outerColor, width) {
         const that = this;
 
         const UBOBuffer = this.#device.createBuffer({

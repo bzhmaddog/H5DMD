@@ -8,6 +8,7 @@ class RemoveAlphaRenderer {
     #height;
     #shaderModule;
     #bufferByteLength;
+    renderFrame;
 
     /**
      * @param {*} _width 
@@ -21,6 +22,7 @@ class RemoveAlphaRenderer {
         this.#width = _width;
         this.#height = _height;
         this.#bufferByteLength = _width * _height * 4;
+        this.renderFrame = this.#doNothing;
     }
 
     init() {
@@ -57,14 +59,15 @@ class RemoveAlphaRenderer {
                         `
                     });
 
-                    this.#shaderModule.compilationInfo().then(i=>{
+                    console.log('RemoveAlphaRenderer:init()');
+
+                    that.#shaderModule.compilationInfo().then(i=>{
                         if (i.messages.length > 0 ) {
-                            console.log("RemoveAlphaRenderer:compilationInfo() ", i.messages);
+                            console.warn("RemoveAlphaRenderer:compilationInfo() ", i.messages);
                         }
                     });
 
-                    console.log('RemoveAlphaRenderer:init()');
-
+                    that.renderFrame = that.#doRendering;
                     resolve();
                 });    
             });
@@ -72,8 +75,24 @@ class RemoveAlphaRenderer {
     
     }
 
+    /**
+     * Do nothing (place holder until init is done to prevent having to have a if() in #doRendering)
+     * @param {ImageData} frameData
+     * @returns {ImageData}
+     */
+    #doNothing(frameData) {
+        console.log("Init not done cannot apply filter");
+        return new Promise(resolve =>{
+            resolve(frameData);
+        });        
+    }    
 
-    renderFrame(frameData) {
+    /**
+     * Apply filter to provided data then return altered data
+     * @param {ImageData} frameData 
+     * @returns {ImageData}
+     */
+    #doRendering(frameData) {
 
         const that = this;
 
