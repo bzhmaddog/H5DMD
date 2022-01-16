@@ -223,15 +223,19 @@ class DMD {
 		requestAnimationFrame(this.#renderDMD.bind(this));
 	}
 
+	#sortLayers() {
+		this.#sortedLayers = this.#sortedLayers.sort((a, b) => (a.zIndex > b.zIndex) ? 1 : -1);		
+	}
+
 	/**
-	 * Add a new layer
+	 * Create a new layer object and add it to the list of layers
 	 * @param {string} id : mandatory
 	 * @param {string} type : mandatory
 	 * @param {object} options
 	 * @see BaseLayer for available options
 	 * @return layer
 	 */
-	addLayer(type, id, _options, _layerLoadedListener, _layerUpdatedListener, _layerOnPlayListener, _layerOnPauseListener, _layerOnStopListener) {
+	createLayer(type, id, _options, _layerLoadedListener, _layerUpdatedListener, _layerOnPlayListener, _layerOnPauseListener, _layerOnStopListener, _zIndex) {
 
 		if (typeof type !== 'string') {
 			throw new TypeError("Layers must have a type[image,canvas,animation,text,sprite,video]");
@@ -242,7 +246,7 @@ class DMD {
 		}
 
 		// add zIndex if not specified
-		var options = Object.assign({ zIndex: this.#zIndex, visible: true }, _options);
+		var options = Object.assign({ visible : true }, _options);
 
 
 		if (typeof this.#layers[id] === 'undefined') {
@@ -273,21 +277,72 @@ class DMD {
 
 				this.#layers[id] = layer;
 
-				if (options.zIndex === this.#zIndex) {
+				var zIndex = this.#zIndex;
+
+				if (typeof _zIndex === 'number') {
+					zIndex = _zIndex;
+				} else {
 					this.#zIndex++;
 				}
 
 				// Add new layer to sorted array
-				this.#sortedLayers.push({ name: id, zIndex: options.zIndex });
+				this.#sortedLayers.push({ name : id, zIndex: zIndex });
 
 				// Sort by zIndex inc
-				this.#sortedLayers = this.#sortedLayers.sort((a, b) => (a.zIndex > b.zIndex) ? 1 : -1);
+				this.#sortLayers();
 
-				return this.#layers[id]
+				return this.#layers[id];
 		} else {
 			throw new Error(`Layer [${id}] already exists`);
 		}
 	}
+
+	/**
+	 * Add an external layer object to the DMD
+	 * @param {string} id 
+	 * @param {BaseLayer} layer
+	 */
+	addLayer(id, layer, _zIndex) {
+		if (typeof this.#layers[id] === 'undefined') {
+
+			if (typeof layer === 'object' &&
+				(
+					layer.constructor === CanvasLayer ||
+					layer.constructor === ImageLayer ||
+					layer.constructor === VideoLayer ||
+					layer.constructor === TextLayer ||
+					layer.constructor === AnimationLayer ||
+					layer.constructor === SpritesLayer
+			)
+			) {
+
+				if (layer.width === this.#outputCanvas.width && layer.height === this.#outputCanvas.height ) {
+
+					var zIndex = this.#zIndex;
+
+					if (typeof _zIndex === 'number') {
+						zIndex = _zIndex;
+					} else {
+						this.#zIndex++;
+					}
+
+					this.#layers[id] = layer;
+					this.#sortedLayers.push({name : id, zIndex : zIndex});
+					this.#sortLayers();
+				} else {
+					console.error(`Layer[${id}] width/height mismatch : Expected[${this.#outputCanvas.width}x${this.#outputCanvas.height}] but received[${layer.width}x${layer.height}]`);
+				}
+			} else {
+				console.error("Object is not a valid layer object", layer);
+			}
+
+		} else {
+			console.error(`A layer named '${id}' already exists`);
+		}
+
+	}
+
+
 
 	/**
 	 * Remove specified layer

@@ -5,11 +5,13 @@ import { Buffer } from './Buffer.mjs';
  */
 class BaseLayer {
 
+    //Protected
     _id;
-    #type;
-    #width;
-    #height;
     _options;
+    _contentBuffer;
+    
+    // Private
+    #type;
     #loadedListener;
     #updatedListener;
     #availableRenderers;
@@ -19,7 +21,6 @@ class BaseLayer {
     #groups;
     #visible;
     #renderNextFrame;
-    _contentBuffer;
     #outputBuffer;
     #loaded;
     #rendererParams;
@@ -38,8 +39,6 @@ class BaseLayer {
         };
 
         this._id = _id;
-        this.#width = _width;
-        this.#height = _height;
         this.#loadedListener = _loadedListener;
         this.#updatedListener = _updatedListener;
         this.#defaultRenderQueue = [];
@@ -52,17 +51,11 @@ class BaseLayer {
 
 
         this._options = Object.assign(defaultOptions, _options);
-
-        var aaTreshold = Math.min(this._options.aaTreshold, 254);
-
-        this._options.aaTreshold = aaTreshold;
-
+        this._options.aaTreshold = Math.min(this._options.aaTreshold, 254);
 
         if (!Array.isArray(this._options.renderers)) {
             throw new TypeError("options.renderers should be an array");
         }
-
-        //this._options = Object.assign({ name: this.#layerId, width: _width, height: _height }, this._options);
 
         if (typeof this._options.groups === 'string') {
             try {
@@ -74,18 +67,16 @@ class BaseLayer {
             this.#groups = this.#groups.concat(this._options.groups);
         }
 
-        //console.log(this.#groups);
-
         this.#visible = this._options.visible;        
 
-
         // Empty method to automatically end rendering when layer is hidden
-        this.#renderNextFrame = function() { console.log(`Finished rendering queue for layer : ${this._id}`) };
+        this.#renderNextFrame = function() { console.log(`Layer [${this._id}] : Rendering ended`) };
 
 
         this._contentBuffer = new Buffer(_width, _height);
         this.#outputBuffer = new Buffer(_width, _height);
 
+        // NOT WORKING
         this._contentBuffer.context.imageSmoothingEnabled = this._options.antialiasing;
         this.#outputBuffer.context.imageSmoothingEnabled = this._options.antialiasing;
 
@@ -165,7 +156,7 @@ class BaseLayer {
         }
 
         // Get initial data from layer content
-        var frameImageData = this._contentBuffer.context.getImageData(0, 0, this.#width, this.#height);
+        var frameImageData = this._contentBuffer.context.getImageData(0, 0, this.#outputBuffer.width, this.#outputBuffer.height);
 
         // start renderers queue processing
         this.#processRenderQueue(frameImageData);
@@ -227,7 +218,7 @@ class BaseLayer {
         // If no renderer in the queue then just render the frame data once
         if (this.#defaultRenderQueue.length === 0 && this.#opacity === 1) {
             // Put content data in output buffer
-            var frameImageData = this._contentBuffer.context.getImageData(0, 0, this.#width, this.#height);
+            var frameImageData = this._contentBuffer.context.getImageData(0, 0, this.#outputBuffer.width, this.#outputBuffer.height);
 
             this.#outputBuffer.clear();
             createImageBitmap(frameImageData).then(bitmap => {
@@ -453,7 +444,7 @@ class BaseLayer {
      * Get current image data
      */
     get imageData() {
-        return this.#outputBuffer.context.getImageData(0,0, this.#width, this.#height);
+        return this.#outputBuffer.context.getImageData(0,0, this.#outputBuffer.width, this.#outputBuffer.height);
     }
 
     /**

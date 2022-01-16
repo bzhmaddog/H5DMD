@@ -13,6 +13,7 @@
             import { DMD } from './js/DMD.mjs';
             import { Utils } from './js/Utils.mjs';
             import { Colors } from './js/Colors.mjs';
+            import { CanvasLayer } from './js/CanvasLayer.mjs';
 
             (function () {
                 'use strict';
@@ -30,11 +31,11 @@
                         // Start rendering dmd
                         dmd.run();
 
-                        dmd.addLayer(DMD.LayerType.Image, 'bg', {
+                        dmd.createLayer(DMD.LayerType.Image, 'bg', {
                             src : '/images/boss-mode-bg.png'
                         });
 
-                        dmd.addLayer(DMD.LayerType.Animation, 'animation', {
+                        dmd.createLayer(DMD.LayerType.Animation, 'animation', {
                             images : [
                                 'images/animation/0.webp',
                                 'images/animation/1.webp',
@@ -57,7 +58,7 @@
                             loop : true
                         });
 
-                        var spriteLayer = dmd.addLayer(DMD.LayerType.Sprites, 'sprite', {}, function() {
+                        var spriteLayer = dmd.createLayer(DMD.LayerType.Sprites, 'sprite', {}, function() {
                             spriteLayer.createSprite(
                                 'scott',
                                 'images/scott.png',
@@ -85,14 +86,14 @@
                             });
                         });
 
-                        var textLayer1 = dmd.addLayer(DMD.LayerType.Text, 'text1', {
+                        var textLayer1 = dmd.createLayer(DMD.LayerType.Text, 'text1', {
                             'text' : "Scott Pilgrim",
                             align : 'left',
                             vAlign : 'top',
                             fontSize : 12
                         });
 
-                        var textLayer2 = dmd.addLayer(DMD.LayerType.Text, 'text2', {
+                        var textLayer2 = dmd.createLayer(DMD.LayerType.Text, 'text2', {
                             'text' : "VS",
                             align : 'center',
                             vAlign : 'middle',
@@ -103,7 +104,7 @@
                             xOffset : -40
                         });
 
-                        var textLayer3 = dmd.addLayer(DMD.LayerType.Text, 'text3', {
+                        var textLayer3 = dmd.createLayer(DMD.LayerType.Text, 'text3', {
                             'text' : "VS",
                             align : 'center',
                             vAlign : 'middle',
@@ -116,7 +117,7 @@
                             xOffset : -40
                         });
 
-                        var textLayer4 = dmd.addLayer(DMD.LayerType.Text, 'text4', {
+                        var textLayer4 = dmd.createLayer(DMD.LayerType.Text, 'text4', {
                             'text' : "Matthew Patel",
                             align : 'right',
                             vAlign : 'bottom',                            
@@ -124,7 +125,7 @@
                             xOffset : -1
                         });
                         
-                        var canvasLayer = dmd.addLayer(DMD.LayerType.Canvas, 'canvas', {}, function() {
+                        var canvasLayer = dmd.createLayer(DMD.LayerType.Canvas, 'canvas', {}, function() {
                             var img = new Image();
 
 		                    img.onload = function() {
