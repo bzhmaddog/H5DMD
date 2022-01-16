@@ -80,9 +80,15 @@ class TextLayer extends BaseLayer {
         //setTimeout(this.#onDataLoaded.bind(this), 1);
     }
 
+    /**
+     * Draw text onto canvas
+     * @param {object} _options 
+     * @returns 
+     */
     #drawText(_options) {
         var that = this;
 
+        // merge passed options with default options set during layer creation
         var options = Object.assign(this._options, _options);
 
         //console.log(options);
@@ -265,11 +271,13 @@ class TextLayer extends BaseLayer {
                 }
             }
         });
-
-        //console.log(text);
     }
 
-
+    /**
+     * Set layer text
+     * @param {string} text 
+     * @param {object} options (if options is not an object drawText will use this._options)
+     */
     setText(text, options) {
         var that = this;
 
@@ -278,21 +286,11 @@ class TextLayer extends BaseLayer {
         }
 
         if (typeof text !== 'undefined' && text !== "" && text !== this.#text) {
-
-            //console.log(`${this._id} : ${this.#text} / ${text}`);
-
             this.#text = text;
             this.#drawText(options).then(() => {
-                that.renderNextFrame();
+                that._layerUpdated();
             });
         }
-    }
-
-    redraw() {
-        var that = this;
-        this.#drawText().then(() => {
-            that.renderNextFrame();
-        });
     }
 }
 

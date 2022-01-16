@@ -420,9 +420,9 @@ class BaseLayer {
     /**
      * Redraw layer
      */
-    redraw() {
+    /*redraw() {
         this.#requestAnimationFrame();
-    }
+    }*/
 
     /**
      * Return loading state of the layer
