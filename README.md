@@ -33,6 +33,10 @@ It requires some experimental flags to be enabled
 --enable-unsafe-webgpu
 ```
 
+# Live demo
+https://bzhmaddog.github.io/h5dmd/Demo.html
+
+If it doesn't load look at the console to see errors
 
 # Example
 
