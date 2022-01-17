@@ -14,8 +14,24 @@ https://www.youtube.com/watch?v=MaJZQCTSiOg
 https://www.youtube.com/watch?v=q58dZAbNXe8
 
 
-# Installation
-Put all mjs files in your project
+# Requirements
+This project uses a lot of experimental features and has been tested with chromium 91+ Linux/Windows and Chrome Canary on MacOS
+
+It requires some experimental flags to be enabled
+```
+--use-gl=desktop
+--ignore-gpu-blocklist
+--enable-gpu-rasterization
+--enable-zero-copy
+--enable-features=VaapiVideoDecoder,Vulkan,UseSkiaRenderer
+--enable-accelerated-2d-canvas
+--enable-user-stylesheet
+--autoplay-policy=no-user-gesture-required
+--ignore-autoplay-restrictions
+--disk-cache-dir=/dev/null
+--disk-cache-size=1
+--enable-unsafe-webgpu
+```
 
 
 # Example
