@@ -65,7 +65,6 @@ class DMD {
 
 		console.log(`Creating a ${this.#outputWidth}x${this.#outputHeight} DMD on a ${this.#outputCanvas.width}x${this.#outputCanvas.height} canvas`);
 
-
 		//this.#renderer = new CPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape);
 		this.#renderer = new GPURenderer(this.#outputWidth, this.#outputHeight, this.#outputCanvas.width, this.#outputCanvas.height, dotSize, dotSpace, dotShape || DMD.DotShape.Circle, backgroundBrightness, brightness);
 
@@ -523,14 +522,14 @@ class DMD {
 	/**
 	 * Return width of the DND (dots)
 	 */
-	get dmdWidth() {
+	get width() {
 		return this.#outputWidth;
 	}
 
 	/**
 	 * Return height of the DND (dots)
 	 */
-	get dmdHeight() {
+	get height() {
 		return this.#outputHeight;
 	}
 

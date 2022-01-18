@@ -33,7 +33,7 @@ class GPURenderer {
      */
     constructor(dmdWidth, dmdHeight, screenWidth, screenHeight, pixelSize, dotSpace, dotShape, bgBrightness, brightness) {
 
-        console.log(arguments);
+        //console.log(arguments);
 
         this.#dmdWidth = dmdWidth;
         this.#dmdHeight = dmdHeight;
