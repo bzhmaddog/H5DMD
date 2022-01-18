@@ -245,9 +245,10 @@ class BaseLayer {
 
         console.log(`Layer [${this._id}] : Updated`);
 
-        // Re-render frame
-        // Todo check if needed because when rendering is started the next frame should be automatically rendered
-        this.#renderFrame();
+        // Re-render frame if needed
+        if (!this.haveRenderer()) {
+            this.#renderFrame();
+        }
 
         // Callback parent if available
         if (typeof this.#updatedListener === 'function') {

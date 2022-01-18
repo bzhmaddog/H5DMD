@@ -2,8 +2,18 @@
 <html>
     <head>
         <style>
+            * {
+	            box-sizing: border-box;
+            }
             body {
                 background:  black;
+                padding: 0;
+                margin: 0;
+                overflow: hidden;
+            }
+
+            #output {
+                border: 1px solid red;
             }
         </style>
     </head>
@@ -24,7 +34,10 @@
                     var output = document.getElementById('output');
 
 
-                    var dmd = new DMD(256, 78, 1280, 390, 4, 4, 1, 1, 1, 1, DMD.DotShape.Square, 14, 1, output, true);
+                    var dmd = new DMD(output, 4, 1, 1, 1, DMD.DotShape.Square, 14, 1, true);
+                    //var dmd = new DMD(output, 2, 1, 1, 1, DMD.DotShape.Square, 14, 1, true);
+                    //var dmd = new DMD(output, 2, 2, 1, 1, DMD.DotShape.Square, 14, 1, true);
+                    //var dmd = new DMD(output, 7, 3, 1, 1, DMD.DotShape.Square, 14, 1, true);
 
                     			// Init DMD then
         			dmd.init().then( () => {
@@ -130,7 +143,7 @@
                             var img = new Image();
 
 		                    img.onload = function() {
-			                    canvasLayer.drawImage(img,127,12, 129, 54);
+			                    canvasLayer.drawImage(img,383,12, 129, 54);
 		                    }
 
                             img.src = 'images/boss-matthew-big.png';

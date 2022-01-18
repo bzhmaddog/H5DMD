@@ -19,8 +19,6 @@ class DMD {
 	
 	#outputCanvas;
 	#outputContext;
-	#xSpace;
-	#ySpace;
 	#xOffset;
 	#yOffset;
 	#layers;
@@ -42,48 +40,40 @@ class DMD {
 
 	/**
 	 * 
-	 * @param {integer} oWidth Number of horizontal dots that will appear to the viewer
-	 * @param {integer} oHeight Number of vertical dots that will appear to the viewer
-	 * @param {integer} cWidth Number of real horizontal pixels of the display
-	 * @param {integer} cHeight Number of real vertical pixels of the display 
-	 * @param {integer} pixelWidth Horizontal width of the virtual pixels (ex: 1 dot will be 4 pixels wide) 
-	 * @param {integer} pixelHeight Vertical height of the virtual pixels (ex: 1 dot will be 4 pixels tall)
-	 * @param {integer} xSpace number of 'black' pixels between each column (vertical lines between dots)
-	 * @param {integer} ySpace number of 'black' pixels between each row (horizontal lines between dots)
+	 * @param {HTMLCanvasElement} outputCanvas Dom Element where the DMD will be drawed
+	 * @param {integer} dotSize Horizontal width of the virtual pixels (ex: 1 dot will be 4 pixels wide) 
+	 * @param {integer} dotSpace number of 'black' pixels between each column (vertical lines between dots)
 	 * @param {integer} xOffset // TODO : horizontal shifting
 	 * @param {integer} yOffset  // TODO : vertical shifting
 	 * @param {string} dotShape // TODO(GPU) : Shape of the dots (can be square or circle)
-	 * @param {*} targetCanvas Dom Element where the DMD will be drawed
 	 */
-	constructor(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, xOffset, yOffset, dotShape, backgroundBrightness, brightness, targetCanvas, showFPS) {
-		this.#outputCanvas = targetCanvas;
+	constructor(outputCanvas, dotSize, dotSpace, xOffset, yOffset, dotShape, backgroundBrightness, brightness, showFPS) {
+		this.#outputCanvas = outputCanvas;
 		this.#outputContext = this.#outputCanvas.getContext('2d');
-		this.#xSpace = xSpace;
-		this.#ySpace = ySpace;
 		this.#xOffset = xOffset;
 		this.#yOffset = yOffset;
-		this.#outputWidth = oWidth;
-		this.#outputHeight = oHeight;
-		this.#frameBuffer = new Buffer(oWidth, oHeight);
+		this.#outputWidth = Math.floor(this.#outputCanvas.width / (dotSize + dotSpace));
+		this.#outputHeight = Math.floor(this.#outputCanvas.height / (dotSize + dotSpace));
+		this.#frameBuffer = new Buffer(this.#outputWidth, this.#outputHeight);
 		this.#zIndex = 1;
 		this.#sortedLayers = [];
 		this.#renderFPS = function () { }; // Does nothing
-		this.#outputCanvas.width = cWidth;
-		this.#outputCanvas.height = cHeight;
 		this.#backgroundColor = `rgba(14,14,14,255)`;
 		this.#isRunning = false;
 		this.#fps = 0;
 		this.#renderNextFrame = function(){};
 
+		console.log(`Creating a ${this.#outputWidth}x${this.#outputHeight} DMD on a ${this.#outputCanvas.width}x${this.#outputCanvas.height} canvas`);
+
 
 		//this.#renderer = new CPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape);
-		this.#renderer = new GPURenderer(oWidth, oHeight, cWidth, cHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape || DMD.DotShape.Circle, backgroundBrightness, brightness);
+		this.#renderer = new GPURenderer(this.#outputWidth, this.#outputHeight, this.#outputCanvas.width, this.#outputCanvas.height, dotSize, dotSpace, dotShape || DMD.DotShape.Circle, backgroundBrightness, brightness);
 
 		// Add renderers needed for layers rendering
 		this.#layerRenderers = {
-			'opacity' : new ChangeAlphaRenderer(oWidth, oHeight), // used by layer with opacity < 1
-			'no-antialiasing' : new RemoveAliasingRenderer(oWidth, oHeight), // used by TextLayer if antialiasing  = false
-			'outline' : new OutlineRenderer(oWidth, oHeight)  // used by TextLayer when outlineWidth > 1
+			'opacity' : new ChangeAlphaRenderer(this.#outputWidth, this.#outputHeight), // used by layer with opacity < 1
+			'no-antialiasing' : new RemoveAliasingRenderer(this.#outputWidth, this.#outputHeight), // used by TextLayer if antialiasing  = false
+			'outline' : new OutlineRenderer(this.#outputWidth, this.#outputHeight)  // used by TextLayer when outlineWidth > 1
 		};
 
 		this.#initDone = false;

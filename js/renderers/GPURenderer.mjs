@@ -7,10 +7,8 @@ class GPURenderer {
     #dmdHeight;
     #screenWidth;
     #screenHeight;
-	#xSpace;
-	#ySpace;
-	#pixelWidth;
-	#pixelHeight;
+	#dotSpace;
+	#pixelSize;
 	#dotShape;
     #shaderModule;
     #dmdBufferByteLength;
@@ -23,26 +21,26 @@ class GPURenderer {
 
     /**
      * 
-     * @param {*} dmdWidth 
-     * @param {*} dmdHeight 
-     * @param {*} screenWidth 
-     * @param {*} screenHeight 
-     * @param {*} pixelWidth 
-     * @param {*} pixelHeight 
-     * @param {*} xSpace 
-     * @param {*} ySpace 
+     * @param {number} dmdWidth 
+     * @param {number} dmdHeight 
+     * @param {number} screenWidth 
+     * @param {number} screenHeight 
+     * @param {number} pixelSize
+     * @param {number} dotSpace 
      * @param {*} dotShape 
-     * @param {*} backgroundColor 
+     * @param {number} bgBrightness 
+     * @param {number} brightness
      */
-    constructor(dmdWidth, dmdHeight, screenWidth, screenHeight, pixelWidth, pixelHeight, xSpace, ySpace, dotShape, bgBrightness, brightness) {
+    constructor(dmdWidth, dmdHeight, screenWidth, screenHeight, pixelSize, dotSpace, dotShape, bgBrightness, brightness) {
+
+        console.log(arguments);
+
         this.#dmdWidth = dmdWidth;
         this.#dmdHeight = dmdHeight;
         this.#screenWidth = screenWidth;
 		this.#screenHeight = screenHeight;
-        this.#pixelWidth = pixelWidth;
-        this.#pixelHeight = pixelHeight;
-        this.#xSpace = xSpace;
-        this.#ySpace = ySpace;
+        this.#pixelSize = pixelSize;
+        this.#dotSpace = dotSpace;
         this.#dotShape = dotShape;
         this.#device;
         this.#adapter;
@@ -151,14 +149,14 @@ class GPURenderer {
                                 }
                 
                                 // First byte index of the output dot
-                                var resizedPixelIndex : u32 = (global_id.x * ${that.#pixelWidth}u)  + (global_id.x * ${that.#xSpace}u) + (global_id.y * ${that.#screenWidth}u * (${that.#pixelHeight}u + ${that.#ySpace}u));
+                                var resizedPixelIndex : u32 = (global_id.x * ${that.#pixelSize}u)  + (global_id.x * ${that.#dotSpace}u) + (global_id.y * ${that.#screenWidth}u * (${that.#pixelSize}u + ${that.#dotSpace}u));
                 
-                                for ( var row: u32 = 0u ; row < ${that.#pixelHeight}u; row = row + 1u ) {
-                                    for ( var col: u32 = 0u ; col < ${that.#pixelWidth}u; col = col + 1u ) {
+                                for ( var row: u32 = 0u ; row < ${that.#pixelSize}u; row = row + 1u ) {
+                                    for ( var col: u32 = 0u ; col < ${that.#pixelSize}u; col = col + 1u ) {
                                         outputPixels.rgba[resizedPixelIndex] = pixel;
                                         resizedPixelIndex = resizedPixelIndex + 1u;
                                     }
-                                    resizedPixelIndex = resizedPixelIndex + ${that.#screenWidth}u - ${that.#pixelWidth}u;
+                                    resizedPixelIndex = resizedPixelIndex + ${that.#screenWidth}u - ${that.#pixelSize}u;
                                 }
                             }
                         `

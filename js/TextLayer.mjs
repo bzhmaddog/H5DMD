@@ -107,7 +107,6 @@ class TextLayer extends BaseLayer {
             }
 
             this.#textBuffer.clear();
-            this._contentBuffer.clear();
 
             /*if (typeof options.text === 'undefined' || options.text === '') {
                 throw new Error("Cannot draw empty text");
@@ -224,10 +223,10 @@ class TextLayer extends BaseLayer {
                         Utils.hexRGBToHexRGBA(this._options.outlineColor.replace('#',''), 'FF'),
                         this._options.outlineWidth
                     ).then(outputData => {
-                            createImageBitmap(outputData).then(bitmap => {
-                            //createImageBitmap(frameImageData).then(bitmap => {
-                            this._contentBuffer.context.drawImage(bitmap, 0, 0);
-                            resolve();
+                        createImageBitmap(outputData).then(bitmap => {
+                                this._contentBuffer.clear();
+                                this._contentBuffer.context.drawImage(bitmap, 0, 0);
+                                resolve();
                         });
                     });
 
@@ -244,8 +243,8 @@ class TextLayer extends BaseLayer {
                             Utils.hexRGBToHexRGBA(this._options.outlineColor.replace('#',''), 'FF'),
                             this._options.outlineWidth
                         ).then(outputData => {
-                                createImageBitmap(outputData).then(bitmap => {
-                                //createImageBitmap(frameImageData).then(bitmap => {
+                            createImageBitmap(outputData).then(bitmap => {
+                                this._contentBuffer.clear();
                                 this._contentBuffer.context.drawImage(bitmap, 0, 0);
                                 resolve();
                             });
@@ -258,12 +257,14 @@ class TextLayer extends BaseLayer {
             } else {
 
                 if (this._options.antialiasing) {
+                    this._contentBuffer.clear();
                     this._contentBuffer.context.drawImage(this.#textBuffer.canvas, 0, 0);
                     resolve();
                 } else {
 
                     this._getRendererInstance('no-antialiasing').renderFrame.apply(this._getRendererInstance('no-antialiasing'), aaParams).then(aaData => {
                         createImageBitmap(aaData).then(bitmap => {
+                            this._contentBuffer.clear();
                             this._contentBuffer.context.drawImage(bitmap, 0, 0);
                             resolve();
                         });
