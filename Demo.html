@@ -12,9 +12,9 @@
                 overflow: hidden;
             }
 
-            #output {
+            /*#output {
                 border: 1px solid red;
-            }
+            }*/
         </style>
     </head>
     <body>
@@ -34,9 +34,16 @@
                     var output = document.getElementById('output');
 
 
-                    var dmd = new DMD(output, 4, 1, 1, 1, DMD.DotShape.Square, 14, 1, true);
-                    //var dmd = new DMD(output, 2, 1, 1, 1, DMD.DotShape.Square, 14, 1, true);
+                    // 256x78
+                    //var dmd = new DMD(output, 4, 1, 1, 1, DMD.DotShape.Square, 14, 1, true);
+
+                    // 426x130
+                    var dmd = new DMD(output, 2, 1, 1, 1, DMD.DotShape.Square, 14, 1, true);
+
+                    // 320x97
                     //var dmd = new DMD(output, 2, 2, 1, 1, DMD.DotShape.Square, 14, 1, true);
+
+                    // 128x39
                     //var dmd = new DMD(output, 7, 3, 1, 1, DMD.DotShape.Square, 14, 1, true);
 
                     			// Init DMD then
@@ -46,7 +53,7 @@
 
                         dmd.createLayer(DMD.LayerType.Image, 'bg', {
                             src : 'images/boss-mode-bg.png',
-                            opacity : 0.1
+                            //opacity : 0.1
                         });
 
                         dmd.createLayer(DMD.LayerType.Animation, 'animation', {
@@ -72,6 +79,63 @@
                             loop : true
                         });
 
+                        var canvasLayer = dmd.createLayer(DMD.LayerType.Canvas, 'canvas', {}, function() {
+                            var img = new Image();
+
+		                    img.onload = function() {
+                                // x,y coordinate are related to the screen width/height (not dmd width/height) to be consistant depending on the settings used
+			                    canvasLayer.drawImage(
+                                    img,
+                                    {
+                                        align: 'right',
+                                        vAlign : 'middle',
+                                        height : '70%'
+                                    }
+                                );
+		                    }
+
+                            img.src = 'images/boss-matthew-big.png';
+                        });
+
+                        var textLayer1 = dmd.createLayer(DMD.LayerType.Text, 'text1', {
+                            'text' : "Scott Pilgrim",
+                            left : '0',
+                            top : 0,
+                            fontSize : 10
+                        });
+
+                        var textLayer2 = dmd.createLayer(DMD.LayerType.Text, 'text2', {
+                            'text' : "VS",
+                            align : 'center',
+                            vAlign : 'middle',
+                            fontFamily : 'Arial',
+                            fontSize : 40,
+                            fontStyle : 'italic bold',
+                            color : '#FFFFFF80', // RGBA
+                            hOffset : '-60%'
+                        });
+
+                        var textLayer3 = dmd.createLayer(DMD.LayerType.Text, 'text3', {
+                            'text' : "VS",
+                            align : 'center',
+                            vAlign : 'middle',
+                            fontFamily : 'Arial',
+                            fontSize : 40,
+                            fontStyle : 'italic bold',
+                            color : '#00000000', // totally transparent
+                            strokeWidth : 2,
+                            strokeColor : Colors.red,
+                            hOffset : '-60%'
+                        });
+
+                        var textLayer4 = dmd.createLayer(DMD.LayerType.Text, 'text4', {
+                            'text' : "Matthew Patel",
+                            align : 'right',
+                            vAlign : 'bottom',                            
+                            fontSize : 10,
+                            hOffset : -1
+                        });
+
                         var spriteLayer = dmd.createLayer(DMD.LayerType.Sprites, 'sprite', {}, function() {
                             spriteLayer.createSprite(
                                 'scott',
@@ -86,7 +150,7 @@
                                     ['taunt', 9, 46, 62, 0, 244, .25]
                                 ],
                                 10,
-                                10
+                                60
                             ).then(() => {
                                 let seq = [
                                             ['idle' , 3],
@@ -98,56 +162,8 @@
                                 spriteLayer.enqueueSequence('scott', seq, true);
                                 spriteLayer.run('scott');
                             });
-                        });
-
-                        var textLayer1 = dmd.createLayer(DMD.LayerType.Text, 'text1', {
-                            'text' : "Scott Pilgrim",
-                            align : 'left',
-                            vAlign : 'top',
-                            fontSize : 12
-                        });
-
-                        var textLayer2 = dmd.createLayer(DMD.LayerType.Text, 'text2', {
-                            'text' : "VS",
-                            align : 'center',
-                            vAlign : 'middle',
-                            fontFamily : 'Arial',
-                            fontSize : 30,
-                            fontStyle : 'italic bold',
-                            color : '#FFFFFF80', // RGBA
-                            xOffset : -40
-                        });
-
-                        var textLayer3 = dmd.createLayer(DMD.LayerType.Text, 'text3', {
-                            'text' : "VS",
-                            align : 'center',
-                            vAlign : 'middle',
-                            fontFamily : 'Arial',
-                            fontSize : 30,
-                            fontStyle : 'italic bold',
-                            color : '#00000000', // totally transparent
-                            strokeWidth : 2,
-                            strokeColor : Colors.red,
-                            xOffset : -40
-                        });
-
-                        var textLayer4 = dmd.createLayer(DMD.LayerType.Text, 'text4', {
-                            'text' : "Matthew Patel",
-                            align : 'right',
-                            vAlign : 'bottom',                            
-                            fontSize : 12,
-                            xOffset : -1
-                        });
+                        });                      
                         
-                        var canvasLayer = dmd.createLayer(DMD.LayerType.Canvas, 'canvas', {}, function() {
-                            var img = new Image();
-
-		                    img.onload = function() {
-			                    canvasLayer.drawImage(img, dmd.width - 129, 12, 129, 54);
-		                    }
-
-                            img.src = 'images/boss-matthew-big.png';
-                        });
                     });
                 },false);
             })();

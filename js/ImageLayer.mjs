@@ -11,7 +11,7 @@ class ImageLayer extends CanvasLayer {
         if (typeof _options.src === 'undefined') {
             throw new TypeError("Missing src property in options object");
         } else {
-            this.drawImage(_options.src, 0, 0, _width, _height);
+            this.drawImage(_options.src, { left: 0, top: 0, width: _width, height: _height});
         }
     }
 }

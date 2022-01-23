@@ -16,13 +16,13 @@ class TextLayer extends BaseLayer {
             top : 0,
             left: 0,
             color: Colors.white,
-            align : 'left',
-            fontSize : '12',
+            fontSize : '10',
+            fontUnit : '%',
             fontFamily : 'Arial',
             fontStyle : 'normal',
             textBaseline : 'top',
-            xOffset : 0,
-            yOffset : 0,
+            hOffset : 0,
+            vOffset : 0,
             strokeWidth : 0,
             strokeColor : Colors.black,
             adjustWidth : false,
@@ -69,15 +69,8 @@ class TextLayer extends BaseLayer {
                 this.#drawText().then( () => {
                     setTimeout(that._layerUpdated.bind(that), 1);
                 });
-            }/* else {
-                setTimeout(this._layerUpdated.bind(this), 1);
-            }*/
-        }/* else {
-            setTimeout(this._layerLoaded.bind(this), 1);
-        }*/
-
-        // Delay onDataLoaded a bit otherwise #content is undefined in Layer.mjs
-        //setTimeout(this.#onDataLoaded.bind(this), 1);
+            }
+        }
     }
 
     /**
@@ -125,18 +118,31 @@ class TextLayer extends BaseLayer {
             this.#textBuffer.context.textBaseline = options.textBaseline;
             this.#textBuffer.context.fillStyle = options.color;
 
-            if (typeof options.letterSpacing === 'number') {
+            /*if (typeof options.letterSpacing === 'number') {
                 //console.log(options.letterSpacing)
-                this.#textBuffer.canvas.style.letterSpacing = options.letterSpacing + 'px';                
+                this.#textBuffer.canvas.style.letterSpacing = options.letterSpacing + options.fontUnit;                
                 this.#textBuffer.context.textAlign = 'center';
+            }*/
+
+
+            var fontSize =  options.fontSize;
+            var fontUnit = options.fontUnit;
+
+            // Approximation of the height in percentage
+            // TODO : Check with different fonts
+            if (fontUnit === '%') {
+                fontUnit = 'px';
+                fontSize = (fontSize * this.height) / 80;
             }
 
 
+            // Adjust size of font so that the text fit the screen
+            // TODO : Fix that to handle text that are not aligned 
             if (options.adjustWidth) {
                 var textOk = false;
 
                 while(!textOk) {
-                    this.#textBuffer.context.font = options.fontStyle + " " + options.fontSize + 'px ' + options.fontFamily;
+                    this.#textBuffer.context.font = options.fontStyle + " " + fontSize + fontUnit + ' ' + options.fontFamily;
                     m = this.#textBuffer.context.measureText(this.#text);
     
                     if (m.width > this.width - 5) {
@@ -145,23 +151,44 @@ class TextLayer extends BaseLayer {
                         textOk = true;
                     }
                 }
-                
             } else {
-                this.#textBuffer.context.font = options.fontStyle + " " + options.fontSize + 'px ' + options.fontFamily;
+                this.#textBuffer.context.font = options.fontStyle + " " + fontSize + fontUnit + ' ' + options.fontFamily;
                 m = this.#textBuffer.context.measureText(this.#text);       
             }
 
-            if (options.align === 'center') {
-                left = (this.width/2) - (m.width / 2);
-            } else if (options.align === 'right') {
-                left = this.width - m.width;
+            // https://stackoverflow.com/questions/1134586/how-can-you-find-the-height-of-text-on-an-html-canvas
+            // Approximation of line height since api doesn't provide native method
+            var textHeight = this.#textBuffer.context.measureText('M').width;
+
+
+            // Convert % to pixels/dots
+            if (typeof options.left === 'string' && options.left.at(-1) === '%') {
+                var vl = parseFloat(options.left.replace('%',''), 10);
+                //left =  ((vl * this.width) / 100) - (m.width / 2);
+                left =  ((vl * this.width) / 100);
             }
 
-            if (typeof options.vAlign !== 'undefined') {
-                // https://stackoverflow.com/questions/1134586/how-can-you-find-the-height-of-text-on-an-html-canvas
-                // Approximation of line height since api doesn't provide native method
-                var textHeight = this.#textBuffer.context.measureText('M').width;
+            // Convert % to pixels/dots
+            if (typeof options.top === 'string' && options.top.at(-1) === '%') {
+                var vt = parseFloat(options.top.replace('%',''), 10);
+                //top = ((vt * this.height) / 100) - (this.#textBuffer.context.measureText('M').width / 2); // m.height not available
+                top = ((vt * this.height) / 100);
+            }
 
+            if (typeof options.align === 'string') {
+                switch(options.align) {
+                    case 'left':
+                        left = 0;
+                        break;
+                    case 'center':
+                        left = (this.width/2) - (m.width / 2);
+                        break;
+                    case 'right':
+                        left = this.width - m.width;
+                }
+            }
+
+            if (typeof options.vAlign === 'string') {
                 switch(options.vAlign) {
                     case 'top':
                         top = 0;
@@ -175,23 +202,29 @@ class TextLayer extends BaseLayer {
                 }
             }
 
+            var hOffset = options.hOffset;
+            var vOffset = options.vOffset;
+
+            // convert % in pixels
+            if (typeof options.hOffset === 'string' && options.hOffset.at(-1) ===  '%') {
+                var vh =  parseFloat(options.hOffset.replace('%',''), 10);
+                //hOffset = ((vh * m.width) / 100);
+                hOffset = ((vh * this.width) / 100);
+            }
+
+            // convert % in pixels
+            if (typeof options.vOffset === 'string' && options.vOffset.at(-1) === '%') {
+                var vv =  parseFloat(options.vOffset.replace('%',''), 10);
+                //hOffset = ((vv * textHeight) / 100);
+                hOffset = ((vv * this.height) / 100);
+            }
+
+            // % in offset are relative of the width/height of the text
+
             // Add offsets
-            left += options.xOffset;
-            top += options.yOffset;
-
-            // Add stroke width and height
-            //left += options.strokeWidth;
-
-            //console.log(left);
-            //console.log(top);
-
-            //top -= options.strokeWidth;
-            //top -= 5;
-
-            //this.#ctx.imageSmoothingEnabled = false;
-
-            //this._startRendering();
-
+            left += hOffset;
+            top += vOffset;
+      
             if (options.strokeWidth > 0) {
                 this.#textBuffer.context.strokeStyle = options.strokeColor;
                 this.#textBuffer.context.lineWidth = options.strokeWidth;
