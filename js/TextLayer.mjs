@@ -165,14 +165,14 @@ class TextLayer extends BaseLayer {
             if (typeof options.left === 'string' && options.left.at(-1) === '%') {
                 var vl = parseFloat(options.left.replace('%',''), 10);
                 //left =  ((vl * this.width) / 100) - (m.width / 2);
-                left =  ((vl * this.width) / 100);
+                left =  Math.floor((vl * this.width) / 100);
             }
 
             // Convert % to pixels/dots
             if (typeof options.top === 'string' && options.top.at(-1) === '%') {
                 var vt = parseFloat(options.top.replace('%',''), 10);
                 //top = ((vt * this.height) / 100) - (this.#textBuffer.context.measureText('M').width / 2); // m.height not available
-                top = ((vt * this.height) / 100);
+                top = Math.floor((vt * this.height) / 100);
             }
 
             if (typeof options.align === 'string') {
@@ -209,14 +209,14 @@ class TextLayer extends BaseLayer {
             if (typeof options.hOffset === 'string' && options.hOffset.at(-1) ===  '%') {
                 var vh =  parseFloat(options.hOffset.replace('%',''), 10);
                 //hOffset = ((vh * m.width) / 100);
-                hOffset = ((vh * this.width) / 100);
+                hOffset = Math.floor((vh * this.width) / 100);
             }
 
             // convert % in pixels
             if (typeof options.vOffset === 'string' && options.vOffset.at(-1) === '%') {
                 var vv =  parseFloat(options.vOffset.replace('%',''), 10);
                 //hOffset = ((vv * textHeight) / 100);
-                hOffset = ((vv * this.height) / 100);
+                hOffset = Math.floor((vv * this.height) / 100);
             }
 
             // % in offset are relative of the width/height of the text

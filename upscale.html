@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            * {
+	            box-sizing: border-box;
+            }
+            body {
+                background:  black;
+                padding: 0;
+                margin: 0;
+            }
+
+            /*#output {
+                border: 1px solid red;
+            }*/
+        </style>
+    </head>
+    <body>
+        <canvas id="output"></canvas>
+        <button id="save">Save</button>
+        <script type="module">
+            import { UpScaler } from './tools/UpScaler.mjs';
+            import { Buffer } from './js/Buffer.mjs';
+
+            (function () {
+                'use strict';
+
+                // When dom is loaded create the objects and bind the events
+                document.addEventListener('DOMContentLoaded', function () {
+                    var output = document.getElementById('output');
+                    var context = output.getContext('2d');
+
+                    document.getElementById('save').addEventListener('click', function(){
+                        var exportImage = output.toDataURL("image/png").replace("image/png", "image/octet-stream");
+                        window.location.href=exportImage;
+                    });
+
+
+
+                    context.imageSmoothingEnabled = false;
+
+                    var img = new Image();
+
+                    img.onload = function() {
+                        var buffer = new Buffer(img.width, img.height);
+                        buffer.context.imageSmoothingEnabled = false;
+
+                        var upscaler = new UpScaler(img.width, img.height, img.width*2, img.height*2, 2, 0);
+
+                        output.width = img.width*2;
+                        output.height = img.height*2;
+
+                        buffer.context.drawImage(img, 0, 0);
+
+                        var inputData = buffer.context.getImageData(0, 0, img.width, img.height);
+
+                        upscaler.init().then( () => {
+                            upscaler.resize(inputData.data).then( outputData => {
+                                createImageBitmap(outputData).then(bitmap => {
+                                    //context.fillStyle = "#00FF00";
+                                    //context.fillRect(0,0,img.width*2, img.height*2);
+                                    context.drawImage(bitmap ,0, 0);
+                                });
+                            });
+                        });
+
+
+
+                        
+                    }
+
+                    //img.src = 'images/scott-full.png';
+                    img.src = 'images/scott.png';
+
+                        
+                },false);
+            })();
+        </script>
+    </body>
+</html>

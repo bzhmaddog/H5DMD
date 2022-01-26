@@ -69,22 +69,22 @@ class CanvasLayer extends BaseLayer {
 
         if (typeof options.left === 'string' && options.left.at(-1) === '%') {
             var xv = parseInt(options.left.replace('%',''), 10);
-            options.left = (xv * this.width) / 100;
+            options.left = Math.floor((xv * this.width) / 100);
         }
 
         if (typeof options.top === 'string' && options.top.at(-1) === '%') {
             var yv = parseInt(options.top.replace('%',''), 10);
-            options.top = (yv * this.height) / 100;
+            options.top = Math.floor((yv * this.height) / 100);
         }
 
         if (typeof options.width === 'string' && options.width.at(-1) === '%') {
             var wv = parseInt(options.width.replace('%',''), 10);
-            options.width = (wv * this.width) / 100;  // % of the dmd Width
+            options.width = Math.floor((wv * this.width) / 100);  // % of the dmd Width
         }
 
         if (typeof options.height === 'string' && options.height.at(-1) === '%') {
             var hv = parseInt(options.height.replace('%',''), 10);
-            options.height = (hv * this.height) / 100; // % of the dmd Height
+            options.height = Math.floor((hv * this.height) / 100); // % of the dmd Height
         }
 
         // If provided only one of width or height and keeping ratio is required then calculate the missing dimension
@@ -131,7 +131,6 @@ class CanvasLayer extends BaseLayer {
                     options.top = 0;                    
                     break;
                 case 'middle':
-                    console.log(_options);
                     var alignMiddle = this.height / 2 - options.height / 2;
                     if (typeof _options.top !== 'undefined' && options.top !== alignMiddle) {
                         console.warn(`CanvasLayer[${this.getId()}].drawImage() : vAlign: 'middle' is overriding top:${_options.top}`)

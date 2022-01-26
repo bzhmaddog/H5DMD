@@ -89,11 +89,12 @@ class SpritesLayer extends BaseLayer {
      * Add an existing Sprite object to the layer ad x,y position
      * @param {string} id 
      * @param {Sprite} sprite 
-     * @param {number} x 
-     * @param {number} y 
+     * @param {number} _x 
+     * @param {number} _y
+     * @param {boolean} v
      * @returns {boolean} true if sprite was assed false otherwise
      */
-    addSprite(id, sprite, x, y, v) {
+    addSprite(id, sprite, _x, _y, v) {
         var isVisible = true;
 
         if (typeof sprite === 'object' && sprite.constructor !== Sprite) {
@@ -109,6 +110,20 @@ class SpritesLayer extends BaseLayer {
         if (typeof v !== 'undefined') {
             isVisible = !!v;
         }
+
+        var x = _x || 0;
+        var y = _y || 0;
+
+        if (typeof _x === 'string' && _x.at(-1) === '%') {
+            var vx = parseFloat(_x.replace('%',''), 10);
+            x = Math.floor((vx * this.width) / 100);
+        }
+
+        if (typeof _y === 'string' && _y.at(-1) === '%') {
+            var vy = parseFloat(_y.replace('%',''), 10);
+            y = Math.floor((vy * this.height) / 100);
+        }
+
 
         this.#sprites[id] = {
             x : x,

@@ -5,18 +5,19 @@ class Sprite {
     #buffer;
     #spriteSheet;
     #animations;
-    #counter;
     #animation;
     #isAnimating;
     #spriteSheetLoaded;
     #loop;
-    #lastFrame;
     #queue;
     #loopSequence;
     #frameOffset;
     #maxHeight;
     #maxWidth;
     #endOfQueueListener;
+    #frameDuration;
+    #frameIndex;
+    #startTime;
 
     /**
      * 
@@ -34,15 +35,15 @@ class Sprite {
 
         this.#animations = {};
         this.#animation = null;
-        this.#counter = 0;
         this.#isAnimating = false;
         this.#spriteSheetLoaded = false;
         this.#loop = 1;
-        this.#lastFrame = 0;
         this.#queue = [];
         this.#loopSequence = false;
         this.#maxHeight = 0;
         this.#maxWidth = 0;
+        this.#frameIndex = 0;
+        this.#frameDuration = 0;
 
         this.#frameOffset = frameOffset;
 
@@ -64,9 +65,9 @@ class Sprite {
      * @param {number} height Number of vertical pixels of each frame
      * @param {number} xOffset Offset from the left side of the spritesheet
      * @param {number} Yoffset Offset from the top of the spritesheet
-     * @param {float} speedFactor Magic value to make the animation faster or slower
+     * @param {number} duration duration of animation (ms)
      */
-    addAnimation(id, nbFrames, width, height, xOffset, Yoffset, speedFactor) {
+    addAnimation(id, nbFrames, width, height, xOffset, Yoffset, duration) {
 
         if (typeof this.#animations[id] === 'undefined') {
             this.#animations[id] = {
@@ -75,7 +76,7 @@ class Sprite {
                 nbFrames : nbFrames,
                 xOffset : xOffset,
                 yOffset : Yoffset,
-                speedFactor : speedFactor
+                duration : duration
             };
 
             this.#maxHeight = Math.max(this.#maxHeight, height);
@@ -88,37 +89,45 @@ class Sprite {
     /**
      * Main render routine
      */
-    #doAnimation() {
+    #doAnimation(t) {
+        var now = t;
+        var previousFrameIndex = this.#frameIndex;
 
-        let frame = Math.floor(this.#counter % this.#animation.params.nbFrames);
+        if (this.#startTime === null) {
+            this.#startTime = now;
+        }
 
-        this.#buffer.clear();
+        var delta = now - this.#startTime;
 
-        let xOffset = frame * (this.#animation.params.width + this.#frameOffset) + this.#animation.params.xOffset;
+        // Calculate frame number given delta and duration
+        this.#frameIndex = Math.floor(delta / this.#frameDuration);
 
-        // Shift vertical position so that sprites are aligned at the bottom
-        let yPos = this.#maxHeight - this.#animation.params.height;
+        // If loop is 
+        if (this.#frameIndex >= this.#animation.params.nbFrames) {
+            this.#loop++;
 
-        this.#buffer.context.drawImage(this.#spriteSheet,  xOffset,  this.#animation.params.yOffset, this.#animation.params.width, this.#animation.params.height, 0, yPos, this.#animation.params.width, this.#animation.params.height);
-
-        this.#counter = this.#counter + this.#animation.params.speedFactor;
-
-        if (frame != this.#lastFrame) {
-            //console.log(frame + ' / ' + xOffset);
-
-            if (frame >= this.#animation.params.nbFrames - 1) {
-                this.#loop++;
-
-                // End of loop then process queue
-                if (this.#animation.loop > 0 && this.#loop > this.#animation.loop) {
-                    this.#isAnimating = false;
-                    //setTimeout(this.#processQueue.bind(this), this.#animation.params.speedFactor*80000);
-                    this.#processQueue();
-                    return;
-                }
+            // End of loop then process queue to start next animation in line
+            if (this.#animation.loop > 0 && this.#loop > this.#animation.loop) {
+                this.#processQueue(true);
+                return;
             }
 
-            this.#lastFrame = frame;
+            // Start animation back to first frame
+            this.#frameIndex = 0;
+            this.#startTime = null;
+        }
+
+
+        // Only redraw buffer is frame is different
+        if (this.#frameIndex !== previousFrameIndex) {
+            let xOffset = this.#frameIndex * (this.#animation.params.width + this.#frameOffset) + this.#animation.params.xOffset;
+            // Shift vertical position so that sprites are aligned at the bottom
+            let yPos = this.#maxHeight - this.#animation.params.height;
+
+            //console.log(`${this.#frameIndex} / ${xOffset} / ${yPos}`);
+   
+            this.#buffer.clear();
+            this.#buffer.context.drawImage(this.#spriteSheet,  xOffset,  this.#animation.params.yOffset, this.#animation.params.width, this.#animation.params.height, 0, yPos, this.#animation.params.width, this.#animation.params.height);
         }
 
         requestAnimationFrame(this.#doAnimation.bind(this));
@@ -128,24 +137,43 @@ class Sprite {
      * Pop animation from the queue and play it
      */
     #processQueue() {
-        //console.log(this.#queue);
 
         if (this.#queue.length > 0) {
-            this.#animation = this.#queue.shift();
 
-            // Put this animation to the bottom of the queue is needed
             if (this.#loopSequence) {
-                this.#queue.push(this.#animation);
+
+                if (this.#queue.length > 1) {
+                    this.#animation = this.#queue.shift();
+                    // Put this animation to the bottom of the queue is needed
+                    this.#queue.push(this.#animation);
+                } else {
+                    console.log('here');
+                    this.#animation = this.#queue[0];
+                }
+
+            } else {
+                this.#animation = this.#queue.shift();
             }
 
-            this.#counter = 0;
+
+            this.#frameIndex = this.#animation.params.nbFrames; // To force rendering of frame 0
+            this.#startTime = null;
+            this.#frameDuration = this.#animation.params.duration / this.#animation.params.nbFrames;
             this.#isAnimating = true;
-            this.#buffer.width = this.#animation.params.width;
-            this.#buffer.height =  this.#maxHeight;
             this.#loop = 1;
 
-            // Run current animation loop
-            this.#doAnimation();
+
+            // Resizing will clear buffer so do it only if needed
+            if (this.#buffer.width !== this.#animation.params.width) {
+                this.#buffer.width = this.#animation.params.width;
+            }
+
+            // Resizing will clear buffer so do it only if needed
+            if (this.#buffer.height !== this.#maxHeight) {
+                this.#buffer.height =  this.#maxHeight;
+            }
+
+            requestAnimationFrame(this.#doAnimation.bind(this));
         } else {
             this.#isAnimating = false;
             if (typeof this.#endOfQueueListener === 'function') {
@@ -273,7 +301,7 @@ class Sprite {
                     //console.log(id);
                     var a = this.#animations[id];
                     //console.log(a);
-                    s.addAnimation(id, a.nbFrames, a.width, a.height, a.xOffset, a.yOffset, a.speedFactor);
+                    s.addAnimation(id, a.nbFrames, a.width, a.height, a.xOffset, a.yOffset, a.duration);
                 });
           
                 resolve(s);
