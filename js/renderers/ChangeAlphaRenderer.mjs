@@ -36,22 +36,24 @@ class ChangeAlphaRenderer {
 
                     that.#shaderModule = device.createShaderModule({
                         code: `
-                            [[block]] struct UBO {
-                                opacity: f32;
-                            };
-                            [[block]] struct Image {
-                                rgba: array<u32>;
-                            };
+                            struct UBO {
+                                opacity: f32
+                            }
+                            struct Image {
+                                rgba: array<u32>
+                            }
 
                             fn f2u(f: f32) -> u32 {
                                 return u32(ceil(f));
                             }
 
-                            [[group(0), binding(0)]] var<storage,read> inputPixels: Image;
-                            [[group(0), binding(1)]] var<storage,write> outputPixels: Image;
-                            [[group(0), binding(2)]] var<uniform> uniforms : UBO;                            
-                            [[stage(compute), workgroup_size(1)]]
-                            fn main ([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
+                            @group(0) @binding(0) var<storage,read> inputPixels: Image;
+                            @group(0) @binding(1) var<storage,write> outputPixels: Image;
+                            @group(0) @binding(2) var<uniform> uniforms : UBO;                            
+
+                            @stage(compute)
+                            @workgroup_size(1)
+                            fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
                                 let index : u32 = global_id.x + global_id.y * ${that.#width}u;
                                 let pixelColor : u32 = inputPixels.rgba[index];
                                 let opacity : f32 = uniforms.opacity;
@@ -214,8 +216,8 @@ class ChangeAlphaRenderer {
 
             passEncoder.setPipeline(computePipeline);
             passEncoder.setBindGroup(0, bindGroup);
-            passEncoder.dispatch(that.#width, that.#height);
-            passEncoder.endPass();
+            passEncoder.dispatchWorkgroups(that.#width, that.#height);
+            passEncoder.end();
 
             commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that.#bufferByteLength);
     

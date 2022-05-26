@@ -86,19 +86,19 @@ class GPURenderer {
 
             navigator.gpu.requestAdapter().then( adapter => {
                 that.#adapter = adapter;
-            
+
                 adapter.requestDevice().then( device => {
                     that.#device = device;
 
                     that.#shaderModule = device.createShaderModule({
                         code: `
-                            [[block]] struct UBO {
-                                brightness: f32;
-                            };
+                            struct UBO {
+                                brightness: f32
+                            }
 
-                            [[block]] struct Image {
-                                rgba: array<u32>;
-                            };
+                            struct Image {
+                                rgba: array<u32>
+                            }
 
                             fn f2i(f: f32) -> u32 {
                                 return u32(ceil(f));
@@ -108,11 +108,13 @@ class GPURenderer {
                                 return f32(u);
                             }
 
-                            [[group(0), binding(0)]] var<storage,read> inputPixels: Image;
-                            [[group(0), binding(1)]] var<storage,write> outputPixels: Image;
-                            [[group(0), binding(2)]] var<uniform> uniforms : UBO;                            
-                            [[stage(compute), workgroup_size(1)]]
-                            fn main ([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
+                            @group(0) @binding(0) var<storage,read> inputPixels: Image;
+                            @group(0) @binding(1) var<storage,write> outputPixels: Image;
+                            @group(0) @binding(2) var<uniform> uniforms : UBO;
+
+                            @stage(compute)
+                            @workgroup_size(1)
+                            fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
                                 var bgBrightness : u32 = ${that.#bgBrightness}u;
                                 var index : u32 = global_id.x + global_id.y *  ${that.#dmdWidth}u;
                                 var pixel : u32 = inputPixels.rgba[index];
@@ -304,8 +306,8 @@ class GPURenderer {
             const passEncoder = commandEncoder.beginComputePass();
             passEncoder.setPipeline(computePipeline);
             passEncoder.setBindGroup(0, bindGroup);
-            passEncoder.dispatch(that.#dmdWidth, that.#dmdHeight);
-            passEncoder.endPass();
+            passEncoder.dispatchWorkgroups(that.#dmdWidth, that.#dmdHeight);
+            passEncoder.end();
     
             commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that.#screenBufferByteLength);
     

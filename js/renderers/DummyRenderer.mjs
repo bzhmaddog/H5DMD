@@ -36,14 +36,16 @@ class DummyRenderer {
 
                     that.#shaderModule = device.createShaderModule({
                         code: `
-                            [[block]] struct Image {
-                                rgba: array<u32>;
-                            };
+                            struct Image {
+                                rgba: array<u32>
+                            }
 
-                            [[group(0), binding(0)]] var<storage,read> inputPixels: Image;
-                            [[group(0), binding(1)]] var<storage,write> outputPixels: Image;
-                            [[stage(compute), workgroup_size(1)]]
-                            fn main ([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
+                            @group(0) @binding(0) var<storage,read> inputPixels: Image;
+                            @group(0) @binding(1) var<storage,write> outputPixels: Image;
+                            
+                            @stage(compute)
+                            @workgroup_size(1)
+                            fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
                                 let index : u32 = global_id.x + global_id.y * ${that.#width}u;
                                 let pixelColor : u32 = inputPixels.rgba[index];
                                 outputPixels.rgba[index] = pixelColor;
@@ -162,7 +164,7 @@ class DummyRenderer {
             passEncoder.setPipeline(computePipeline);
             passEncoder.setBindGroup(0, bindGroup);
             passEncoder.dispatch(that.#width, that.#height);
-            passEncoder.endPass();
+            passEncoder.end();
 
             commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that.#bufferByteLength);
     

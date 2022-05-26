@@ -40,20 +40,22 @@ class OutlineRenderer {
 
                     that.#shaderModule = device.createShaderModule({
                         code: `
-                            [[block]] struct UBO {
-                                innerColor: u32;
-                                outerColor: u32;
-                                lineWidth: u32;
-                            };
-                            [[block]] struct Image {
-                                rgba: array<u32>;
-                            };
+                            struct UBO {
+                                innerColor: u32,
+                                outerColor: u32,
+                                lineWidth: u32
+                            }
+                            struct Image {
+                                rgba: array<u32>
+                            }
 
-                            [[group(0), binding(0)]] var<storage,read> inputPixels: Image;
-                            [[group(0), binding(1)]] var<storage,write> outputPixels: Image;
-                            [[group(0), binding(2)]] var<uniform> uniforms : UBO;                            
-                            [[stage(compute), workgroup_size(1)]]
-                            fn main ([[builtin(global_invocation_id)]] global_id: vec3<u32>) {
+                            @group(0) @binding(0) var<storage,read> inputPixels: Image;
+                            @group(0) @binding(1) var<storage,write> outputPixels: Image;
+                            @group(0) @binding(2) var<uniform> uniforms : UBO;
+
+                            @stage(compute)
+                            @workgroup_size(1)
+                            fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
                                 let index : u32 = global_id.x + global_id.y * ${that.#width}u;
                                 let lineSize : u32 = ${that.#width}u;
 
@@ -253,8 +255,8 @@ class OutlineRenderer {
 
             passEncoder.setPipeline(computePipeline);
             passEncoder.setBindGroup(0, bindGroup);
-            passEncoder.dispatch(that.#width, that.#height);
-            passEncoder.endPass();
+            passEncoder.dispatchWorkgroups(that.#width, that.#height);
+            passEncoder.end();
 
             commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that.#bufferByteLength);
     
