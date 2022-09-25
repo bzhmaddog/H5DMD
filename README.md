@@ -15,7 +15,7 @@ https://www.youtube.com/watch?v=q58dZAbNXe8
 
 
 # Requirements
-This project uses a lot of experimental features and has been tested with chromium 91+ Linux/Windows and Chrome Canary on MacOS
+This project uses a lot of experimental features and has been tested with chromium 105+ Linux/Windows and Chrome Canary on MacOS
 
 It requires some experimental flags to be enabled
 ```
