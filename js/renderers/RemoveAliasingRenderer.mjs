@@ -104,11 +104,9 @@ class RemoveAliasingRenderer {
 
 
                                     if (innerColorFound && a >= uniforms.treshold && a < 255u) {
-                                        outputPixels.rgba[index] = 255u << 24u | b << 16u | g << 8u | r;
-                                        //outputPixels.rgba[index] = 255u << 24u | 255u << 16u | 255u << 8u | 0u;
+                                        outputPixels.rgba[index] = (255u << 24u) | (b << 16u) | (g << 8u) | r;
                                     } else {
-                                        outputPixels.rgba[index] = 0u << 24u | b << 16u | g << 8u | r;
-                                        //outputPixels.rgba[index] = 255u << 24u | 0u << 16u | 0u << 8u | 255u;
+                                        outputPixels.rgba[index] = (0u << 24u) | (b << 16u) | (g << 8u) | r;
                                     }
 
                                 }

@@ -54,7 +54,7 @@ class DMD {
 		this.#yOffset = yOffset;
 		this.#outputWidth = Math.floor(this.#outputCanvas.width / (dotSize + dotSpace));
 		this.#outputHeight = Math.floor(this.#outputCanvas.height / (dotSize + dotSpace));
-		this.#frameBuffer = new Buffer(this.#outputWidth, this.#outputHeight);
+		this.#frameBuffer = new Buffer(this.#outputWidth, this.#outputHeight, true);
 		this.#zIndex = 1;
 		this.#sortedLayers = [];
 		this.#renderFPS = function () { }; // Does nothing

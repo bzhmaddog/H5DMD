@@ -39,6 +39,7 @@ class ChangeAlphaRenderer {
                             struct UBO {
                                 opacity: f32
                             }
+
                             struct Image {
                                 rgba: array<u32>
                             }
@@ -49,7 +50,7 @@ class ChangeAlphaRenderer {
 
                             @group(0) @binding(0) var<storage,read> inputPixels: Image;
                             @group(0) @binding(1) var<storage,read_write> outputPixels: Image;
-                            @group(0) @binding(2) var<uniform> uniforms : UBO;                            
+                            @group(0) @binding(2) var<uniform> uniforms : UBO;
 
                             @compute
                             @workgroup_size(1)
@@ -70,8 +71,8 @@ class ChangeAlphaRenderer {
                                 if (opacity == 0f) {
                                     aa = 0u;
                                 }
-               
-                                outputPixels.rgba[index] = aa << 24u | b << 16u | g << 8u | r;
+
+                                outputPixels.rgba[index] = (aa << 24u) | (b << 16u) | (g << 8u) | r;
                             }
                         `
                     });
@@ -79,7 +80,6 @@ class ChangeAlphaRenderer {
                     console.log('ChangeAlphaRenderer:init()');
 
                     that.#shaderModule.compilationInfo().then(i => {
-
                         if (i.messages.length > 0 ) {
                             console.warn("ChangeAlphaRenderer:compilationInfo() ", i.messages);
                         }
@@ -99,7 +99,7 @@ class ChangeAlphaRenderer {
      * @returns {ImageData}
      */
     #doNothing(frameData) {
-        console.log("Init not done cannot apply filter");
+        //console.log("Init not done cannot apply filter");
         return new Promise(resolve =>{
             resolve(frameData);
         });        

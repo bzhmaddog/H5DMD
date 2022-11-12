@@ -73,7 +73,7 @@ class BaseLayer {
         this.#renderNextFrame = function() { console.log(`Layer [${this._id}] : Rendering ended`) };
 
 
-        this._contentBuffer = new Buffer(_width, _height);
+        this._contentBuffer = new Buffer(_width, _height, true);
         this.#outputBuffer = new Buffer(_width, _height);
 
         // NOT WORKING

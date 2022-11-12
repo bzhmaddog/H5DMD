@@ -7,11 +7,20 @@ class Buffer {
 	#canvas;
 	#context;
 
-	constructor(width, height) {
+	constructor(width, height, willReadFrequently) {
 		this.#canvas = document.createElement('canvas'); // Offscreen canvas
 		this.#canvas.width = width;
 		this.#canvas.height = height;
-		this.#context = this.#canvas.getContext('2d');
+
+		var options = null;
+
+		if (!!willReadFrequently) {
+			//console.log("Buffer() : Settings willReadyFrequently to true")
+			options = { willReadFrequently : true };
+		}
+
+
+		this.#context = this.#canvas.getContext('2d', options);
 	}
 
 	get context() {

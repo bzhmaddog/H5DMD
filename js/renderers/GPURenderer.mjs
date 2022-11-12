@@ -144,7 +144,7 @@ class GPURenderer {
                                 }
 
                                 // Recreate pixel color but force alpha to 255
-                                pixel = 255u << 24u | bb << 16u | bg << 8u | br;
+                                pixel = (255u << 24u) | (bb << 16u) | (bg << 8u) | br;
 
                                 var t : u32 = r + g + b;
                                 var hsp : f32 =  sqrt(.299f * u2f(r) * u2f(r) + .587f * u2f(g) * u2f(g) + .114 * u2f(b) * u2f(b));
