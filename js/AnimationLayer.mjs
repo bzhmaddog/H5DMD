@@ -101,19 +101,23 @@ class AnimationLayer extends BaseLayer {
         // If it is the same frame as last call then no need to redraw it
         if (frameIndex !== previousFrameIndex) {
             // Update content buffer with current frame data
-            this._contentBuffer.clear();
-            this._contentBuffer.context.drawImage(this.#images[this.#frameIndex], 0, 0, this.width, this.height);
+            this.#drawImage();
         }
 
         // Render next frame if needed
         this.#renderNextFrame();
     }
 
+    #drawImage() {
+        this._contentBuffer.clear();
+        this._contentBuffer.context.drawImage(this.#images[this.#frameIndex], 0, 0, this.width, this.height);
+    }
+
     /**
      * Request rendering of next frame
      */
     #requestRenderNextFrame() {
-        requestAnimationFrame(this.#renderFrame.bind(this));        
+        requestAnimationFrame(this.#renderFrame.bind(this));
     }
 
     /**
@@ -225,6 +229,44 @@ class AnimationLayer extends BaseLayer {
             this.play();
         } else {
             console.log("This video is not paused");
+        }
+    }
+
+    nextFrame() {
+        var nextFrame = this.#frameIndex + 1;
+
+        if (nextFrame >= this.#images.length) {
+            nextFrame = 0;
+        }
+
+        this.#frameIndex = nextFrame;
+        requestAnimationFrame(this.#drawImage.bind(this));
+        this._layerUpdated();
+    }
+
+    previousFrame() {
+        var prevFrame = this.#frameIndex - 1;
+
+        if (prevFrame <= 0) {
+            prevFrame = this.#images.length - 1;
+        }
+
+        this.#frameIndex = prevFrame;
+        requestAnimationFrame(this.#drawImage.bind(this));
+        this._layerUpdated();
+    }
+
+
+    /**
+     * Override base method to stop/resume animation when changing layer visibility
+     */
+    setVisibility(visible) {
+        super.setVisibility(visible);
+
+        if (!visible && this.#isPlaying) {
+            this.pause();
+        } else if (visible && this.#isPaused) {
+            this.resume();
         }
     }
 

@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta httpEquiv="origin-trial" content="AjmbVK5jmmfoO2lgbG0tNNQ52Kb2nrkT5oFntPiNoHO1QbNeSQ1sC/H2hAGWfDSr7IhxbIMrIOKP7BxGbXWtzwYAAABTeyJvcmlnaW4iOiJodHRwczovL2J6aG1hZGRvZy5naXRodWIuaW86NDQzIiwiZmVhdHVyZSI6IldlYkdQVSIsImV4cGlyeSI6MTY2MzcxODM5OX0=" />
+
         <style>
             * {
 	            box-sizing: border-box;
@@ -12,6 +14,10 @@
                 overflow: hidden;
             }
 
+            label {
+                color: white;
+            }
+
             /*#output {
                 border: 1px solid red;
             }*/
@@ -19,6 +25,42 @@
     </head>
     <body>
         <canvas id="output" width="1280" height="390"></canvas>
+        <br />
+        <div id="checkboxes">
+            <div>
+                <input id="background_checkbox" type="checkbox" data-layer="bg" checked />
+                <label for="background_checkbox">Background</label>
+            </div>
+            <div>
+                <input id="sprite_checkbox" type="checkbox" data-layer="sprite" checked />
+                <label for="sprite_checkbox">Sprite</label>
+            </div>
+            <div>
+                <input id="animation_checkbox" type="checkbox" data-layer="animation" checked />
+                <label for="animation_checkbox">background animation</label>
+            </div>
+            <div>
+                <input id="vstext_checkbox" type="checkbox" data-layer="text2" checked />
+                <label for="vstext_checkbox">VS text inner</label>
+            </div>
+            <div>
+                <input id="vstext_checkbox2" type="checkbox" data-layer="text3" checked />
+                <label for="vstext_checkbox2">VS text outer</label>
+            </div>
+            <div>
+                <input id="scotttext_checkbox" type="checkbox" data-layer="text1" checked/>
+                <label for="scotttext_checkbox">Scott pilgrim text</label>
+            </div>
+            <div>
+                <input id="matthewtext_checkbox" type="checkbox" data-layer="text4" checked />
+                <label for="matthewtext_checkbox">Matthew Patel text</label>
+            </div>
+            <div>
+                <input id="matthewimg_checkbox" type="checkbox" data-layer="canvas" checked />
+                <label for="matthewimg_checkbox">Matthew Patel Image</label>
+            </div>
+        </div>
+
         <script type="module">
             import { DMD } from './js/DMD.mjs';
             import { Utils } from './js/Utils.mjs';
@@ -45,6 +87,8 @@
 
                     // 128x39
                     //var dmd = new DMD(output, 7, 3, 1, 1, DMD.DotShape.Square, 14, 1, true);
+
+                    window.dmd = dmd;
 
                     			// Init DMD then
         			dmd.init().then( () => {
@@ -165,6 +209,31 @@
                             });
                         });                      
                         
+                        var checkboxElems = document.querySelectorAll("input[type='checkbox']");
+
+
+                        for (var i = 0; i < checkboxElems.length; i++) {
+                            checkboxElems[i].addEventListener("click", function(element) {
+                                var layerName = element.target.dataset.layer;
+                                var visible = element.target.checked
+                                var layer = dmd.getLayer(layerName);
+
+                                if (layer != null) {
+                                    layer.setVisibility(visible);
+
+                                    if (visible) {
+                                        if (layerName === "sprite") {
+                                            layer.run('scott');
+                                        }
+                                    }
+                                
+                                } else {
+                                    console.log(`Layer not found : ${layerName}`);
+                                }
+
+                            });
+                        }
+
                     });
                 },false);
             })();
