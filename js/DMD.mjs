@@ -46,6 +46,9 @@ class DMD {
 	 * @param {integer} xOffset // TODO : horizontal shifting
 	 * @param {integer} yOffset  // TODO : vertical shifting
 	 * @param {string} dotShape // TODO(GPU) : Shape of the dots (can be square or circle)
+	 * @param {integer} backgroundBrightness brightness of the background (below the dots)
+	 * @param {integer} brightness brightness of the dots
+	 * @param {boolean} showFPS show FPS count or not
 	 */
 	constructor(outputCanvas, dotSize, dotSpace, xOffset, yOffset, dotShape, backgroundBrightness, brightness, showFPS) {
 		this.#outputCanvas = outputCanvas;
