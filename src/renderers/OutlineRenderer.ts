@@ -1,5 +1,5 @@
 import { LayerRenderer } from './LayerRenderer.js';
-import { Utils } from '../Utils';
+import { Utils } from '../Utils.js';
 import { Options } from '../Options.js';
 
 class OutlineRenderer extends LayerRenderer {

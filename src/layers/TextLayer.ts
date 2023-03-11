@@ -1,6 +1,6 @@
 import { BaseLayer, LayerType } from './BaseLayer.js';
 import { OffscreenBuffer } from '../OffscreenBuffer.js';
-import { Colors } from '../Colors';
+import { Colors } from '../Colors.js';
 import { IRendererDictionary } from '../renderers/Renderer.js';
 import { Utils } from '../Utils.js';
 import { Options } from '../Options.js';
@@ -92,9 +92,9 @@ class TextLayer extends BaseLayer {
         var that = this;
 
         // merge passed options with default options set during layer creation
-        var options = Object.assign({}, this._options, options);
+        var options = Object.assign(new Options(), this._options, options);
 
-        //console.log(options);
+        console.log(options);
 
         return new Promise<void>( resolve => {
 

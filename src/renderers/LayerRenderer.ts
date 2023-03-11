@@ -1,4 +1,4 @@
-import { Renderer } from "./Renderer";
+import { Renderer } from "./Renderer.js";
 
 abstract class LayerRenderer extends Renderer {
 
