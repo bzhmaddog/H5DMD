@@ -1,7 +1,7 @@
 /**
  * Provide a simple class to build a buffer for our layers and our DMD
  */
-class Buffer {
+class OffscreenBuffer {
 	private _canvas: HTMLCanvasElement;
 	private _context: CanvasRenderingContext2D;
 
@@ -54,4 +54,4 @@ class Buffer {
 	}
 }
 
-export { Buffer };
+export { OffscreenBuffer };

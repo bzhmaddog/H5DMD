@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "expose-loader": "^4.0.0",
     "ts-loader": "^9.4.2",
     "typescript": "^5.1.0-dev.20230305",
     "webpack": "^5.75.0",

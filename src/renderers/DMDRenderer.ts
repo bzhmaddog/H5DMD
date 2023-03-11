@@ -1,7 +1,5 @@
 
-/// <reference types="@webgpu/types" />
-
-import { Renderer } from "./Renderer.ts";
+import { Renderer } from "./Renderer.js";
 
 enum DotShape { 
 	Square,
@@ -251,21 +249,21 @@ class DMDRenderer extends Renderer {
                     buffer: {
                         type: "read-only-storage"
                     }
-                },
+                } as GPUBindGroupLayoutEntry,
                 {
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
                         type: "storage"
                     }
-                },
+                } as GPUBindGroupLayoutEntry,
                 {
                     binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
                       type: "uniform",
                     }
-                }                
+                } as GPUBindGroupLayoutEntry
             ]
         });
     
@@ -350,7 +348,7 @@ class DMDRenderer extends Renderer {
      * @param {float} b 
      */
     setBrightness(b: number) {
-        var b = Math.max(0, Math.min(Number.parseFloat(b), 1)); // normalize
+        var b = Math.max(0, Math.min(b, 1)); // normalize
         this._brightness = Math.round(b * 1e3) / 1e3; // round to 1 digit after dot
     }
 

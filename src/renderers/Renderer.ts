@@ -1,6 +1,4 @@
 
-/// <reference types="@webgpu/types" />
-
 abstract class Renderer {
 
     protected _adapter: GPUAdapter;
@@ -24,7 +22,7 @@ abstract class Renderer {
 }
 
 interface IRendererDictionary {
-	[index: string]: Renderer
+    [index: string]: Renderer
 }
 
 export { Renderer, IRendererDictionary }

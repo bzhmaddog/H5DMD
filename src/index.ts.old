@@ -1,0 +1,4 @@
+import { DMD } from "./DMD";
+import { DotShape } from "./renderers/DMDRenderer";
+
+export { DMD, DotShape };
