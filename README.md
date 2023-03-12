@@ -41,7 +41,7 @@ If it doesn't load look at the console to see errors
 # Examples
 
 ```
-[See Demo.html](./Demo.html)
+[See Demo.html](https://github.com/bzhmaddog/H5DMD/blob/master/Demo.html)
 
 ```
 
