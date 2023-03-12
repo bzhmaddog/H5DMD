@@ -38,11 +38,27 @@ https://bzhmaddog.github.io/h5dmd/Demo.html
 
 If it doesn't load look at the console to see errors
 
-# Example
+# Examples
 
 ```
-See Demo.html
+See insode Demo.html
 ```
+
+# Install
+```
+npm install
+```
+
+# Build
+```
+#Transpile all files
+./node_modules/typescript/bin/tsc
+
+#Watch file changes
+./node_modules/typescript/bin/tsc --watch
+```
+Note : Files are not bundled into one big file (using webpack for example) because it is not working well with ES modules
+
 
 # Other example
 

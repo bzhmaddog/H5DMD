@@ -257,7 +257,8 @@ abstract class BaseLayer {
      * @returns 
      */
     async _loadImage(src: string) {
-        let response = await fetch(src);
+        const uriStr = document.baseURI + src;
+        let response = await fetch(uriStr);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -273,7 +274,9 @@ abstract class BaseLayer {
      * @returns 
      */
      async _loadImageSynced(src: string, index: number) {
-        let response = await fetch(src);
+        const uriStr = document.baseURI + src;
+
+        let response = await fetch(uriStr);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

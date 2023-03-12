@@ -31,13 +31,14 @@ class CanvasLayer extends BaseLayer {
     /**
      * Draw provided image onto canvas
      * If img is a string then image is loaded before drawing
-     * @param {HTMLImageElement} img 
+     * @param {ImageBitmap} img 
      * @param {object} _options
      */
-    drawImage(img: HTMLImageElement, _options: Options) {
+    drawImage(img: ImageBitmap, _options: Options) {
         var defaultOptions = new Options({
             width : img.width,
-            height : img.height
+            height : img.height,
+            resize : false // TODO
         });
 
         var options: Options = this._buildOptions(new Options(_options), defaultOptions);
