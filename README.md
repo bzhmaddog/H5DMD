@@ -41,7 +41,8 @@ If it doesn't load look at the console to see errors
 # Examples
 
 ```
-See insode Demo.html
+[Demo.html](Demo.html)
+
 ```
 
 # Install
@@ -49,33 +50,13 @@ See insode Demo.html
 npm install
 ```
 
-# Build
+# Build and watch
 ```
 #Transpile all files
-./node_modules/typescript/bin/tsc
+./build.sh
 
 #Watch file changes
-./node_modules/typescript/bin/tsc --watch
+./watch.sh
 ```
+
 Note : Files are not bundled into one big file (using webpack for example) because it is not working well with ES modules
-
-
-# Other example
-
-```
-
-// Change layer visibilitity
-spritesLayer.setVisibility(false);
-// or
-dmd.setLayerVisibility('test-sprites', {true/false});
-
-// Change Layer group visibility
-dmd.setLayerGroupVisibility('mygroup', {true/false});
-
-// Only visible layers are rendered onto the DMD but if you don't need a layer anymore it can be Removed via its name
-dmd.removeLayer('test-sprites');
-// or its object itself
-dmd.removeLayer(spritesLayer);
-
-```
-
