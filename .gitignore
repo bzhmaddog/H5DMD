@@ -13,5 +13,4 @@ node_modules
 **/.history
 
 
-js/*.js
-js/*.map
+js/

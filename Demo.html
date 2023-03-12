@@ -60,15 +60,17 @@
                 <label for="matthewimg_checkbox">Matthew Patel Image</label>
             </div>
         </div>
-
         <script type="module">
-            import { DMD } from './js/DMD.mjs';
-            import { Utils } from './js/Utils.mjs';
-            import { Colors } from './js/Colors.mjs';
-            import { CanvasLayer } from './js/CanvasLayer.mjs';
-
+			import { DMD } from "./js/DMD.js";
+			import { Colors } from "./js/Colors.js";
+			import { DotShape } from "./js/renderers/DMDRenderer.js";
+			import { Options } from "./js/Options.js";
+		
             (function () {
                 'use strict';
+				
+				//window.Options = Options;
+				
 
                 // When dom is loaded create the objects and bind the events
                 document.addEventListener('DOMContentLoaded', function () {
@@ -80,7 +82,8 @@
                     //var dmd = new DMD(output, 4, 1, 1, 1, DMD.DotShape.Square, 14, 1, true);
 
                     // 426x130
-                    var dmd = new DMD(output, 2, 1, 1, 1, DMD.DotShape.Square, 14, 1, true);
+                    var dmd = new DMD(output, 2, 1, 1, 1, DotShape.Square, 14, 1, true);
+					//var dmd = new DMD(output, 2, 1, 1, 1, DMD.DotShape.Square, 14, 1, true);
 
                     // 320x97
                     //var dmd = new DMD(output, 2, 2, 1, 1, DMD.DotShape.Square, 14, 1, true);
@@ -94,37 +97,50 @@
         			dmd.init().then( () => {
                         // Start rendering dmd
                         dmd.run();
-
-                        dmd.createLayer(DMD.LayerType.Image, 'bg', {
+						
+						var textLayer4 = dmd.createTextLayer('text4', {
+                            'text' : "Matthew Patel",
+                            align : 'center',
+                            vAlign : 'middle',
+                            fontSize : 30,
+                            hOffset : -1,
+							//antialiasing: false,
+							outlineWidth: 2,
+							outlineColor: Colors.Red
+                        });
+						
+                        /*dmd.createLayer(DMD.LayerType.Image, 'bg', {
                             src : 'images/boss-mode-bg.png',
                             //opacity : 0.1
-                        });
+                        });*/
 
-                        dmd.createLayer(DMD.LayerType.Animation, 'animation', {
+                        /*dmd.createAnimationLayer('animation', {
                             images : [
-                                'images/animation/0.webp',
-                                'images/animation/1.webp',
-                                'images/animation/2.webp',
-                                'images/animation/3.webp',
-                                'images/animation/4.webp',
-                                'images/animation/5.webp',
-                                'images/animation/6.webp',
-                                'images/animation/7.webp',
-                                'images/animation/8.webp',
-                                'images/animation/9.webp',
-                                'images/animation/10.webp',
-                                'images/animation/11.webp',
-                                'images/animation/12.webp',
-                                'images/animation/13.webp',
-                                'images/animation/14.webp'
+                                '/resources/animations/boss-mode/0.webp',
+                                '/resources/animations/boss-mode/1.webp',
+                                '/resources/animations/boss-mode/2.webp',
+                                '/resources/animations/boss-mode/3.webp',
+                                '/resources/animations/boss-mode/4.webp',
+                                '/resources/animations/boss-mode/5.webp',
+                                '/resources/animations/boss-mode/6.webp',
+                                '/resources/animations/boss-mode/7.webp',
+                                '/resources/animations/boss-mode/8.webp',
+                                '/resources/animations/boss-mode/9.webp',
+                                '/resources/animations/boss-mode/10.webp',
+                                '/resources/animations/boss-mode/11.webp',
+                                '/resources/animations/boss-mode/12.webp',
+                                '/resources/animations/boss-mode/13.webp',
+                                '/resources/animations/boss-mode/14.webp'
                             ],
                             duration : 800,
                             autoplay : true,
                             loop : true
-                        });
+                        });*/
 
-                        var canvasLayer = dmd.createLayer(DMD.LayerType.Canvas, 'canvas', {}, function() {
+                        /*var canvasLayer = dmd.createCanvasLayer('canvas', {}, function() {
                             var img = new Image();
+							
+							console.log('Canvas layer loaded');
 
 		                    img.onload = function() {
                                 // x,y coordinate are related to the screen width/height (not dmd width/height) to be consistant depending on the settings used
@@ -133,22 +149,31 @@
                                     {
                                         align: 'right',
                                         vAlign : 'middle',
-                                        height : '70%'
+                                        height : '80%'
                                     }
                                 );
 		                    }
 
-                            img.src = 'images/boss-matthew-big.png';
-                        });
+                            img.src = 'resources/images/boss-matthew-big.png';
+                        });*/
+						
+						/*var videoLayer = dmd.createVideoLayer('video', {
+							src : 'resources/videos/earth.webm',
+							autoplay : true,
+							width : 231,
+							height : 130,
+							loop : true
+						}, function(){
+						});*/
 
-                        var textLayer1 = dmd.createLayer(DMD.LayerType.Text, 'text1', {
+                        /*var textLayer1 = dmd.createTextLayer('text1', {
                             'text' : "Scott Pilgrim",
                             left : '0',
                             top : 0,
                             fontSize : 10
-                        });
+                        });*/
 
-                        var textLayer2 = dmd.createLayer(DMD.LayerType.Text, 'text2', {
+                        /*var textLayer2 = dmd.createLayer(DMD.LayerType.Text, 'text2', {
                             'text' : "VS",
                             align : 'center',
                             vAlign : 'middle',
@@ -157,9 +182,9 @@
                             fontStyle : 'italic bold',
                             color : '#FFFFFF80', // RGBA
                             hOffset : '-15%'
-                        });
+                        });*/
 
-                        var textLayer3 = dmd.createLayer(DMD.LayerType.Text, 'text3', {
+                        /*var textLayer3 = dmd.createLayer(DMD.LayerType.Text, 'text3', {
                             'text' : "VS",
                             align : 'center',
                             vAlign : 'middle',
@@ -170,20 +195,20 @@
                             strokeWidth : 2,
                             strokeColor : Colors.red,
                             hOffset : '-15%'
-                        });
+                        });*/
 
-                        var textLayer4 = dmd.createLayer(DMD.LayerType.Text, 'text4', {
+                        /*var textLayer4 = dmd.createLayer(DMD.LayerType.Text, 'text4', {
                             'text' : "Matthew Patel",
                             align : 'right',
                             vAlign : 'bottom',                            
                             fontSize : 10,
                             hOffset : -1
-                        });
+                        });*/
 
-                        var spriteLayer = dmd.createLayer(DMD.LayerType.Sprites, 'sprite', {}, function() {
+                        /*var spriteLayer = dmd.createSpriteLayer('sprite', {}, function() {
                             spriteLayer.createSprite(
                                 'scott',
-                                'images/scott2x.png',
+                                '/resources/sprites/scott2x.png',
                                 6,
                                 0,
                                 [
@@ -207,12 +232,12 @@
                                 spriteLayer.enqueueSequence('scott', seq, true);
                                 spriteLayer.run('scott');
                             });
-                        });                      
+                        });*/                   
                         
-                        var checkboxElems = document.querySelectorAll("input[type='checkbox']");
+                        //var checkboxElems = document.querySelectorAll("input[type='checkbox']");
 
 
-                        for (var i = 0; i < checkboxElems.length; i++) {
+                        /*for (var i = 0; i < checkboxElems.length; i++) {
                             checkboxElems[i].addEventListener("click", function(element) {
                                 var layerName = element.target.dataset.layer;
                                 var visible = element.target.checked
@@ -232,7 +257,7 @@
                                 }
 
                             });
-                        }
+                        */
 
                     });
                 },false);
