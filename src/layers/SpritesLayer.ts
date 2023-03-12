@@ -86,31 +86,28 @@ class SpritesLayer extends BaseLayer {
      */
     createSprite(
         id: string,
-        src: string,
+        spriteSheet: ImageBitmap,
         hFrameOffset: number,
         vFrameOffset: number,
         animations: [],
         x: string,
         y: string
-    ) {
+    ): Promise<Sprite> {
         const that = this;
 
-        return new Promise<void>( (resolve,reject) => {
+        return new Promise<Sprite>( (resolve, reject) => {
             if (typeof this._sprites[id] === 'undefined') {
                 if (animations.length) {
-                    var sprite = new Sprite(id, hFrameOffset, vFrameOffset);
+                    var sprite = new Sprite(id, spriteSheet, hFrameOffset, vFrameOffset);
                     
-                    sprite.loadSpritesheet(src).then(() => {
+                    for(var i = 0 ; i < animations.length ; i++) {
+                        const args: [string, number, number, number, number, number, number] = animations[i];
+                        sprite.addAnimation(...args);
+                    }
 
-                        for(var i = 0 ; i < animations.length ; i++) {
-                            const args: [string, number, number, number, number, number, number] = animations[i];
-                            sprite.addAnimation(...args);
-                        }
+                    that.addSprite(id, sprite, x, y);
 
-                        that.addSprite(id, sprite, x, y);
-                        resolve();
-                    });
-
+                    resolve(sprite);
                 } else {
                     reject(`No animations provided for sprite ${id}`);
                 }

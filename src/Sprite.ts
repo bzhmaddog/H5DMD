@@ -22,11 +22,10 @@ interface IAnimationDictionnary {
 class Sprite {
     private _id: string;
     private _buffer: OffscreenBuffer;
-    private _spriteSheet: HTMLImageElement;
+    private _spriteSheet: ImageBitmap;
     private _animations: IAnimationDictionnary;
     private _animation: IAnimationQueueItem;
     private _isAnimating: boolean;
-    private _spriteSheetLoaded: boolean;
     private _loop: number;
     private _queue: IAnimationQueueItem[];
     private _loopSequence: boolean;
@@ -45,16 +44,13 @@ class Sprite {
      * @param {number} hFrameOffset Distance between each frame (horizontaly)
      * @param {number} vFrameOffset Distance between each frame (vertically))
      */
-    constructor(id: string, hFrameOffset: number, vFrameOffset: number) {
+    constructor(id: string, spriteSheet: ImageBitmap, hFrameOffset: number, vFrameOffset: number) {
         this._id = id;
-        this._spriteSheet = new Image();
 
         this._buffer = new OffscreenBuffer(0, 0);
-
         this._animations = {} as IAnimationDictionnary;
         this._animation = null;
         this._isAnimating = false;
-        this._spriteSheetLoaded = false;
         this._loop = 1;
         this._queue = [];
         this._loopSequence = false;
@@ -62,23 +58,11 @@ class Sprite {
         this._maxWidth = 0;
         this._frameIndex = 0;
         this._frameDuration = 0;
-
         this._hFrameOffset = hFrameOffset;
         this._vFrameOffset = vFrameOffset;
+        this._spriteSheet = spriteSheet;
     }
 
-    loadSpritesheet(src: string): Promise<void> {
-        const that = this;
-        
-        return new Promise(resolve => {
-            that._spriteSheet.addEventListener('load', function() {
-                that._spriteSheetLoaded = true;
-                resolve();
-            });
-            that._spriteSheet.src = src;
-        });
-
-    }
     /**
      * 
      * @param {string} id Name of the animation (used to run/stop it)
@@ -217,12 +201,6 @@ class Sprite {
      * @param {number} nbLoop 
      */
     enqueueSingle(id: string, nbLoop: number) {
-
-        // Exit if source image is not loaded
-        if (!this._spriteSheetLoaded) {
-            return;
-        }
-
         this._queue.push({
             params : this._animations[id],
             loop : (typeof nbLoop === 'number') ? nbLoop : 0

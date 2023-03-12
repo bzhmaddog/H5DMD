@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <meta httpEquiv="origin-trial" content="AjmbVK5jmmfoO2lgbG0tNNQ52Kb2nrkT5oFntPiNoHO1QbNeSQ1sC/H2hAGWfDSr7IhxbIMrIOKP7BxGbXWtzwYAAABTeyJvcmlnaW4iOiJodHRwczovL2J6aG1hZGRvZy5naXRodWIuaW86NDQzIiwiZmVhdHVyZSI6IldlYkdQVSIsImV4cGlyeSI6MTY2MzcxODM5OX0=" />
+        <meta httpEquiv="origin-trial" content="AkfwxtdOv8lmILy1N481kK//CxRGUt8ZVnkI1Ef594MR9ZuWXiEG+nMchAsePoS/4CcSpqYhu+kQFyYXku4ZpAEAAABTeyJvcmlnaW4iOiJodHRwczovL2J6aG1hZGRvZy5naXRodWIuaW86NDQzIiwiZmVhdHVyZSI6IldlYkdQVSIsImV4cGlyeSI6MTY5MTcxMTk5OX0=" />
 
         <style>
             * {
@@ -90,8 +90,7 @@
                         dmd.run();
 						
 						
-                        var bgLayer = dmd.createCanvasLayer( 'bg', {}, function() {
-                            //var img = new Image();
+                        var bgLayer = dmd.createCanvasLayer( 'bg', {}, (layer) => {
 							
 							var bgURI = document.baseURI + "/images/boss-mode-bg.png";
 							
@@ -99,7 +98,7 @@
 							.then(response => response.blob())
 							.then(blob => createImageBitmap(blob))
 							.then( bitmap => {
-								bgLayer.drawImage(
+								layer.drawImage(
 									bitmap,
 									{
 										top: 0,
@@ -142,7 +141,7 @@
 							fetch(bgURI)
 							.then(response => response.blob())
 							.then(blob => createImageBitmap(blob))
-							.then( bitmap => {
+							.then(bitmap => {
 								matthewLayer.drawImage(
 									bitmap,
 									{
@@ -188,38 +187,49 @@
                         var textLayer4 = dmd.createTextLayer('text4', {
                             'text' : "Matthew Patel",
                             align : 'right',
-                            vAlign : 'bottom',                            
+                            vAlign : 'bottom',
                             fontSize : 10,
                             hOffset : -1
                         });
 
-                        var spriteLayer = dmd.createSpriteLayer('sprite', {}, function() {
-                            spriteLayer.createSprite(
-                                'scott',
-                                '/resources/sprites/scott2x.png',
-                                6,
-                                0,
-                                [
-                                    ['idle', 8, 72, 118, 0, 0, 900], //800
-                                    ['walk', 6, 72, 126, 0, 118, 1100],
-                                    ['run', 8, 106, 120, 0, 244, 650],
-                                    ['idle2', 4, 92, 124, 0, 364, 900],
-                                    ['taunt', 9, 92, 124, 0, 488, 450]
-                                ],
-                                '2%',
-                                '2%'
-                            ).then(() => {
-                                let seq = [
-                                            ['idle' , 3],
-                                            ['walk' , 5],
-                                            ['run', 4],
-                                            ['taunt', 1]
-                                            //['idle2', 1]
-                                        ];
+                        var spriteLayer = dmd.createSpriteLayer('sprite', {}, (layer) => {
 
-                                spriteLayer.enqueueSequence('scott', seq, true);
-                                spriteLayer.run('scott');
+                            var bgURI = document.baseURI + "/images/scott2x.png";
+							
+							fetch(bgURI)
+							.then(response => response.blob())
+							.then(blob => createImageBitmap(blob))
+							.then(bitmap => {
+
+                                layer.createSprite(
+                                    'scott',
+                                    bitmap,
+                                    6,
+                                    0,
+                                    [
+                                        ['idle', 8, 72, 118, 0, 0, 900], //800
+                                        ['walk', 6, 72, 126, 0, 118, 1100],
+                                        ['run', 8, 106, 120, 0, 244, 650],
+                                        ['idle2', 4, 92, 124, 0, 364, 900],
+                                        ['taunt', 9, 92, 124, 0, 488, 450]
+                                    ],
+                                    '2%',
+                                    '2%'
+                                ).then(() => {
+                                    let seq = [
+                                                ['idle' , 3],
+                                                ['walk' , 5],
+                                                ['run', 4],
+                                                ['taunt', 1]
+                                                //['idle2', 1]
+                                            ];
+
+                                    layer.enqueueSequence('scott', seq, true);
+                                    layer.run('scott');
+                                });
+
                             });
+
                         });
 
 						// TODO : handle alpha transparency
