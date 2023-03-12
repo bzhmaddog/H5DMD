@@ -41,7 +41,7 @@ If it doesn't load look at the console to see errors
 # Examples
 
 ```
-[Demo.html](Demo.html)
+[a relative link](Demo.html)
 
 ```
 
