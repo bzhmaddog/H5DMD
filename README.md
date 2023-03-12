@@ -41,7 +41,7 @@ If it doesn't load look at the console to see errors
 # Examples
 
 ```
-[a relative link](Demo.html)
+[See Demo.html](./Demo.html)
 
 ```
 
@@ -60,3 +60,7 @@ npm install
 ```
 
 Note : Files are not bundled into one big file (using webpack for example) because it is not working well with ES modules
+
+# Documentation
+
+[Follow this link](http://bzhmaddog.github.io/h5dmd/docs/index.html)
