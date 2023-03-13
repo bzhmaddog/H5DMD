@@ -14,7 +14,7 @@
                 overflow: hidden;
             }
 
-            label {
+            span, li, label {
                 color: white;
             }
 
@@ -60,11 +60,20 @@
                 <label for="matthewimg_checkbox">Matthew Patel Image</label>
             </div>
         </div>
+		<div style="margin-top:20px">
+            <span>Note (2023/02/18) : This demo have been tested  working on the following browsers :</span>
+            <ul>
+                <li>Windows: Chromium 105, 107, 110</li>
+                <li>ArchLinux: Chromium 109 (google-chrome-dev 109.0.5414.10-1)</li>
+                <li>MacOs: Chrome Canary (TBD)</li>
+            </ul>
+        </div>
         <script type="module">
 			import { DMD } from "./js/DMD.js";
 			import { Colors } from "./js/Colors.js";
 			import { DotShape } from "./js/renderers/DMDRenderer.js";
 			import { Options } from "./js/Options.js";
+            import { Utils } from "./js/Utils.js";
 		
             (function () {
                 'use strict';
@@ -78,208 +87,224 @@
                 // When dom is loaded create the objects and bind the events
                 document.addEventListener('DOMContentLoaded', function () {
 
-                    var output = document.getElementById('output');
+		            // Check if webgpu is supported
+                    if ("gpu" in navigator) {
 
-                    var dmd = new DMD(output, 2, 1, 1, 1, DotShape.Square, 14, 1, true);
+                        var output = document.getElementById('output');
+                        var dmd = new DMD(output, 2, 1, 1, 1, DotShape.Square, 14, 1, true);
 
-                    window.dmd = dmd;
+                        window.dmd = dmd;
 
-					// Init DMD then
-        			dmd.init().then( () => {
-                        // Start rendering dmd
-                        dmd.run();
-						
-						
-                        var bgLayer = dmd.createCanvasLayer( 'bg', {}, (layer) => {
-							
-							var bgURI = document.baseURI + "/images/boss-mode-bg.png";
-							
-							fetch(bgURI)
-							.then(response => response.blob())
-							.then(blob => createImageBitmap(blob))
-							.then( bitmap => {
-								layer.drawImage(
-									bitmap,
-									{
-										top: 0,
-										left: 0,
-										width: 426, // Number of horizontal DMD dots 
-										height: 130 // Number of vertical DMD dots
-									}
-								);
-							});
-                        });
+                        // Init DMD then
+                        dmd.init().then( () => {
+                            // Start rendering dmd
+                            dmd.run();
 
-						// Paths are relative to baseURI
-                        dmd.createAnimationLayer('animation', {
-                            images : [
-                                '/images/animation/0.webp',
-                                '/images/animation/1.webp',
-                                '/images/animation/2.webp',
-                                '/images/animation/3.webp',
-                                '/images/animation/4.webp',
-                                '/images/animation/5.webp',
-                                '/images/animation/6.webp',
-                                '/images/animation/7.webp',
-                                '/images/animation/8.webp',
-                                '/images/animation/9.webp',
-                                '/images/animation/10.webp',
-                                '/images/animation/11.webp',
-                                '/images/animation/12.webp',
-                                '/images/animation/13.webp',
-                                '/images/animation/14.webp'
-                            ],
-                            duration : 800,
-                            autoplay : true,
-                            loop : true
-                        });
+                            var bgLayer = dmd.createCanvasLayer( 'bg', {}, (layer) => {
+                                
+                                var bgURI = document.baseURI + "/images/boss-mode-bg.png";
+                                
+                                fetch(bgURI)
+                                .then(response => response.blob())
+                                .then(blob => createImageBitmap(blob))
+                                .then( bitmap => {
+                                    layer.drawImage(
+                                        bitmap,
+                                        {
+                                            top: 0,
+                                            left: 0,
+                                            width: 426, // Number of horizontal DMD dots 
+                                            height: 130 // Number of vertical DMD dots
+                                        }
+                                    );
+                                });
+                            });
 
-                        var matthewLayer = dmd.createCanvasLayer('canvas', {}, function() {
 
-							var bgURI = document.baseURI + "/images/boss-matthew-big.png";
-							
-							fetch(bgURI)
-							.then(response => response.blob())
-							.then(blob => createImageBitmap(blob))
-							.then(bitmap => {
-								matthewLayer.drawImage(
-									bitmap,
-									{
-                                        align: 'right',
-                                        vAlign : 'middle',
-                                        height : '70%'
-                                    }
-								);
-							});
-                        });
-						
-                        var textLayer1 = dmd.createTextLayer('text1', {
-                            'text' : "Scott Pilgrim",
-                            left : '0',
-                            top : 0,
-                            fontSize : 10
-                        });
+                            dmd.createAnimationLayer(
+                                'animation',
+                                {
+                                    duration : 800,
+                                    autoplay : true,
+                                    loop : true
+                                }, layer => {
 
-                        var textLayer2 = dmd.createTextLayer('text2', {
-                            'text' : "VS",
-                            align : 'center',
-                            vAlign : 'middle',
-                            fontFamily : 'Arial',
-                            fontSize : 40,
-                            fontStyle : 'italic bold',
-                            color : '#FFFFFF80', // RGBA
-                            hOffset : '-15%'
-                        });
+                                    var images =  [
+                                        document.baseURI + '/images/animation/0.webp',
+                                        document.baseURI + '/images/animation/1.webp',
+                                        document.baseURI + '/images/animation/2.webp',
+                                        document.baseURI + '/images/animation/3.webp',
+                                        document.baseURI + '/images/animation/4.webp',
+                                        document.baseURI + '/images/animation/5.webp',
+                                        document.baseURI + '/images/animation/6.webp',
+                                        document.baseURI + '/images/animation/7.webp',
+                                        document.baseURI + '/images/animation/8.webp',
+                                        document.baseURI + '/images/animation/9.webp',
+                                        document.baseURI + '/images/animation/10.webp',
+                                        document.baseURI + '/images/animation/11.webp',
+                                        document.baseURI + '/images/animation/12.webp',
+                                        document.baseURI + '/images/animation/13.webp',
+                                        document.baseURI + '/images/animation/14.webp'
+                                    ];
 
-                        var textLayer3 = dmd.createTextLayer('text3', {
-                            'text' : "VS",
-                            align : 'center',
-                            vAlign : 'middle',
-                            fontFamily : 'Arial',
-                            fontSize : 40,
-                            fontStyle : 'italic bold',
-                            color : '#00000000', // inner color totaly transparent to create an hollow text
-                            strokeWidth : 2,
-                            strokeColor : Colors.Red,
-                            hOffset : '-15%'
-                        });
+                                    Utils.loadImagesOrdered(images)
+                                    .then(bitmaps => {
+                                        layer.setAnimationData(bitmaps);
+                                    });
 
-                        var textLayer4 = dmd.createTextLayer('text4', {
-                            'text' : "Matthew Patel",
-                            align : 'right',
-                            vAlign : 'bottom',
-                            fontSize : 10,
-                            hOffset : -1
-                        });
+                                });
 
-                        var spriteLayer = dmd.createSpriteLayer('sprite', {}, (layer) => {
 
-                            var bgURI = document.baseURI + "/images/scott2x.png";
-							
-							fetch(bgURI)
-							.then(response => response.blob())
-							.then(blob => createImageBitmap(blob))
-							.then(bitmap => {
+                            var matthewLayer = dmd.createCanvasLayer('canvas', {}, function() {
 
-                                layer.createSprite(
-                                    'scott',
-                                    bitmap,
-                                    6,
-                                    0,
-                                    [
-                                        ['idle', 8, 72, 118, 0, 0, 900], //800
-                                        ['walk', 6, 72, 126, 0, 118, 1100],
-                                        ['run', 8, 106, 120, 0, 244, 650],
-                                        ['idle2', 4, 92, 124, 0, 364, 900],
-                                        ['taunt', 9, 92, 124, 0, 488, 450]
-                                    ],
-                                    '2%',
-                                    '2%'
-                                ).then(() => {
-                                    let seq = [
-                                                ['idle' , 3],
-                                                ['walk' , 5],
-                                                ['run', 4],
-                                                ['taunt', 1]
-                                                //['idle2', 1]
-                                            ];
+                                var bgURI = document.baseURI + "/images/boss-matthew-big.png";
+                                
+                                fetch(bgURI)
+                                .then(response => response.blob())
+                                .then(blob => createImageBitmap(blob))
+                                .then(bitmap => {
+                                    matthewLayer.drawImage(
+                                        bitmap,
+                                        {
+                                            align: 'right',
+                                            vAlign : 'middle',
+                                            height : '70%'
+                                        }
+                                    );
+                                });
+                            });
+                            
+                            var textLayer1 = dmd.createTextLayer('text1', {
+                                'text' : "Scott Pilgrim",
+                                left : '0',
+                                top : 0,
+                                fontSize : 10
+                            });
 
-                                    layer.enqueueSequence('scott', seq, true);
-                                    layer.run('scott');
+                            var textLayer2 = dmd.createTextLayer('text2', {
+                                'text' : "VS",
+                                align : 'center',
+                                vAlign : 'middle',
+                                fontFamily : 'Arial',
+                                fontSize : 40,
+                                fontStyle : 'italic bold',
+                                color : '#FFFFFF80', // RGBA
+                                hOffset : '-15%'
+                            });
+
+                            var textLayer3 = dmd.createTextLayer('text3', {
+                                'text' : "VS",
+                                align : 'center',
+                                vAlign : 'middle',
+                                fontFamily : 'Arial',
+                                fontSize : 40,
+                                fontStyle : 'italic bold',
+                                color : '#00000000', // inner color totaly transparent to create an hollow text
+                                strokeWidth : 2,
+                                strokeColor : Colors.Red,
+                                hOffset : '-15%'
+                            });
+
+                            var textLayer4 = dmd.createTextLayer('text4', {
+                                'text' : "Matthew Patel",
+                                align : 'right',
+                                vAlign : 'bottom',
+                                fontSize : 10,
+                                hOffset : -1
+                            });
+
+                            var spriteLayer = dmd.createSpriteLayer('sprite', {}, (layer) => {
+
+                                var bgURI = document.baseURI + "/images/scott2x.png";
+                                
+                                fetch(bgURI)
+                                .then(response => response.blob())
+                                .then(blob => createImageBitmap(blob))
+                                .then(bitmap => {
+
+                                    layer.createSprite(
+                                        'scott',
+                                        bitmap,
+                                        6,
+                                        0,
+                                        [
+                                            ['idle', 8, 72, 118, 0, 0, 900], //800
+                                            ['walk', 6, 72, 126, 0, 118, 1100],
+                                            ['run', 8, 106, 120, 0, 244, 650],
+                                            ['idle2', 4, 92, 124, 0, 364, 900],
+                                            ['taunt', 9, 92, 124, 0, 488, 450]
+                                        ],
+                                        '2%',
+                                        '2%'
+                                    ).then(() => {
+                                        let seq = [
+                                                    ['idle' , 3],
+                                                    ['walk' , 5],
+                                                    ['run', 4],
+                                                    ['taunt', 1]
+                                                    //['idle2', 1]
+                                                ];
+
+                                        layer.enqueueSequence('scott', seq, true);
+                                        layer.run('scott');
+                                    });
+
                                 });
 
                             });
 
-                        });
+                            // TODO : handle alpha transparency
+                            /*var videoLayer = dmd.createVideoLayer('video', {
+                                src : 'resources/videos/earth.webm',
+                                autoplay : true,
+                                width : 231,
+                                height : 130,
+                                loop : true
+                            }, function(){
+                            });*/	
 
-						// TODO : handle alpha transparency
-						/*var videoLayer = dmd.createVideoLayer('video', {
-							src : 'resources/videos/earth.webm',
-							autoplay : true,
-							width : 231,
-							height : 130,
-							loop : true
-						}, function(){
-						});*/	
+                            // TODO : Fix antialiasing rendered and outline renderer
+                            /*var textLayer5 = dmd.createTextLayer('text4', {
+                                'text' : "Test",
+                                align : 'center',
+                                vAlign : 'bottom',
+                                fontSize : 30,
+                                hOffset : -1,
+                                //antialiasing: false,
+                                outlineWidth: 2,
+                                outlineColor: Colors.Red
+                            });*/
+                            
+                            
+                            
+                            var checkboxElems = document.querySelectorAll("input[type='checkbox']");
 
-						// TODO : Fix antialiasing rendered and outline renderer
-						/*var textLayer5 = dmd.createTextLayer('text4', {
-                            'text' : "Test",
-                            align : 'center',
-                            vAlign : 'bottom',
-                            fontSize : 30,
-                            hOffset : -1,
-							//antialiasing: false,
-							outlineWidth: 2,
-							outlineColor: Colors.Red
-                        });*/
-						
-                        
-                        
-						var checkboxElems = document.querySelectorAll("input[type='checkbox']");
+                            for (var i = 0; i < checkboxElems.length; i++) {
+                                checkboxElems[i].addEventListener("click", function(element) {
+                                    var layerName = element.target.dataset.layer;
+                                    var visible = element.target.checked
+                                    var layer = dmd.getLayer(layerName);
 
-                        for (var i = 0; i < checkboxElems.length; i++) {
-                            checkboxElems[i].addEventListener("click", function(element) {
-                                var layerName = element.target.dataset.layer;
-                                var visible = element.target.checked
-                                var layer = dmd.getLayer(layerName);
+                                    if (layer != null) {
+                                        layer.setVisibility(visible);
 
-                                if (layer != null) {
-                                    layer.setVisibility(visible);
-
-                                    if (visible) {
-                                        if (layerName === "sprite") {
-                                            layer.run('scott');
+                                        if (visible) {
+                                            if (layerName === "sprite") {
+                                                layer.run('scott');
+                                            }
                                         }
+                                    
+                                    } else {
+                                        console.log(`Layer not found : ${layerName}`);
                                     }
-                                
-                                } else {
-                                    console.log(`Layer not found : ${layerName}`);
-                                }
-                            });
-						}
+                                });
+                            }
 
-                    }); // DMD.init()
+                        }); // DMD.init()
+		
+                    } else {
+                        alert('Sorry your browser does not support WEBGPU (or the feature is not enabled)');
+                    }	
                 },false); // DOM loaded
             })(); // Main
         </script>

@@ -1,3 +1,9 @@
+interface ISyncedImageBitmap {
+	bitmap: ImageBitmap,
+	index: number
+};
+
+
 class Utils {
 
 	/**
@@ -92,6 +98,44 @@ class Utils {
 	static hexToArray(hex: string): string[] {
 		return hex.match(/.{2}/g) || [];
 	}
+
+	/**
+     * Fetch image from server with an index used to determine position
+     * @param {array} images
+     * @param {number} index
+     */
+	static loadImagesOrdered(images: string[]) {
+
+		var bitmaps: ImageBitmap[] = [];
+		var cnt = 0;
+
+		var promises = images.map(url => fetch(url));
+
+		return Promise
+		.all(promises)
+		.then(responses => Promise.all(responses.map(res => res.blob())))
+		.then(blobs => Promise.all(blobs.map(blob => createImageBitmap(blob))));
+    }
+
+
+	/**
+     * Fetch image from server with an index used to determine position
+     * @param {array} images
+     * @param {number} index
+     */
+	static async loadImagesOrderedAsync(images: string[]) {
+
+			var bitmaps: ImageBitmap[] = [];
+			var cnt = 0;
+	
+			var promises = images.map(url => fetch(url));
+	
+			return await Promise
+			.all(promises)
+			.then(responses => Promise.all(responses.map(res => res.blob())))
+			.then(blobs => Promise.all(blobs.map(blob => createImageBitmap(blob))));
+	}
+
 }
 
 export { Utils };

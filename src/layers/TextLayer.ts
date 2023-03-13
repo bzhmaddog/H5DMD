@@ -94,8 +94,6 @@ class TextLayer extends BaseLayer {
         // merge passed options with default options set during layer creation
         var options = Object.assign(new Options(), this._options, options);
 
-        console.log(options);
-
         return new Promise<void>( resolve => {
 
             //console.log(this._id, this.#text);

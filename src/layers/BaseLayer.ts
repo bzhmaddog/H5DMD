@@ -252,43 +252,6 @@ abstract class BaseLayer {
     }
 
     /**
-     * Fetch an image from remote server
-     * @param {string} src 
-     * @returns 
-     */
-    async _loadImage(src: string) {
-        const uriStr = document.baseURI + src;
-        let response = await fetch(uriStr);
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        } else {
-            return await response.blob();
-        }        
-    }
-
-    /**
-     * Fetch image from server with an index used to determine position
-     * @param {string} src 
-     * @param {number} index
-     * @returns 
-     */
-     async _loadImageSynced(src: string, index: number) {
-        const uriStr = document.baseURI + src;
-
-        let response = await fetch(uriStr);
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        } else {
-            return { 
-                blob : response.blob(),
-                index : index
-            }
-        }        
-    }
-
-    /**
      * Return if the layer have renderer in the queue
      * @returns boolean
      */
