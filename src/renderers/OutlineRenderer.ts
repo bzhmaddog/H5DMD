@@ -128,6 +128,8 @@ class OutlineRenderer extends LayerRenderer {
     private _doRendering(frameData: ImageData, options?: Options): Promise<ImageData> {
         const that = this;
 
+        console.log(options);
+
         const UBOBuffer = this._device.createBuffer({
             size: 3 * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,

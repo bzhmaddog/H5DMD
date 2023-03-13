@@ -126,6 +126,8 @@ class RemoveAliasingRenderer extends LayerRenderer {
     private _doRendering(frameData: ImageData, options?: Options): Promise<ImageData> {
         const that = this;
 
+        console.log(options.getValues());
+
         const treshold: number = options.get('treshold', 0);
         const baseColor: string = options.get('baseColor');
 
