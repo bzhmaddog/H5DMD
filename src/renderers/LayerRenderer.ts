@@ -18,6 +18,7 @@ abstract class LayerRenderer extends Renderer {
         this.renderFrame = this._doNothing;
     }
 
+	abstract init(): Promise<void>;
     renderFrame: (frameData: ImageData) => Promise<ImageData>;
 
     /**
