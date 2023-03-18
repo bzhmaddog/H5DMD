@@ -25,8 +25,6 @@ abstract class BaseLayer {
     protected _contentBuffer: OffscreenBuffer;
 
     protected _options: Options;
-    protected _visibility: Boolean = true;
-
 
     private _id: string;
     private _loaded: Boolean = false;
@@ -69,8 +67,6 @@ abstract class BaseLayer {
         this._groups = ['default'];
 
         this._options = new Options({ visible : true });
-
-
         this._renderNextFrame = function() { console.log(`Layer [${this._id}] : Rendering ended`) };
     }
 
@@ -273,11 +269,21 @@ abstract class BaseLayer {
     }
     
     setVisibility(isVisible: Boolean) {
-        this._visibility = isVisible;
+        this._options.set('visible', isVisible);
     }
 
+    /* Toggle layer visibility and return the new state
+    * @returns boolean
+    */
+    toggleVisibility() {
+        const v = this._options.get('visible');
+        this._options.set('visible', !v);
+        return !v;
+    }
+
+
     isVisible(): Boolean {
-        return this._visibility;
+        return this._options.get('visible');
     }
 
     isLoaded(): Boolean {

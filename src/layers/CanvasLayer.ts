@@ -23,8 +23,6 @@ class CanvasLayer extends BaseLayer {
        // Layer global options
        Object.assign(this._options, defaultOptions, options);
 
-        this._visibility = this._options.get('visible');
-
         setTimeout(this._layerLoaded.bind(this), 1);
     }
 

@@ -108,16 +108,12 @@
                                 .then(response => response.blob())
                                 .then(blob => createImageBitmap(blob))
                                 .then( bitmap => {
-                                    layer.drawImage(
-                                        bitmap,
-                                        {
-                                            top: 0,
-                                            left: 0,
-                                            width: 426, // Number of horizontal DMD dots 
-                                            height: 130 // Number of vertical DMD dots
-                                        }
-                                    );
+                                    layer.drawImage(bitmap, {
+                                        width: 426,
+                                        height: 130
+                                    });
                                 });
+                                
                             });
 
 
@@ -252,6 +248,23 @@
                                 });
 
                             });
+
+                            /*var bgLayer = dmd.createCanvasLayer( 'test', {}, (layer) => {
+                                
+                                var bgURI = document.baseURI + "/images/hsupw.png";
+                                
+                                fetch(bgURI)
+                                .then(response => response.blob())
+                                .then(blob => createImageBitmap(blob))
+                                .then( bitmap => {
+                                    layer.drawImage(bitmap, {
+                                        left: '50%',
+                                        height: '80%'
+                                    });
+                                });
+                                
+                            });*/
+
 
                             // TODO : handle alpha transparency
                             /*var videoLayer = dmd.createVideoLayer('video', {

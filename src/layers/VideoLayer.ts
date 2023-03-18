@@ -117,11 +117,11 @@ class VideoLayer extends BaseLayer {
 		this._startRendering();
 	}
 
-	stop(reset: boolean) {
+	stop(reset: boolean = false) {
 		this._isPlaying = false;
 		this._video.pause();
 
-		if (!!reset) {
+		if (reset) {
 			this._video.currentTime = 0
 		}
 
