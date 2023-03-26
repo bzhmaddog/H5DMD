@@ -93,7 +93,7 @@ class ChangeAlphaRenderer extends LayerRenderer {
      */
     private _doRendering(frameData: ImageData, options?: Options): Promise<ImageData> {
 
-        var o = options.get('opacity', 1);
+        var opacity = options.get('opacity', 1);
 
         const that = this;
 
@@ -186,7 +186,7 @@ class ChangeAlphaRenderer extends LayerRenderer {
             gpuInputBuffer.unmap();
 
             // Write values to uniform buffer object
-            const uniformData = [o];
+            const uniformData = [opacity];
             const uniformTypedArray = new Float32Array(uniformData);
 
             this._device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer);

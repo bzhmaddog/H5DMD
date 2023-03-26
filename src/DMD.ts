@@ -1,7 +1,7 @@
 import { OffscreenBuffer } from './OffscreenBuffer.js';
 import { Easing } from './Easing.js';
 import { DMDRenderer, DotShape } from './renderers/DMDRenderer.js';
-import { IRendererDictionary, Renderer } from './renderers/Renderer.js';
+import { ILayerRendererDictionary, LayerRenderer } from './renderers/LayerRenderer.js';
 import { BaseLayer, LayerType } from './layers/BaseLayer.js';
 import { CanvasLayer } from './layers/CanvasLayer.js';
 import { VideoLayer } from './layers/VideoLayer.js';
@@ -44,7 +44,7 @@ class DMD {
 	private _isRunning: boolean;
 	private _fps: number;
 	private _lastRenderTime: number;
-	private _layerRenderers: IRendererDictionary;
+	private _layerRenderers: ILayerRendererDictionary;
 	private _initDone: boolean;
 	private _backgroundColor: string;
 	private _renderNextFrame: Function;
@@ -99,7 +99,7 @@ class DMD {
 			'opacity' : new ChangeAlphaRenderer(this._outputWidth, this._outputHeight), // used by layer with opacity < 1
 			'no-antialiasing' : new RemoveAliasingRenderer(this._outputWidth, this._outputHeight), // used by TextLayer if antialiasing  = false
 			'outline' : new OutlineRenderer(this._outputWidth, this._outputHeight)  // used by TextLayer when outlineWidth > 1
-		} as IRendererDictionary;
+		} as ILayerRendererDictionary;
 
 		this._initDone = false;
 
@@ -138,6 +138,7 @@ class DMD {
 
 			let renderers: Promise<void>[] = [];
 
+			// Build array of promises
 			Object.keys(this._layerRenderers).forEach(id => {
 				renderers.push(this._layerRenderers[id].init());
 			});
@@ -149,13 +150,6 @@ class DMD {
 					this._initDone = true;
 					resolve();
 				});
-
-				/*Utils.chainPromises(renderers)
-					.then(() => {
-						this.initDone = true;
-						resolve();
-					});
-					*/
 			});
 		});
 	}
@@ -462,7 +456,7 @@ class DMD {
 	 * @param {string} id (unique)
 	 * @param {IRenderer} renderer 
 	 */
-	addRenderer(id: string, renderer: Renderer) {
+	addRenderer(id: string, renderer: LayerRenderer) {
 
 		if (this._isRunning) {
 			throw new Error("Renderers must be added before calling DMD.init()")

@@ -1,6 +1,6 @@
 import { BaseLayer } from "./BaseLayer.js";
 import { Options } from "../Options.js";
-import { IRendererDictionary } from "../renderers/Renderer.js";
+import { ILayerRendererDictionary } from "../renderers/LayerRenderer.js";
 import { LayerType } from "./BaseLayer.js";
 
 class AnimationLayer extends BaseLayer {
@@ -22,20 +22,20 @@ class AnimationLayer extends BaseLayer {
 		width: number,
 		height: number,
 		options: Options,
-		renderers?: IRendererDictionary,
+		renderers?: ILayerRendererDictionary,
 		loadedListener?: Function,
 		updatedListener?: Function,
 		playListener?: Function,
 		pauseListener?: Function,
         stopListener?: Function
     ) {
-        super(id, LayerType.Video, width, height, renderers, loadedListener, updatedListener);
+        const defaultOptions = new Options({loop : false, autoplay : false});
 
-        var defaultOptions = new Options({loop : false, autoplay : false});
+        const layerOptions = Object.assign({}, defaultOptions, options);
 
-        Object.assign(this._options, defaultOptions, options);
+        super(id, LayerType.Video, width, height, layerOptions, renderers, loadedListener, updatedListener);
 
-		this._onPlayListener = playListener;
+        this._onPlayListener = playListener;
 		this._onPauseListener = pauseListener;
 		this._onStopListener = stopListener;
 

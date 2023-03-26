@@ -1,6 +1,6 @@
 import { BaseLayer } from "./BaseLayer.js";
 import { LayerType } from "./BaseLayer.js";
-import { IRendererDictionary } from "../renderers/Renderer.js";
+import { ILayerRendererDictionary } from "../renderers/LayerRenderer.js";
 import { Options } from "../Options.js"
 
 
@@ -11,17 +11,16 @@ class CanvasLayer extends BaseLayer {
         width: number,
         height: number,
         options?: Options,
-        renderers?: IRendererDictionary,
+        renderers?: ILayerRendererDictionary,
         loadedListener?: Function,
         updatedListener?: Function
     ) {
-        super(id, LayerType.Canvas, width, height, renderers, loadedListener, updatedListener);
 
         // Default options for Canvas layers
-        var defaultOptions =  new Options({ top : 0, left : 0, keepAspectRatio : true});
+        const defaultOptions =  new Options({ top : 0, left : 0, keepAspectRatio : true});
+        const layerOptions = Object.assign({}, defaultOptions, options);
 
-       // Layer global options
-       Object.assign(this._options, defaultOptions, options);
+        super(id, LayerType.Canvas, width, height, layerOptions, renderers, loadedListener, updatedListener);
 
         setTimeout(this._layerLoaded.bind(this), 1);
     }

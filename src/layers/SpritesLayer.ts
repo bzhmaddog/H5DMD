@@ -1,6 +1,6 @@
 import { Options } from "../Options.js";
 import { BaseLayer, LayerType } from "./BaseLayer.js";
-import { IRendererDictionary } from "../renderers/Renderer.js";
+import { ILayerRendererDictionary } from "../renderers/LayerRenderer.js";
 import { Sprite } from "../Sprite.js";
 
 interface ISpriteItem {
@@ -25,19 +25,16 @@ class SpritesLayer extends BaseLayer {
         width: number,
         height: number,
         options: Options,
-        renderers?: IRendererDictionary,
+        renderers?: ILayerRendererDictionary,
         loadedListener?: Function,
         updatedListener?: Function
     ) {
-        super(id, LayerType.Sprites, width, height, renderers, loadedListener, updatedListener);
 
 		
-        var defaultOptions = {
-            loop : false,
-            autoplay : false
-        };
+        const defaultOptions = { loop : false, autoplay : false };
+        const layerOptions = Object.assign({}, defaultOptions, options);
 
-        Object.assign(this._options, defaultOptions, options);
+        super(id, LayerType.Sprites, width, height, layerOptions, renderers, loadedListener, updatedListener);
 
         this._sprites = {} as ISpriteDictionnary;
         this._runningSprites = 0;

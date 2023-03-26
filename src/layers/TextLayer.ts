@@ -1,7 +1,7 @@
 import { BaseLayer, LayerType } from './BaseLayer.js';
 import { OffscreenBuffer } from '../OffscreenBuffer.js';
 import { Colors } from '../Colors.js';
-import { IRendererDictionary } from '../renderers/Renderer.js';
+import { ILayerRendererDictionary } from '../renderers/LayerRenderer.js';
 import { Utils } from '../Utils.js';
 import { Options } from '../Options.js';
 
@@ -15,12 +15,12 @@ class TextLayer extends BaseLayer {
         width: number,
         height: number,
         options: Options,
-        renderers?: IRendererDictionary,
+        renderers?: ILayerRendererDictionary,
         loadedListener?: Function,
         updatedListener?: Function
     ) {
 
-        var defaultOptions = new Options({
+        const defaultOptions = new Options({
             top: 0,
             left: 0,
             color: Colors.White,
@@ -39,9 +39,9 @@ class TextLayer extends BaseLayer {
             antialiasing: true
         });
 
-        super(id, LayerType.Text, width, height, renderers, loadedListener, updatedListener);
+        const layerOptions = Object.assign({},defaultOptions, options);
 
-        Object.assign(this._options, defaultOptions, options);
+        super(id, LayerType.Text, width, height, layerOptions, renderers, loadedListener, updatedListener);
 
         var that = this;
 
@@ -267,7 +267,7 @@ class TextLayer extends BaseLayer {
                     this._getRendererInstance('no-antialiasing').renderFrame(
                         frameImageData,
                         new Options({
-                            treshold: this.getRendererParams('no-antialiasing'),
+                            treshold: 255, // TODO find how param was set before
                             baseColor: Utils.hexRGBToHexRGBA(this._options.get('color').replace('#', ''), 'FF')
                         })
                     ).then(aaData => {
@@ -303,7 +303,7 @@ class TextLayer extends BaseLayer {
                     this._getRendererInstance('no-antialiasing').renderFrame(
                         frameImageData,
                         new Options({
-                            treshold: this.getRendererParams('no-antialiasing'),
+                            treshold: 255, // TODO: Find how param was set before
                             baseColor: Utils.hexRGBToHexRGBA(this._options.get('color').replace('#', ''), 'FF')
                         })
                     ).then(aaData => {
@@ -336,6 +336,12 @@ class TextLayer extends BaseLayer {
                 that._layerUpdated();
             });
         }
+    }
+
+    setVisibility(isVisible: Boolean): void {
+        super.setVisibility(isVisible);
+
+        //this._layerUpdated();
     }
 }
 

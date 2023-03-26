@@ -1,4 +1,5 @@
 import { Renderer } from "./Renderer.js";
+import { Options } from "../Options.js";
 
 abstract class LayerRenderer extends Renderer {
 
@@ -19,7 +20,7 @@ abstract class LayerRenderer extends Renderer {
     }
 
 	abstract init(): Promise<void>;
-    renderFrame: (frameData: ImageData) => Promise<ImageData>;
+    renderFrame: (frameData: ImageData, options?: Options) => Promise<ImageData>;
 
     /**
      * Does nothing except returning passed data (placeholder until init is done)
@@ -31,8 +32,15 @@ abstract class LayerRenderer extends Renderer {
             resolve(frameData);
         });
     }
-
-
 }
 
-export { LayerRenderer }
+interface ILayerRendererDictionary {
+    [index: string]: LayerRenderer
+}
+
+interface ILayerRendererParamDictionary {
+	[index: string]: any
+}
+
+
+export { LayerRenderer, ILayerRendererDictionary, ILayerRendererParamDictionary }
