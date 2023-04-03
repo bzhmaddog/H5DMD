@@ -1,23 +1,23 @@
 
 abstract class Renderer {
 
-    protected _adapter: GPUAdapter;
-    protected _device: GPUDevice;
-    protected _shaderModule: GPUShaderModule;
+    protected _adapter: GPUAdapter
+    protected _device: GPUDevice
+    protected _shaderModule: GPUShaderModule
 
-    private _name: String;
-    protected _initDone: Boolean;
+    private _name: String
+    protected _initDone: Boolean
 
     constructor(name: String) {
-        this._name = name;
+        this._name = name
     }
 
 
-    abstract init(): Promise<void>;
-    abstract renderFrame(frameData: ImageData, options?: {}): Promise<ImageData>;
+    abstract init(): Promise<void>
+    abstract renderFrame(frameData: ImageData, options?: {}): Promise<ImageData>
 
     getName(): String {
-        return this._name;
+        return this._name
     }
 }
 

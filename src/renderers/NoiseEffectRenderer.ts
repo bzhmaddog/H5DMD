@@ -1,13 +1,13 @@
-import { OffscreenBuffer } from "../OffscreenBuffer.js";
-import { LayerRenderer } from "./LayerRenderer.js";
+import { OffscreenBuffer } from "../OffscreenBuffer.js"
+import { LayerRenderer } from "./LayerRenderer.js"
 
 class NoiseEffectRenderer extends LayerRenderer {
 
-    private _noises: Uint8ClampedArray[];
-    private _startTime: number;
-    private _frameDuration: number;
-    private _nbFrames: number;
-    private _tmpBuffer: OffscreenBuffer;
+    private _noises: Uint8ClampedArray[]
+    private _startTime: number
+    private _frameDuration: number
+    private _nbFrames: number
+    private _tmpBuffer: OffscreenBuffer
 
     /**
      * https://robson.plus/white-noise-image-generator/
@@ -17,25 +17,25 @@ class NoiseEffectRenderer extends LayerRenderer {
 
     constructor(width: number, height: number, duration: number, images: string[]) {
 
-        super("NoiseEffectRenderer", width, height);
+        super("NoiseEffectRenderer", width, height)
 
 
-        this._nbFrames = images.length;
-        this._frameDuration = duration / this._nbFrames;
-        this._noises = [];
+        this._nbFrames = images.length
+        this._frameDuration = duration / this._nbFrames
+        this._noises = []
 
 
         if (!Array.isArray(images)) {
-            throw new TypeError("An array of images filename is expected as third argument");
+            throw new TypeError("An array of images filename is expected as third argument")
         }
 
-        const that = this;
+        const that = this
 
         // Temporary buffer to draw noise image and get data array from it
-        this._tmpBuffer = new OffscreenBuffer(width, height, true);
+        this._tmpBuffer = new OffscreenBuffer(width, height, true)
 
 
-        var promises = images.map(url => fetch(url));
+        var promises = images.map(url => fetch(url))
 	
         Promise
         .all(promises)
@@ -43,9 +43,9 @@ class NoiseEffectRenderer extends LayerRenderer {
         .then(blobs => Promise.all(blobs.map(blob => createImageBitmap(blob))))
         .then(bitmaps => Promise.all(bitmaps.map(bitmap => this._getImageData(bitmap))))
         .then(bitmaps => {
-            this._noises = bitmaps;
-            console.log('Noises images loaded');
-        });
+            this._noises = bitmaps
+            console.log('Noises images loaded')
+        })
     }
 
     /**
@@ -54,26 +54,26 @@ class NoiseEffectRenderer extends LayerRenderer {
      * @returns 
      */
     async _loadNoise(src: string) {
-        let response = await fetch(src);
+        let response = await fetch(src)
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status}`)
           } else {
-            return await response.blob();
+            return await response.blob()
           }        
     }
 
 
     init(): Promise<void> {
-        const that = this;
+        const that = this
 
         return new Promise(resolve => {
 
             navigator.gpu.requestAdapter().then( adapter => {
-                that._adapter = adapter;
+                that._adapter = adapter
             
                 adapter.requestDevice().then( device => {
-                    that._device = device;
+                    that._device = device
 
                     that._shaderModule = device.createShaderModule({
                         code: `
@@ -117,22 +117,21 @@ class NoiseEffectRenderer extends LayerRenderer {
                                 //outputPixels.rgba[index] = noise;
                             }
                         `
-                    });
+                    })
 
-                    console.log('ScoreEffectRenderer:init()');
+                    console.log('ScoreEffectRenderer:init()')
 
                     this._shaderModule.compilationInfo().then(i => {
                         if (i.messages.length > 0 ) {
-                            console.warn("ScoreEffectRenderer:compilationInfo() ", i.messages);
+                            console.warn("ScoreEffectRenderer:compilationInfo() ", i.messages)
                         }
-                    });
+                    })
 
-                    that.renderFrame = that._doRendering;
-                    resolve();
-                });    
-            });
-       });
-    
+                    that.renderFrame = that._doRendering
+                    resolve()
+                }) 
+            })
+       })
     }
 
     /**
@@ -141,29 +140,29 @@ class NoiseEffectRenderer extends LayerRenderer {
      * @returns {ImageData}
      */
     private _doRendering(frameData: ImageData): Promise<ImageData> {
-        const that = this;
+        const that = this
 
         const gpuNoiseBuffer = this._device.createBuffer({
             mappedAtCreation: true,
             size: this._bufferByteLength,
             usage: GPUBufferUsage.STORAGE
-        });
+        })
 
         const gpuInputBuffer = this._device.createBuffer({
             mappedAtCreation: true,
             size: this._bufferByteLength,
             usage: GPUBufferUsage.STORAGE
-        });
+        })
     
         const gpuTempBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
-        });
+        })
     
         const gpuOutputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-        });
+        })
     
         const bindGroupLayout = this._device.createBindGroupLayout({
             entries: [
@@ -189,7 +188,7 @@ class NoiseEffectRenderer extends LayerRenderer {
                     }
                 }
             ]
-        });
+        })
     
         const bindGroup = this._device.createBindGroup({
             layout: bindGroupLayout,
@@ -213,7 +212,7 @@ class NoiseEffectRenderer extends LayerRenderer {
                     }
                 }
             ]
-        });
+        })
 
         const computePipeline =this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
@@ -223,58 +222,58 @@ class NoiseEffectRenderer extends LayerRenderer {
                 module: this._shaderModule,
                 entryPoint: "main"
             }
-        });        
+        })
 
         return new Promise( resolve => {
 
-            var now = window.performance.now();
+            var now = window.performance.now()
     
             if (!this._startTime) {
-                this._startTime = now;
+                this._startTime = now
             }
     
-            var position = now - this._startTime;
+            var position = now - this._startTime
     
-            var frameIndex = Math.floor(position / this._frameDuration);
+            var frameIndex = Math.floor(position / this._frameDuration)
 
             // Loop back to the first image
             if (frameIndex >= this._nbFrames) {
-                this._startTime = null;
-                frameIndex = 0;
+                this._startTime = null
+                frameIndex = 0
             }            
 
-            new Uint8Array(gpuNoiseBuffer.getMappedRange()).set(new Uint8Array(this._noises[frameIndex]));
-            gpuNoiseBuffer.unmap();
+            new Uint8Array(gpuNoiseBuffer.getMappedRange()).set(new Uint8Array(this._noises[frameIndex]))
+            gpuNoiseBuffer.unmap()
             
             // Put original image data in the input buffer (257x78)
-            new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData.data));
-            gpuInputBuffer.unmap();
+            new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData.data))
+            gpuInputBuffer.unmap()
     
-            const commandEncoder = that._device.createCommandEncoder();
-            const passEncoder = commandEncoder.beginComputePass();
+            const commandEncoder = that._device.createCommandEncoder()
+            const passEncoder = commandEncoder.beginComputePass()
 
-            passEncoder.setPipeline(computePipeline);
-            passEncoder.setBindGroup(0, bindGroup);
-            passEncoder.dispatchWorkgroups(that._width, that._height);
-            passEncoder.end();
+            passEncoder.setPipeline(computePipeline)
+            passEncoder.setBindGroup(0, bindGroup)
+            passEncoder.dispatchWorkgroups(that._width, that._height)
+            passEncoder.end()
 
-            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that._bufferByteLength);
+            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that._bufferByteLength)
     
-            that._device.queue.submit([commandEncoder.finish()]);
+            that._device.queue.submit([commandEncoder.finish()])
     
             // Render DMD output
             gpuOutputBuffer.mapAsync(GPUMapMode.READ).then( () => {
     
                 // Grab data from output buffer
-                const pixelsBuffer = new Uint8Array(gpuOutputBuffer.getMappedRange());
+                const pixelsBuffer = new Uint8Array(gpuOutputBuffer.getMappedRange())
 
                 // Generate Image data usable by a canvas
-                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that._width, that._height);
+                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that._width, that._height)
 
                 // return to caller
-                resolve(imageData);
-            });
-        });
+                resolve(imageData)
+            })
+        })
 	}
 
     /**
@@ -283,11 +282,11 @@ class NoiseEffectRenderer extends LayerRenderer {
      * @returns Promise<Uint8ClampedArray>
      */
     private _getImageData(bitmap: ImageBitmap): Promise<Uint8ClampedArray> {
-        var that = this;
+        var that = this
         return new Promise<Uint8ClampedArray>( resolve => {
-            that._tmpBuffer.context.drawImage(bitmap, 0, 0);
-            resolve(that._tmpBuffer.context.getImageData(0, 0, that._width, that._height).data);
-        });
+            that._tmpBuffer.context.drawImage(bitmap, 0, 0)
+            resolve(that._tmpBuffer.context.getImageData(0, 0, that._width, that._height).data)
+        })
     }
 }
 

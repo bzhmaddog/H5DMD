@@ -1,4 +1,4 @@
-import { OffscreenBuffer } from "./OffscreenBuffer.js";
+import { OffscreenBuffer } from "./OffscreenBuffer.js"
 
 interface IAnimation {
     width: number,
@@ -20,23 +20,23 @@ interface IAnimationDictionnary {
 
 
 class Sprite {
-    private _id: string;
-    private _buffer: OffscreenBuffer;
-    private _spriteSheet: ImageBitmap;
-    private _animations: IAnimationDictionnary;
-    private _animation: IAnimationQueueItem;
-    private _isAnimating: boolean;
-    private _loop: number;
-    private _queue: IAnimationQueueItem[];
-    private _loopSequence: boolean;
-    private _hFrameOffset: number;
-    private _vFrameOffset: number;
-    private _maxHeight: number;
-    private _maxWidth: number;
-    private _endOfQueueListener?: Function;
-    private _frameDuration: number;
-    private _frameIndex: number;
-    private _startTime?: number;
+    private _id: string
+    private _buffer: OffscreenBuffer
+    private _spriteSheet: ImageBitmap
+    private _animations: IAnimationDictionnary
+    private _animation: IAnimationQueueItem
+    private _isAnimating: boolean
+    private _loop: number
+    private _queue: IAnimationQueueItem[]
+    private _loopSequence: boolean
+    private _hFrameOffset: number
+    private _vFrameOffset: number
+    private _maxHeight: number
+    private _maxWidth: number
+    private _endOfQueueListener?: Function
+    private _frameDuration: number
+    private _frameIndex: number
+    private _startTime?: number
 
     /**
      * 
@@ -45,22 +45,22 @@ class Sprite {
      * @param {number} vFrameOffset Distance between each frame (vertically))
      */
     constructor(id: string, spriteSheet: ImageBitmap, hFrameOffset: number, vFrameOffset: number) {
-        this._id = id;
+        this._id = id
 
-        this._buffer = new OffscreenBuffer(0, 0);
-        this._animations = {} as IAnimationDictionnary;
-        this._animation = null;
-        this._isAnimating = false;
-        this._loop = 1;
-        this._queue = [];
-        this._loopSequence = false;
-        this._maxHeight = 0;
-        this._maxWidth = 0;
-        this._frameIndex = 0;
-        this._frameDuration = 0;
-        this._hFrameOffset = hFrameOffset;
-        this._vFrameOffset = vFrameOffset;
-        this._spriteSheet = spriteSheet;
+        this._buffer = new OffscreenBuffer(0, 0)
+        this._animations = {} as IAnimationDictionnary
+        this._animation = null
+        this._isAnimating = false
+        this._loop = 1
+        this._queue = []
+        this._loopSequence = false
+        this._maxHeight = 0
+        this._maxWidth = 0
+        this._frameIndex = 0
+        this._frameDuration = 0
+        this._hFrameOffset = hFrameOffset
+        this._vFrameOffset = vFrameOffset
+        this._spriteSheet = spriteSheet
     }
 
     /**
@@ -91,12 +91,12 @@ class Sprite {
                 xOffset : xOffset,
                 yOffset : Yoffset,
                 duration : duration
-            };
+            }
 
-            this._maxHeight = Math.max(this._maxHeight, height);
-            this._maxWidth = Math.max(this._maxWidth, width);
+            this._maxHeight = Math.max(this._maxHeight, height)
+            this._maxWidth = Math.max(this._maxWidth, width)
         } else {
-            throw new Error(`Animation [${id} already exists in sprite [${this._id}]`);
+            throw new Error(`Animation [${id} already exists in sprite [${this._id}]`)
         }
     }
 
@@ -104,47 +104,47 @@ class Sprite {
      * Main render routine
      */
     private _doAnimation(t: number) {
-        var now = t;
-        var previousFrameIndex = this._frameIndex;
+        var now = t
+        var previousFrameIndex = this._frameIndex
 
         if (this._startTime === null) {
-            this._startTime = now;
+            this._startTime = now
         }
 
-        var delta = now - this._startTime;
+        var delta = now - this._startTime
 
         // Calculate frame number given delta and duration
-        this._frameIndex = Math.floor(delta / this._frameDuration);
+        this._frameIndex = Math.floor(delta / this._frameDuration)
 
         // If loop is 
         if (this._frameIndex >= this._animation.params.nbFrames) {
-            this._loop++;
+            this._loop++
 
             // End of loop then process queue to start next animation in line
             if (this._animation.loop > 0 && this._loop > this._animation.loop) {
-                this._processQueue();
-                return;
+                this._processQueue()
+                return
             }
 
             // Start animation back to first frame
-            this._frameIndex = 0;
-            this._startTime = null;
+            this._frameIndex = 0
+            this._startTime = null
         }
 
 
         // Only redraw buffer is frame is different
         if (this._frameIndex !== previousFrameIndex) {
-            let xOffset = this._frameIndex * (this._animation.params.width + this._hFrameOffset) + this._animation.params.xOffset;
+            let xOffset = this._frameIndex * (this._animation.params.width + this._hFrameOffset) + this._animation.params.xOffset
             // Shift vertical position so that sprites are aligned at the bottom
-            let yPos = this._maxHeight - this._animation.params.height;
+            let yPos = this._maxHeight - this._animation.params.height
 
-            //console.log(`${this._frameIndex} / ${xOffset} / ${yPos}`);
+            //console.log(`${this._frameIndex} / ${xOffset} / ${yPos}`)
    
-            this._buffer.clear();
-            this._buffer.context.drawImage(this._spriteSheet,  xOffset,  this._animation.params.yOffset, this._animation.params.width, this._animation.params.height, 0, yPos, this._animation.params.width, this._animation.params.height);
+            this._buffer.clear()
+            this._buffer.context.drawImage(this._spriteSheet,  xOffset,  this._animation.params.yOffset, this._animation.params.width, this._animation.params.height, 0, yPos, this._animation.params.width, this._animation.params.height)
         }
 
-        requestAnimationFrame(this._doAnimation.bind(this));
+        requestAnimationFrame(this._doAnimation.bind(this))
     }
 
     /**
@@ -157,39 +157,39 @@ class Sprite {
             if (this._loopSequence) {
 
                 if (this._queue.length > 1) {
-                    this._animation = this._queue.shift();
+                    this._animation = this._queue.shift()
                     // Put this animation to the bottom of the queue is needed
-                    this._queue.push(this._animation);
+                    this._queue.push(this._animation)
                 } else {
-                    this._animation = this._queue[0];
+                    this._animation = this._queue[0]
                 }
 
             } else {
-                this._animation = this._queue.shift();
+                this._animation = this._queue.shift()
             }
 
-            this._frameIndex = this._animation.params.nbFrames; // To force rendering of frame 0
-            this._startTime = null;
-            this._frameDuration = this._animation.params.duration / this._animation.params.nbFrames;
-            this._isAnimating = true;
-            this._loop = 1;
+            this._frameIndex = this._animation.params.nbFrames // To force rendering of frame 0
+            this._startTime = null
+            this._frameDuration = this._animation.params.duration / this._animation.params.nbFrames
+            this._isAnimating = true
+            this._loop = 1
 
 
             // Resizing will clear buffer so do it only if needed
             if (this._buffer.width !== this._animation.params.width) {
-                this._buffer.width = this._animation.params.width;
+                this._buffer.width = this._animation.params.width
             }
 
             // Resizing will clear buffer so do it only if needed
             if (this._buffer.height !== this._maxHeight) {
-                this._buffer.height =  this._maxHeight;
+                this._buffer.height =  this._maxHeight
             }
 
-            requestAnimationFrame(this._doAnimation.bind(this));
+            requestAnimationFrame(this._doAnimation.bind(this))
         } else {
-            this._isAnimating = false;
+            this._isAnimating = false
             if (typeof this._endOfQueueListener === 'function') {
-                this._endOfQueueListener(this._id);
+                this._endOfQueueListener(this._id)
             }
         }
     }
@@ -204,7 +204,7 @@ class Sprite {
         this._queue.push({
             params : this._animations[id],
             loop : (typeof nbLoop === 'number') ? nbLoop : 0
-        });
+        })
     }
 
 
@@ -224,18 +224,18 @@ class Sprite {
             this._queue.push({
                 params : this._animations[seq[i][0]],
                 loop : Math.max(1, seq[i][1])
-            });
+            })
         }
 
         // Boolean
-        this._loopSequence = !!loop;
+        this._loopSequence = !!loop
 
         // Start animation
-        //this._processQueue();
+        //this._processQueue()
     }
 
     run() {
-        this._processQueue();
+        this._processQueue()
     }
 
     /**
@@ -243,37 +243,37 @@ class Sprite {
      * TODO
      */
     stop() {
-        this._isAnimating = false;
-        this._loopSequence = false;
-        this._queue = [];
+        this._isAnimating = false
+        this._loopSequence = false
+        this._queue = []
     }
 
     /**
      * Return current image
      */
     get data() {
-        return this._buffer.canvas;
+        return this._buffer.canvas
 	}
 
     /**
      * Get output buffer context
      */
     get context() {
-        return this._buffer.context;
+        return this._buffer.context
     }
 
     /**
      * Get sprite width
      */
     get width() {
-        return this._maxWidth;
+        return this._maxWidth
     }
 
     /**
      * Get sprite height
      */
     get height() {
-        return this._maxHeight;
+        return this._maxHeight
     }
 
     /**
@@ -281,7 +281,7 @@ class Sprite {
      * @returns boolean
      */
     isAnimating() {
-        return this._isAnimating;
+        return this._isAnimating
     }
 
     /**
@@ -289,29 +289,8 @@ class Sprite {
      * @param {Function} listener 
      */
     setEndOfQueueListener(listener: Function) {
-        this._endOfQueueListener = listener;
+        this._endOfQueueListener = listener
     }
-
-    /**
-     * Clone this sprite and return it
-     * @returns Sprite
-     */
-    /*clone(): Promise<Sprite> {
-        return new Promise(resolve => {
-
-           new Sprite(this._spriteSheet.src, this._frameOffset).then( s => {
-
-                Object.keys(this._animations).forEach(id => {
-                    //console.log(id);
-                    var a = this._animations[id];
-                    //console.log(a);
-                    s.addAnimation(id, a.nbFrames, a.width, a.height, a.xOffset, a.yOffset, a.duration);
-                });
-          
-                resolve(s);
-            });
-        });
-    }*/
 }
 
-export { Sprite };
+export { Sprite }

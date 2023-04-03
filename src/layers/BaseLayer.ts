@@ -1,6 +1,6 @@
-import { OffscreenBuffer } from "../OffscreenBuffer.js";
-import { LayerRenderer, ILayerRendererDictionary, ILayerRendererParamDictionary } from "../renderers/LayerRenderer.js";
-import { Options } from "../Options.js";
+import { OffscreenBuffer } from "../OffscreenBuffer.js"
+import { LayerRenderer, ILayerRendererDictionary, ILayerRendererParamDictionary } from "../renderers/LayerRenderer.js"
+import { Options } from "../Options.js"
 
 enum LayerType {
 	Image,
@@ -19,22 +19,21 @@ interface IRenderQueueItem {
 
 abstract class BaseLayer {
 
-    protected _contentBuffer: OffscreenBuffer;
+    protected _contentBuffer: OffscreenBuffer
 
-    protected _options: Options;
+    protected _options: Options
 
-    private _id: string;
-    private _loaded: Boolean = false;
-    private _outputBuffer: OffscreenBuffer;
-    private _layerType: LayerType;
-    private _renderNextFrame: Function;
-    //private _rendererParams: IRendererParamDictionary;
+    private _id: string
+    private _loaded: Boolean = false
+    private _outputBuffer: OffscreenBuffer
+    private _layerType: LayerType
+    private _renderNextFrame: Function
 
-    private _loadedListener?: Function;
-    private _updatedListener?: Function;
-    private _availableRenderers: ILayerRendererDictionary;
-    private _defaultRenderQueue: IRenderQueueItem[];
-    private _renderQueue: IRenderQueueItem[];
+    private _loadedListener?: Function
+    private _updatedListener?: Function
+    private _availableRenderers: ILayerRendererDictionary
+    private _defaultRenderQueue: IRenderQueueItem[]
+    private _renderQueue: IRenderQueueItem[]
 
     constructor(
         id: string,
@@ -47,45 +46,42 @@ abstract class BaseLayer {
         updatedListener?: Function
     ) {
         this._outputBuffer = new OffscreenBuffer(width, height)
-        this._layerType = layerType;
-        this._id = id;
+        this._layerType = layerType
+        this._id = id
 
-        this._contentBuffer = new OffscreenBuffer(width, height, true);
-        this._outputBuffer = new OffscreenBuffer(width, height);
+        this._contentBuffer = new OffscreenBuffer(width, height, true)
+        this._outputBuffer = new OffscreenBuffer(width, height)
 
-        this._loadedListener = loadedListener;
-        this._updatedListener = updatedListener;
-        this._defaultRenderQueue = [];
-        this._renderQueue = [];
-        this._availableRenderers = Object.assign({}, renderers);
-        this._options = new Options({ visible : true, groups : ['default'], opacity : 1, renderers : [] });
+        this._loadedListener = loadedListener
+        this._updatedListener = updatedListener
+        this._defaultRenderQueue = []
+        this._renderQueue = []
+        this._availableRenderers = Object.assign({}, renderers)
+        this._options = new Options({ visible : true, groups : ['default'], opacity : 1, renderers : [] })
 
-        //this._rendererParams = {};
-
-       Object.assign(
+        Object.assign(
             this._options,
             options
-        );
+        )
 
-        this._renderNextFrame = function() { console.log(`Layer [${this._id}] : Rendering ended`) };
+        this._renderNextFrame = function() { console.log(`Layer [${this._id}] : Rendering ended`) }
 
 
         if (this._options.get('renderers').length > 0) {
             // Build default render queue to save some time in renderFrame
             // Since this should not change after creation
             for (var i = 0; i < this._options.get('renderers').length; i++) {
-                const r = this._options.get('renderers')[i];
+                const r = this._options.get('renderers')[i]
 
                 if (typeof this._availableRenderers[r] !== 'undefined') {
                     this._defaultRenderQueue.push({
                         id : r,
                         instance : this._availableRenderers[r]
-                    });
+                    })
                 } else {
-                    console.log(`Renderer "${r}" is not in the list of available renderers`);
+                    console.log(`Renderer "${r}" is not in the list of available renderers`)
                 }
             }
-            //console.log(this._defaultRenderQueue);
         }
     }
 
@@ -93,17 +89,17 @@ abstract class BaseLayer {
      * Request rendering of layer frame
      */
     private _requestAnimationFrame() {
-        requestAnimationFrame(this._renderFrame.bind(this));
+        requestAnimationFrame(this._renderFrame.bind(this))
     }
 
     /**
      * Start rendering process
      */
     private _renderFrame() {
-        const that = this;
+        const that = this
 
-        // clone renderers array;
-        this._renderQueue = [...this._defaultRenderQueue] || [];
+        // clone renderers array
+        this._renderQueue = [...this._defaultRenderQueue] || []
 
         // If opacity is below 1 add opacity renderer
         if (this._options.get('opacity') < 1) {
@@ -111,14 +107,14 @@ abstract class BaseLayer {
                 id : 'opacity',
                 instance : this._availableRenderers['opacity'],
                 params: new Options({ opacity : parseFloat(this._options.get('opacity'))})
-            });
+            })
         }
 
         // Get initial data from layer content
-        var frameImageData = this._contentBuffer.context.getImageData(0, 0, this._outputBuffer.width, this._outputBuffer.height);
+        var frameImageData = this._contentBuffer.context.getImageData(0, 0, this._outputBuffer.width, this._outputBuffer.height)
 
         // start renderers queue processing
-        this._processRenderQueue(frameImageData);
+        this._processRenderQueue(frameImageData)
     }
 
     /**
@@ -127,39 +123,29 @@ abstract class BaseLayer {
      * @returns {ImageData} result data of the renderer
      */
     private _processRenderQueue(frameImageData: ImageData) {
-        var that = this;
+        var that = this
 
         // if there is a renderer in the queue then run render pass with this renderer
         if (this._renderQueue.length) {
-            var renderer = this._renderQueue.shift(); // pop renderer from render queue
+            var renderer = this._renderQueue.shift() // pop renderer from render queue
 
-            // First param is always the image data
-            //var params = [frameImageData.data];
-
-            // Merge renderer params with array of params specific to this renderer if any
-            /*if (this.getRendererParams(renderer.id) !== null) {
-                params = params.concat(this.getRendererParams(renderer.id));
-            } */
-
-            //console.warn(this._id, this.getRendererParams(renderer.id));
-            
             // Apply 'filter' to provided content with current renderer then process next renderer in queue
             renderer.instance.renderFrame(frameImageData, renderer.params).then((outputData: ImageData) => {
-                that._processRenderQueue(outputData);
-            });
+                that._processRenderQueue(outputData)
+            })
         // no more renderer in queue then draw final image and start queue process again	
         } else {
 
             // Erase current output buffer content
-            that._outputBuffer.clear();
+            that._outputBuffer.clear()
 
             // Put final frame data into output buffer and start process again (if needed)
             createImageBitmap(frameImageData).then(bitmap => {
                 // Put final layer data in the output buffer
-                that._outputBuffer.context.drawImage(bitmap, 0, 0);
+                that._outputBuffer.context.drawImage(bitmap, 0, 0)
                 // request next frame rendering
-                that._renderNextFrame();
-            });
+                that._renderNextFrame()
+            })
         }
     }
 
@@ -168,32 +154,32 @@ abstract class BaseLayer {
      * @param {boolean} startRenderingLoop 
      */
     protected _layerLoaded(startRenderingLoop: Boolean = false) {
-        var that = this;
+        var that = this
 
-        this._loaded = true;
+        this._loaded = true
 
-        console.log(`Layer [${this._id}] : Loaded`);
+        console.log(`Layer [${this._id}] : Loaded`)
 
         // If no renderer in the queue then just render the frame data once
         if (this._defaultRenderQueue.length === 0 && this._options.get('opacity') === 1) {
             // Put content data in output buffer
-            var frameImageData = this._contentBuffer.context.getImageData(0, 0, this._outputBuffer.width, this._outputBuffer.height);
+            var frameImageData = this._contentBuffer.context.getImageData(0, 0, this._outputBuffer.width, this._outputBuffer.height)
 
-            this._outputBuffer.clear();
+            this._outputBuffer.clear()
             createImageBitmap(frameImageData).then(bitmap => {
-                that._outputBuffer.context.drawImage(bitmap, 0, 0);
-            });
+                that._outputBuffer.context.drawImage(bitmap, 0, 0)
+            })
         }
 
         // start rendering visible layers which have renderers
 		if (this.isVisible() && (this.haveRenderer() || !!startRenderingLoop)) {
-			this._renderNextFrame = this._requestAnimationFrame;
-			this._requestAnimationFrame();
+			this._renderNextFrame = this._requestAnimationFrame
+			this._requestAnimationFrame()
 		}
 
         // Call callback if there is one
         if (typeof this._loadedListener === 'function') {
-            this._loadedListener(this);
+            this._loadedListener(this)
         }
     }
 
@@ -203,7 +189,7 @@ abstract class BaseLayer {
      * @param {boolean} enabled 
      */
     protected _setAntialiasing(enabled: boolean) {
-        this._outputBuffer.context.imageSmoothingEnabled = enabled;
+        this._outputBuffer.context.imageSmoothingEnabled = enabled
     }
     
     /**
@@ -213,22 +199,22 @@ abstract class BaseLayer {
      */
     protected _getRendererInstance(id: string) {
         if (typeof this._availableRenderers[id] !== 'undefined') {
-            return  this._availableRenderers[id];
+            return  this._availableRenderers[id]
         } else {
-            throw new Error("This renderer is not available");
+            throw new Error("This renderer is not available")
         }
     }
     
     protected _logDebug(msg: string) {
-        console.log(`Layer[${this.id}] : ` + msg);
+        console.log(`Layer[${this.id}] : ` + msg)
     }
 
     protected _logWarning(msg: string) {
-        console.warn(`Layer[${this.id}] : ` + msg);
+        console.warn(`Layer[${this.id}] : ` + msg)
     }
 
     protected _logError(msg: string) {
-        console.error(`Layer[${this.id}] : ` + msg);
+        console.error(`Layer[${this.id}] : ` + msg)
     }
     
 
@@ -237,16 +223,16 @@ abstract class BaseLayer {
      */
     protected _layerUpdated() {
 
-        console.log(`Layer [${this._id}] : Updated => ${this.haveRenderer()}`);
+        console.log(`Layer [${this._id}] : Updated => ${this.haveRenderer()}`)
 
         // Re-render frame if needed
         if (!this.haveRenderer()) {
-            this._renderFrame();
+            this._renderFrame()
         }
 
         // Callback parent if available
         if (typeof this._updatedListener === 'function') {
-            this._updatedListener(this);
+            this._updatedListener(this)
         }
     }
 
@@ -261,10 +247,10 @@ abstract class BaseLayer {
      * Start rendering of the layer
      */
     protected _startRendering() {
-        console.log(`Layer [${this._id}] : Start rendering`);
+        console.log(`Layer [${this._id}] : Start rendering`)
 
-        this._renderNextFrame = this._requestAnimationFrame;
-        this._requestAnimationFrame();
+        this._renderNextFrame = this._requestAnimationFrame
+        this._requestAnimationFrame()
     }
 
     /**
@@ -272,23 +258,23 @@ abstract class BaseLayer {
      * @returns boolean
      */
     haveRenderer() {
-        return this._defaultRenderQueue.length > 0;
+        return this._defaultRenderQueue.length > 0
     }
 
     setVisibility(isVisible: Boolean) {
         if (isVisible === this.isVisible()) {
-            return;
+            return
         }
 
         this._options.set('visible', isVisible) 
 
         // If layer become visible and have renderers then start the rendering loop
         if (isVisible && this.haveRenderer()) {
-            this._renderNextFrame = this._requestAnimationFrame;
-            this._requestAnimationFrame();
+            this._renderNextFrame = this._requestAnimationFrame
+            this._requestAnimationFrame()
         // Otherwise stop the rendering loop
         } else {
-            this._renderNextFrame = function() { console.log('End of rendering :' + this._id) };
+            this._renderNextFrame = function() { console.log('End of rendering :' + this._id) }
         }
     }
 
@@ -296,40 +282,40 @@ abstract class BaseLayer {
     * @returns boolean
     */
     toggleVisibility() {
-        const v = this._options.get('visible');
-        this.setVisibility(!v);
-        return !v;
+        const v = this._options.get('visible')
+        this.setVisibility(!v)
+        return !v
     }
 
 
     isVisible(): Boolean {
-        return this._options.get('visible');
+        return this._options.get('visible')
     }
 
     isLoaded(): Boolean {
-        return this._loaded;
+        return this._loaded
     }
 
     destroy() {
-        this._renderNextFrame = function() { console.log(`Destroying layer : ${this._id}`) };
+        this._renderNextFrame = function() { console.log(`Destroying layer : ${this._id}`) }
     }
 
     get id(): string {
-        return this._id;
+        return this._id
     }
 
     /**
      * Get layer width
      */
     get width() {
-        return this._outputBuffer.width;
+        return this._outputBuffer.width
     }
 
     /**
      * Get layer height
      */
     get height() {
-        return this._outputBuffer.height;
+        return this._outputBuffer.height
     }
     
 
@@ -337,15 +323,15 @@ abstract class BaseLayer {
      * Get output canvas
      */
     get canvas(): HTMLCanvasElement {
-        return this._outputBuffer.canvas;
+        return this._outputBuffer.canvas
     }
 
     get layerType(): LayerType {
-        return this._layerType;
+        return this._layerType
     }
 
     get groups(): string[] {
-        return this._options.get('groups', ['default']);
+        return this._options.get('groups', ['default'])
     }
 
 }

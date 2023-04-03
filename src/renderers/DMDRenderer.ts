@@ -1,5 +1,5 @@
 
-import { Renderer } from "./Renderer.js";
+import { Renderer } from "./Renderer.js"
 
 enum DotShape { 
 	Square,
@@ -8,21 +8,21 @@ enum DotShape {
 
 class DMDRenderer extends Renderer {
 
-    private _dmdWidth: number;
-    private _dmdHeight: number;
-    private _screenWidth: number;
-    private _screenHeight: number;
-	private _dotSpace: number;
-	private _pixelSize: number;
-	private _dotShape: DotShape;
-    private _dmdBufferByteLength: number;
-    private _screenBufferByteLength: number;
-    private _bgBrightness: number;
-    private _bgColor: number;
-    private _brightness: number;
-    private _bgHSP: number;
+    private _dmdWidth: number
+    private _dmdHeight: number
+    private _screenWidth: number
+    private _screenHeight: number
+	private _dotSpace: number
+	private _pixelSize: number
+	private _dotShape: DotShape
+    private _dmdBufferByteLength: number
+    private _screenBufferByteLength: number
+    private _bgBrightness: number
+    private _bgColor: number
+    private _brightness: number
+    private _bgHSP: number
     
-    renderFrame: (frameData: ImageData) => Promise<ImageData>;
+    renderFrame: (frameData: ImageData) => Promise<ImageData>
 
 
     /**
@@ -48,60 +48,58 @@ class DMDRenderer extends Renderer {
         bgBrightness: number,
         brightness: number
     ) {
-        super("DMDRenderer");
+        super("DMDRenderer")
 
-        //console.log(arguments);
-
-        this._dmdWidth = dmdWidth;
-        this._dmdHeight = dmdHeight;
-        this._screenWidth = screenWidth;
-		this._screenHeight = screenHeight;
-        this._pixelSize = pixelSize;
-        this._dotSpace = dotSpace;
-        this._dotShape = dotShape;
-        this._dmdBufferByteLength = dmdWidth*dmdHeight * 4;
-        this._screenBufferByteLength = screenWidth * screenHeight * 4;
-        this.renderFrame = this._doNothing;
+        this._dmdWidth = dmdWidth
+        this._dmdHeight = dmdHeight
+        this._screenWidth = screenWidth
+		this._screenHeight = screenHeight
+        this._pixelSize = pixelSize
+        this._dotSpace = dotSpace
+        this._dotShape = dotShape
+        this._dmdBufferByteLength = dmdWidth*dmdHeight * 4
+        this._screenBufferByteLength = screenWidth * screenHeight * 4
+        this.renderFrame = this._doNothing
 
 
-        this._bgBrightness = 14;
-        this._bgColor = 4279176975;
-        this._brightness = 1;
+        this._bgBrightness = 14
+        this._bgColor = 4279176975
+        this._brightness = 1
 
         if (typeof bgBrightness === 'number') {
-                this._bgBrightness = bgBrightness;
-                this._bgColor = parseInt("FF" + this._int2Hex(bgBrightness) + this._int2Hex(bgBrightness) + this._int2Hex(bgBrightness), 16);
+                this._bgBrightness = bgBrightness
+                this._bgColor = parseInt("FF" + this._int2Hex(bgBrightness) + this._int2Hex(bgBrightness) + this._int2Hex(bgBrightness), 16)
         }
 
         if (typeof bgBrightness === 'number') {
-            this.setBrightness(brightness);
+            this.setBrightness(brightness)
         }
 
-        var bgp2 = this._bgBrightness*this._bgBrightness;
+        var bgp2 = this._bgBrightness*this._bgBrightness
 
-        this._bgHSP = Math.sqrt(0.299 * bgp2 + 0.587 * bgp2 + 0.114 * bgp2);
+        this._bgHSP = Math.sqrt(0.299 * bgp2 + 0.587 * bgp2 + 0.114 * bgp2)
     }
 
     private _int2Hex(n: number): string {
         var hex = n.toString(16)
 
         if (hex.length < 2) {
-            hex = "0" + hex;
+            hex = "0" + hex
         }
         
-        return hex;
+        return hex
     }
 
     init(): Promise<void> {
-        const that = this;
+        const that = this
 
         return new Promise(resolve => {
 
             navigator.gpu.requestAdapter().then( adapter => {
-                that._adapter = adapter;
+                that._adapter = adapter
 
                 adapter.requestDevice().then( device => {
-                    that._device = device;
+                    that._device = device
 
                     that._shaderModule = device.createShaderModule({
                         code: `
@@ -181,21 +179,21 @@ class DMDRenderer extends Renderer {
                                 }
                             }
                         `
-                    });
+                    })
 
-                    console.log("GPURenderer:init()");
+                    console.log("GPURenderer:init()")
 
                     this._shaderModule.compilationInfo().then(i=>{
                         if (i.messages.length > 0 ) {
-                            console.warn('GPURenderer:compilationInfo()', i.messages);
+                            console.warn('GPURenderer:compilationInfo()', i.messages)
                         }
-                    });
+                    })
 
-                    that.renderFrame = that._doRendering;
-                    resolve();
-                });    
-            });
-       });
+                    that.renderFrame = that._doRendering
+                    resolve()
+                })
+            })
+       })
     
     }
 
@@ -205,10 +203,10 @@ class DMDRenderer extends Renderer {
      * @returns 
      */
      private _doNothing(frameData: ImageData): Promise<ImageData> {
-        console.log("Init not done cannot apply filter");
+        console.log("Init not done cannot apply filter")
         return new Promise(resolve =>{
-            resolve(frameData);
-        });
+            resolve(frameData)
+        })
     }
 
     /**
@@ -218,28 +216,28 @@ class DMDRenderer extends Renderer {
      */
     private _doRendering(frameData: ImageData): Promise<ImageData> {
 
-        const that = this;
+        const that = this
 
         const UBOBuffer = this._device.createBuffer({
             size: 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        });
+        })
 
         const gpuInputBuffer = this._device.createBuffer({
             mappedAtCreation: true,
             size: this._dmdBufferByteLength,
             usage: GPUBufferUsage.STORAGE
-        });
+        })
     
         const gpuTempBuffer = this._device.createBuffer({
             size: this._screenBufferByteLength,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
-        });
+        })
     
         const gpuOutputBuffer = this._device.createBuffer({
             size: this._screenBufferByteLength,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-        });
+        })
     
         const bindGroupLayout = this._device.createBindGroupLayout({
             entries: [
@@ -265,7 +263,7 @@ class DMDRenderer extends Renderer {
                     }
                 } as GPUBindGroupLayoutEntry
             ]
-        });
+        })
     
         const bindGroup = this._device.createBindGroup({
             layout: bindGroupLayout,
@@ -287,9 +285,9 @@ class DMDRenderer extends Renderer {
                     resource: {
                       buffer: UBOBuffer
                     }
-                }                
+                }
             ]
-        });
+        })
 
         const computePipeline =this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
@@ -299,48 +297,45 @@ class DMDRenderer extends Renderer {
                 module: this._shaderModule,
                 entryPoint: "main"
             }
-        });        
+        })
 
         return new Promise( resolve => {
 
-            //new Uint8Array(gpuConfBuffer.getMappedRange()).set(new Uint8Array([this._brightness]));
-            //gpuConfBuffer.unmap();
-
             // Put original image data in the input buffer (257x78)
-            new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData.data));
-            gpuInputBuffer.unmap();
+            new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData.data))
+            gpuInputBuffer.unmap()
 
             // Write values to uniform buffer object
-            const uniformData = [this._brightness];
-            const uniformTypedArray = new Float32Array(uniformData);
-            this._device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer);
+            const uniformData = [this._brightness]
+            const uniformTypedArray = new Float32Array(uniformData)
+            this._device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer)
     
-            const commandEncoder = that._device.createCommandEncoder();
-            const passEncoder = commandEncoder.beginComputePass();
-            passEncoder.setPipeline(computePipeline);
-            passEncoder.setBindGroup(0, bindGroup);
-            passEncoder.dispatchWorkgroups(that._dmdWidth, that._dmdHeight);
-            passEncoder.end();
+            const commandEncoder = that._device.createCommandEncoder()
+            const passEncoder = commandEncoder.beginComputePass()
+            passEncoder.setPipeline(computePipeline)
+            passEncoder.setBindGroup(0, bindGroup)
+            passEncoder.dispatchWorkgroups(that._dmdWidth, that._dmdHeight)
+            passEncoder.end()
     
-            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that._screenBufferByteLength);
+            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that._screenBufferByteLength)
     
-            that._device.queue.submit([commandEncoder.finish()]);
+            that._device.queue.submit([commandEncoder.finish()])
     
             // Render DMD output
             gpuOutputBuffer.mapAsync(GPUMapMode.READ).then( () => {
     
                 // Grab data from output buffer
-                const pixelsBuffer = new Uint8Array(gpuOutputBuffer.getMappedRange());
+                const pixelsBuffer = new Uint8Array(gpuOutputBuffer.getMappedRange())
     
                 // Generate Image data usable by a canvas
-                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that._screenWidth, that._screenHeight);
+                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that._screenWidth, that._screenHeight)
 
-               // console.log(imageData);
+               // console.log(imageData)
     
                 // return to caller
-                resolve(imageData);
-            });
-        });
+                resolve(imageData)
+            })
+        })
 	}
 
     /**
@@ -348,12 +343,12 @@ class DMDRenderer extends Renderer {
      * @param {float} b 
      */
     setBrightness(b: number) {
-        var b = Math.max(0, Math.min(b, 1)); // normalize
-        this._brightness = Math.round(b * 1e3) / 1e3; // round to 1 digit after dot
+        var b = Math.max(0, Math.min(b, 1)) // normalize
+        this._brightness = Math.round(b * 1e3) / 1e3 // round to 1 digit after dot
     }
 
     get brightness() {
-        return this._brightness;
+        return this._brightness
     }
 
 }

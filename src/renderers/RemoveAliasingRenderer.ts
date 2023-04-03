@@ -1,6 +1,6 @@
-import { LayerRenderer } from './LayerRenderer.js';
-import { Utils } from '../Utils.js';
-import { Options } from '../Options.js';
+import { LayerRenderer } from './LayerRenderer.js'
+import { Utils } from '../Utils.js'
+import { Options } from '../Options.js'
 
 class RemoveAliasingRenderer extends LayerRenderer {
 
@@ -9,19 +9,19 @@ class RemoveAliasingRenderer extends LayerRenderer {
      * @param {number} height 
      */
     constructor(width: number, height: number) {
-        super("RemoveAliasingRenderer", width, height);
+        super("RemoveAliasingRenderer", width, height)
     }
 
     init(): Promise<void> {
-        const that = this;
+        const that = this
 
         return new Promise(resolve => {
 
             navigator.gpu.requestAdapter().then( adapter => {
-                that._adapter = adapter;
+                that._adapter = adapter
             
                 adapter.requestDevice().then( device => {
-                    that._device = device;
+                    that._device = device
 
                     that._shaderModule = device.createShaderModule({
                         code: `
@@ -105,50 +105,50 @@ class RemoveAliasingRenderer extends LayerRenderer {
              
                             }
                         `
-                    });
+                    })
 
-                    console.log('RemoveAliasingRenderer:init()');
+                    console.log('RemoveAliasingRenderer:init()')
 
                     that._shaderModule.compilationInfo().then(i=>{
                         if (i.messages.length > 0 ) {
-                            console.warn("RemoveAliasingRenderer:compilationInfo() ", i.messages);
+                            console.warn("RemoveAliasingRenderer:compilationInfo() ", i.messages)
                         }
-                    });
+                    })
 
-                    that.renderFrame = that._doRendering;
-                    resolve();
-                });    
-            });
-       });
+                    that.renderFrame = that._doRendering
+                    resolve()
+                })
+            })
+       })
     
     }
 
     private _doRendering(frameData: ImageData, options?: Options): Promise<ImageData> {
-        const that = this;
+        const that = this
 
-        const treshold: number = options.get('treshold', 0);
-        const baseColor: string = options.get('baseColor');
+        const treshold: number = options.get('treshold', 0)
+        const baseColor: string = options.get('baseColor')
 
         const UBOBuffer = this._device.createBuffer({
             size: 8,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        });
+        })
 
         const gpuInputBuffer = this._device.createBuffer({
             mappedAtCreation: true,
             size: this._bufferByteLength,
             usage: GPUBufferUsage.STORAGE
-        });
+        })
     
         const gpuTempBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
-        });
+        })
     
         const gpuOutputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-        });
+        })
     
         const bindGroupLayout = this._device.createBindGroupLayout({
             entries: [
@@ -174,7 +174,7 @@ class RemoveAliasingRenderer extends LayerRenderer {
                     }
                 }
             ]
-        });
+        })
     
         const bindGroup = this._device.createBindGroup({
             layout: bindGroupLayout,
@@ -198,7 +198,7 @@ class RemoveAliasingRenderer extends LayerRenderer {
                     }
                 }
             ]
-        });
+        })
 
         const computePipeline =this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
@@ -208,48 +208,46 @@ class RemoveAliasingRenderer extends LayerRenderer {
                 module: this._shaderModule,
                 entryPoint: "main"
             }
-        });        
+        })
 
         return new Promise( resolve => {
 
             // Put original image data in the input buffer (257x78)
-            new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData.data));
-            gpuInputBuffer.unmap();
+            new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData.data))
+            gpuInputBuffer.unmap()
         
            // Write values to uniform buffer object
-            const uniformData = [treshold, Utils.hexColorToInt(Utils.rgba2abgr(baseColor))];
+            const uniformData = [treshold, Utils.hexColorToInt(Utils.rgba2abgr(baseColor))]
 
-            const uniformTypedArray = new Int32Array(uniformData);
+            const uniformTypedArray = new Int32Array(uniformData)
 
-            this._device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer);      
+            this._device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer)
 
-            const commandEncoder = that._device.createCommandEncoder();
-            const passEncoder = commandEncoder.beginComputePass();
+            const commandEncoder = that._device.createCommandEncoder()
+            const passEncoder = commandEncoder.beginComputePass()
 
-            passEncoder.setPipeline(computePipeline);
-            passEncoder.setBindGroup(0, bindGroup);
-            passEncoder.dispatchWorkgroups(that._width, that._height);
-            passEncoder.end();
+            passEncoder.setPipeline(computePipeline)
+            passEncoder.setBindGroup(0, bindGroup)
+            passEncoder.dispatchWorkgroups(that._width, that._height)
+            passEncoder.end()
 
-            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that._bufferByteLength);
+            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that._bufferByteLength)
     
-            that._device.queue.submit([commandEncoder.finish()]);
+            that._device.queue.submit([commandEncoder.finish()])
     
             // Render DMD output
             gpuOutputBuffer.mapAsync(GPUMapMode.READ).then( () => {
     
                 // Grab data from output buffer
-                const pixelsBuffer = new Uint8Array(gpuOutputBuffer.getMappedRange());
+                const pixelsBuffer = new Uint8Array(gpuOutputBuffer.getMappedRange())
 
                 // Generate Image data usable by a canvas
-                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that._width, that._height);
-
-                //console.log(imageData.data);
+                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that._width, that._height)
 
                 // return to caller
-                resolve(imageData);
-            });
-        });
+                resolve(imageData)
+            })
+        })
 	}
 
 }

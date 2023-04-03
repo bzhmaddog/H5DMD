@@ -1,21 +1,21 @@
-import { BaseLayer } from "./BaseLayer.js";
-import { Options } from "../Options.js";
-import { ILayerRendererDictionary } from "../renderers/LayerRenderer.js";
-import { LayerType } from "./BaseLayer.js";
+import { BaseLayer } from "./BaseLayer.js"
+import { Options } from "../Options.js"
+import { ILayerRendererDictionary } from "../renderers/LayerRenderer.js"
+import { LayerType } from "./BaseLayer.js"
 
 class AnimationLayer extends BaseLayer {
 
-	private _onPlayListener?: Function;
-	private _onPauseListener?: Function;
-	private _onStopListener?: Function;
-    private __renderNextFrame: Function;
-    private _images: ImageBitmap[];
-    private _isPlaying: boolean;
-    private _isPaused: Boolean;
-    private _loop: boolean;
-    private _frameIndex: number;
-    private _startTime: number;
-    private _frameDuration: number;
+	private _onPlayListener?: Function
+	private _onPauseListener?: Function
+	private _onStopListener?: Function
+    private __renderNextFrame: Function
+    private _images: ImageBitmap[]
+    private _isPlaying: boolean
+    private _isPaused: Boolean
+    private _loop: boolean
+    private _frameIndex: number
+    private _startTime: number
+    private _frameDuration: number
 
     constructor(
 		id: string,
@@ -29,29 +29,29 @@ class AnimationLayer extends BaseLayer {
 		pauseListener?: Function,
         stopListener?: Function
     ) {
-        const defaultOptions = new Options({loop : false, autoplay : false});
+        const defaultOptions = new Options({loop : false, autoplay : false})
 
-        const layerOptions = Object.assign({}, defaultOptions, options);
+        const layerOptions = Object.assign({}, defaultOptions, options)
 
-        super(id, LayerType.Video, width, height, layerOptions, renderers, loadedListener, updatedListener);
+        super(id, LayerType.Video, width, height, layerOptions, renderers, loadedListener, updatedListener)
 
-        this._onPlayListener = playListener;
-		this._onPauseListener = pauseListener;
-		this._onStopListener = stopListener;
+        this._onPlayListener = playListener
+		this._onPauseListener = pauseListener
+		this._onStopListener = stopListener
 
-        this._images = []; // [new Image()];
-        this._isPlaying = false;
-        this._isPaused = false;
-        this._frameIndex = 0;
-        this._loop = options.get('loop', false);
-        this.__renderNextFrame = function(){};
+        this._images = []
+        this._isPlaying = false
+        this._isPaused = false
+        this._frameIndex = 0
+        this._loop = options.get('loop', false)
+        this.__renderNextFrame = function(){}
         
-        setTimeout(this._layerLoaded.bind(this), 1);
+        setTimeout(this._layerLoaded.bind(this), 1)
     }
 
     setAnimationData(data: ImageBitmap[]) {
-        this._images = data;
-        this._onImagesLoaded();
+        this._images = data
+        this._onImagesLoaded()
     }
 
 
@@ -61,19 +61,17 @@ class AnimationLayer extends BaseLayer {
     private _onImagesLoaded() {
 
         // calculate how long each frame should be displayed
-        this._frameDuration = this._options.get('duration') / this._images.length;
+        this._frameDuration = this._options.get('duration') / this._images.length
 
-        //console.log(`Frame duration = ${this._frameDuration}`);
+        //console.log(`Frame duration = ${this._frameDuration}`)
 
-        this._contentBuffer.clear();
-        this._contentBuffer.context.drawImage(this._images[this._frameIndex], 0, 0, this.width, this.height);
+        this._contentBuffer.clear()
+        this._contentBuffer.context.drawImage(this._images[this._frameIndex], 0, 0, this.width, this.height)
 
-        // Call parent loaded callback
-        //this._layerLoaded();
-        this._layerUpdated();
+        this._layerUpdated()
 
 		if (this._options.get('autoplay')) {
-			this.play();
+			this.play()
 		}
 
     }
@@ -85,52 +83,52 @@ class AnimationLayer extends BaseLayer {
      */
     private __renderFrame(t: number) {
 
-        var now = t;
-        var previousFrameIndex = this._frameIndex;
+        var now = t
+        var previousFrameIndex = this._frameIndex
 
         if (!this._startTime) {
-            this._startTime = now;
+            this._startTime = now
         }
 
-        var position = now - this._startTime;
+        var position = now - this._startTime
 
-        var frameIndex = Math.floor(position / this._frameDuration);
+        var frameIndex = Math.floor(position / this._frameDuration)
 
 
         // If not looping stop at the last image in the array
         if (!this._loop && frameIndex >= this._images.length) {
-            this.stop();
-            return;
+            this.stop()
+            return
         }
 
         // Loop back to the first image
         if (frameIndex >= this._images.length) {
-            this._startTime = null;
-            frameIndex = 0;
+            this._startTime = null
+            frameIndex = 0
         }
 
-        this._frameIndex = frameIndex;
+        this._frameIndex = frameIndex
 
         // If it is the same frame as last call then no need to redraw it
         if (frameIndex !== previousFrameIndex) {
             // Update content buffer with current frame data
-            this._drawImage();
+            this._drawImage()
         }
 
         // Render next frame if needed
-        this.__renderNextFrame();
+        this.__renderNextFrame()
     }
 
     private _drawImage() {
-        this._contentBuffer.clear();
-        this._contentBuffer.context.drawImage(this._images[this._frameIndex], 0, 0, this.width, this.height);
+        this._contentBuffer.clear()
+        this._contentBuffer.context.drawImage(this._images[this._frameIndex], 0, 0, this.width, this.height)
     }
 
     /**
      * Request rendering of next frame
      */
     private _requestRenderNextFrame() {
-        requestAnimationFrame(this.__renderFrame.bind(this));
+        requestAnimationFrame(this.__renderFrame.bind(this))
     }
 
     /**
@@ -142,23 +140,23 @@ class AnimationLayer extends BaseLayer {
             
             // if loop param provided then set animation loop to value
             if (typeof loop !== 'undefined') {
-                this._loop = !!loop;
+                this._loop = !!loop
             // Otherwise if animation is not paused reset loop state to initial options
             } else if (!this._isPaused) {
-                this._loop = this._options.get('loop');
+                this._loop = this._options.get('loop')
             }
 
-            this._startTime = null;
-            this._isPlaying = true;
-            this._isPaused = false;
+            this._startTime = null
+            this._isPlaying = true
+            this._isPaused = false
 
-            this.__renderNextFrame = this._requestRenderNextFrame;
-            this._requestRenderNextFrame();
+            this.__renderNextFrame = this._requestRenderNextFrame
+            this._requestRenderNextFrame()
 
-            this._startRendering();
+            this._startRendering()
 
             if (typeof this._onPlayListener === 'function') {
-                this._onPlayListener();
+                this._onPlayListener()
             }
         }
     }
@@ -168,14 +166,14 @@ class AnimationLayer extends BaseLayer {
      */
     stop() {
         if (this._isPlaying) {
-            this._isPlaying = false;
-            this._isPaused = false;
-            this._frameIndex = 0;
-            this.__renderNextFrame = function(){};
-            this._stopRendering();
+            this._isPlaying = false
+            this._isPaused = false
+            this._frameIndex = 0
+            this.__renderNextFrame = function(){}
+            this._stopRendering()
 
             if (typeof this._onStopListener === 'function') {
-                this._onStopListener();
+                this._onStopListener()
             }
         }
     }
@@ -188,15 +186,15 @@ class AnimationLayer extends BaseLayer {
         if (this._isPlaying) {
             // Only looping animation can be paused
             if (this._loop) {
-                this._isPlaying = false;
-                this._isPaused = true;
-                this.__renderNextFrame = function(){};
+                this._isPlaying = false
+                this._isPaused = true
+                this.__renderNextFrame = function(){}
                 if (typeof this._onPauseListener === 'function') {
-                    this._onPauseListener();
+                    this._onPauseListener()
                 }
             } else {
-                console.log("Only looping animation can be paused");
-                this.stop();
+                console.log("Only looping animation can be paused")
+                this.stop()
             }
         }
     }
@@ -206,34 +204,34 @@ class AnimationLayer extends BaseLayer {
      */
     resume() {
         if (this._isPaused) {
-            this.play();
+            this.play()
         } else {
-            console.log("This video is not paused");
+            console.log("This video is not paused")
         }
     }
 
     nextFrame() {
-        var nextFrame = this._frameIndex + 1;
+        var nextFrame = this._frameIndex + 1
 
         if (nextFrame >= this._images.length) {
-            nextFrame = 0;
+            nextFrame = 0
         }
 
-        this._frameIndex = nextFrame;
-        requestAnimationFrame(this._drawImage.bind(this));
-        this._layerUpdated();
+        this._frameIndex = nextFrame
+        requestAnimationFrame(this._drawImage.bind(this))
+        this._layerUpdated()
     }
 
     previousFrame() {
-        var prevFrame = this._frameIndex - 1;
+        var prevFrame = this._frameIndex - 1
 
         if (prevFrame <= 0) {
-            prevFrame = this._images.length - 1;
+            prevFrame = this._images.length - 1
         }
 
-        this._frameIndex = prevFrame;
-        requestAnimationFrame(this._drawImage.bind(this));
-        this._layerUpdated();
+        this._frameIndex = prevFrame
+        requestAnimationFrame(this._drawImage.bind(this))
+        this._layerUpdated()
     }
 
 
@@ -241,12 +239,12 @@ class AnimationLayer extends BaseLayer {
      * Override base method to stop/resume animation when changing layer visibility
      */
     setVisibility(visible: boolean) {
-        super.setVisibility(visible);
+        super.setVisibility(visible)
 
         if (!visible && this._isPlaying) {
-            this.pause();
+            this.pause()
         } else if (visible && this._isPaused) {
-            this.resume();
+            this.resume()
         }
     }
 
@@ -254,14 +252,14 @@ class AnimationLayer extends BaseLayer {
      * return state of animation
      */
     get isPlaying() {
-        return this._isPlaying;
+        return this._isPlaying
     }
 
     /**
      * return state of animation
      */
     get isPaused() {
-        return this._isPaused; 
+        return this._isPaused
     }
 
 }
