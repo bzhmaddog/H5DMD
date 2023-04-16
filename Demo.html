@@ -96,7 +96,7 @@
                     if ("gpu" in navigator) {
 
                         var output = document.getElementById('output');
-                        var dmd = new DMD(output, 2, 1, 1, 1, DotShape.Square, 14, 1, true);
+                        var dmd = new DMD(output, 2, 1, 1, 1, DotShape.Square, 14, 1, false);
 
 
                         var noises = [];
@@ -287,48 +287,32 @@
 
                             });
 
-
-                            /*var l = dmd.createTextLayer(
-                                'score',
-                                new Options({
-                                    text : "0123456789",
-                                    //text : "0",
-                                    fontSize : 40,
-                                    fontFamily : 'Arial',
-                                    align : 'right',
-                                    hOffset : -1,
-                                    vAlign : 'middle',
-                                    color : Colors.White,
-                                    outlineWidth : 2,
-                                    outlineColor : Colors.Blue,
-                                    adjustWidth : true,
-                                    zIndex : 1000,
-                                    aaTreshold : 144,
-                                    antialiasing : false,
-                                    visible : false,
-                                    groups: ['hud'],
-                                    renderers : ['score-effect']
-                                })
-                            );	
-
-                            setTimeout( function() {
-                                //console.log('here');
-                                dmd.setLayerVisibility('score', true);
-                            }, 5000);*/
-
-
-                            /*var bgLayer = dmd.createCanvasLayer( 'test', {}, (layer) => {
+                            /*var svgLayer = dmd.createCanvasLayer( 'svg', {}, (layer) => {
                                 
-                                var bgURI = document.baseURI + "/images/hsupw.png";
+                                var imgURI = document.baseURI + "/images/sptitle.svg";
                                 
-                                fetch(bgURI)
+                                fetch(imgURI)
                                 .then(response => response.blob())
-                                .then(blob => createImageBitmap(blob))
-                                .then( bitmap => {
-                                    layer.drawImage(bitmap, {
-                                        left: '50%',
-                                        height: '80%'
-                                    });
+                                .then(blob => URL.createObjectURL(blob))
+                                //.then(objectURL => createImageBitmap())
+                                .then( objURL => {
+                                    console.log(objURL);
+
+                                    var img = new Image();
+                                    img.width = 600;
+                                    img.height = 200;
+
+                                    img.onload = function() {
+                                        
+                                        layer.drawImage(img, {
+                                            top: 100,
+                                            left: 200,
+                                            width: 100,
+                                            height: 100
+                                        });
+                                    }
+
+                                    img.src = objURL;
                                 });
                                 
                             });*/

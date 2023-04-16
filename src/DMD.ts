@@ -46,6 +46,9 @@ class DMD {
 	private _renderNextFrame: Function
 	private _renderFPS: Function
 
+	private _minFPS: number
+	private _maxFPS: number
+
 	/**
 	 * 
 	 * @param {HTMLCanvasElement} outputCanvas Dom Element where the DMD will be drawed
@@ -83,8 +86,11 @@ class DMD {
 		this._renderFPS = function () { } // Does nothing
 		this._backgroundColor = `rgba(14,14,14,255)`
 		this._isRunning = false
-		this._fps = 0
 		this._renderNextFrame = function () { }
+
+		this._fps = 0
+		this._minFPS = 9999
+		this._maxFPS = 0
 
 		console.log(`Creating a ${this._outputWidth}x${this._outputHeight} DMD on a ${this._outputCanvas.width}x${this._outputCanvas.height} canvas`)
 
@@ -128,8 +134,6 @@ class DMD {
 	 * @returns Promise
 	 */
 	init(): Promise<void> {
-		var that = this
-
 		return new Promise(resolve => {
 
 			let renderers: Promise<void>[] = []
@@ -139,8 +143,7 @@ class DMD {
 				renderers.push(this._layerRenderers[id].init())
 			})
 
-			this._renderer.init().then(device => {
-
+			this._renderer.init().then(() => {
 				// Check if it still behave like chainPromises
 				Promise.all<void>(renderers).then(() => {
 					this._initDone = true
@@ -176,11 +179,12 @@ class DMD {
 	 * Render output DMD
 	 */
 	private renderDMD() {
-		var that = this
-
 		// Fill rectangle with background color
 		this._frameBuffer.context.fillStyle = this._backgroundColor
 		this._frameBuffer.context.fillRect(0, 0, this._outputWidth, this._outputHeight)
+
+
+		const before:number = performance.now()
 
 		// Draw each visible layer on top of previous one to create the final screen
 		this._sortedLayers.forEach(l => {
@@ -194,6 +198,11 @@ class DMD {
 			}
 		})
 
+		const after: number = performance.now() - before
+
+		//console.log('render time = ', after)
+
+
 		// Get data from the merged layers content
 		var frameImageData = this._frameBuffer.context.getImageData(0, 0, this._frameBuffer.width, this._frameBuffer.height)
 
@@ -202,21 +211,32 @@ class DMD {
 
 			createImageBitmap(dmdImageData).then(bitmap => {
 
+
 				// Clear target canvas
-				that._outputContext.clearRect(0, 0, that._outputCanvas.width, that._outputCanvas.height)
+				this._outputContext.clearRect(0, 0, this._outputCanvas.width, this._outputCanvas.height)
 
 				// Render final DMD image onto target canvas
-				that._outputContext.drawImage(bitmap, 0, 0)
+				this._outputContext.drawImage(bitmap, 0, 0)
 
-				// Render FPS box if needed
-				that._renderFPS()
-
-				var now = window.performance.now()
-				var delta = (now - that._lastRenderTime)
-				that._lastRenderTime = now
+				var now = performance.now()
+				var delta = (now - this._lastRenderTime)
+				this._lastRenderTime = now
 
 				// Calculate FPS
-				this._fps = Math.round((1000 / delta) * 1e2) / 1e2
+				this._fps = Math.floor(Math.round((1000 / delta) * 1e2) / 1e2)
+
+				if (this._fps < this._minFPS) {
+					this._minFPS = this._fps
+				}
+
+				if (this._fps > this._maxFPS) {
+					this._maxFPS = this._fps
+				}
+
+				// Render FPS box if needed
+				this._renderFPS()
+
+
 
 				this._renderNextFrame()
 			})
@@ -228,7 +248,7 @@ class DMD {
 	 * Update FPS output div with current fps value
 	 */
 	private __renderFPS() {
-		this._fpsBox.innerHTML = `${this.fps} fps`
+		this._fpsBox.innerHTML = `${this._minFPS} / ${this._fps} / ${this._maxFPS}`
 	}
 
 	/**
