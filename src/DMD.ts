@@ -14,13 +14,26 @@ import { RemoveAliasingRenderer } from './renderers/RemoveAliasingRenderer.js'
 import { OutlineRenderer } from './renderers/OutlineRenderer.js'
 
 
+interface ILayerDimensions {
+	width?: number,
+	height?: number,
+	top?: number,
+	left?: number,
+	hAlign?: string,
+	vAlign?: string,
+	hOffset?: number,
+	vOffset?: number
+}
+
 interface ILayerDictionnary {
 	[index: string]: BaseLayer
 }
 
 interface ILayer {
 	id: string,
-	zIndex: number
+	zIndex: number,
+	top: number,
+	left: number
 }
 
 class DMD {
@@ -98,9 +111,9 @@ class DMD {
 
 		// Add renderers needed for layers rendering
 		this._layerRenderers = {
-			'opacity' : new ChangeAlphaRenderer(this._outputWidth, this._outputHeight), // used by layer with opacity < 1
-			'no-antialiasing' : new RemoveAliasingRenderer(this._outputWidth, this._outputHeight), // used by TextLayer if antialiasing  = false
-			'outline' : new OutlineRenderer(this._outputWidth, this._outputHeight)  // used by TextLayer when outlineWidth > 1
+			//'opacity' : new ChangeAlphaRenderer(this._outputWidth, this._outputHeight), // used by layer with opacity < 1
+			//'no-antialiasing' : new RemoveAliasingRenderer(this._outputWidth, this._outputHeight), // used by TextLayer if antialiasing  = false
+			//'outline' : new OutlineRenderer(this._outputWidth, this._outputHeight)  // used by TextLayer when outlineWidth > 1
 		} as ILayerRendererDictionary
 
 		this._initDone = false
@@ -130,25 +143,14 @@ class DMD {
 	}
 
 	/**
-	 * Init DMD renderer then all layer renderers
+	 * Init DMD renderer
 	 * @returns Promise
 	 */
 	init(): Promise<void> {
 		return new Promise(resolve => {
-
-			let renderers: Promise<void>[] = []
-
-			// Build array of promises
-			Object.keys(this._layerRenderers).forEach(id => {
-				renderers.push(this._layerRenderers[id].init())
-			})
-
 			this._renderer.init().then(() => {
-				// Check if it still behave like chainPromises
-				Promise.all<void>(renderers).then(() => {
-					this._initDone = true
-					resolve()
-				})
+				this._initDone = true
+				resolve()
 			})
 		})
 	}
@@ -192,8 +194,21 @@ class DMD {
 				var layer = this._layers[l.id]
 
 				if (layer.isVisible() && layer.isLoaded()) {
+
+					//if (layer.layerType === LayerType.Text && layer.id === 'ball-value') {
+					//if (layer.layerType === LayerType.Text && layer.id === 'ball-text') {
+					if (layer.layerType === LayerType.Text && layer.id === 'score') {
+					//if (layer.layerType === LayerType.Text) {
+						//console.log(l)
+						//this._frameBuffer.context.fillStyle = "#FF0000FF"
+						//this._frameBuffer.context.fillRect(l.left, l.top, layer.width, layer.height)
+						this._frameBuffer.context.strokeStyle = "#FF0000"
+						this._frameBuffer.context.beginPath()
+						this._frameBuffer.context.rect(l.left, l.top, layer.width, layer.height)
+						this._frameBuffer.context.stroke()
+					}
 					// Draw layer content into a buffer
-					this._frameBuffer.context.drawImage(layer.canvas, 0, 0)
+					this._frameBuffer.context.drawImage(layer.canvas, l.left, l.top)
 				}
 			}
 		})
@@ -335,14 +350,18 @@ class DMD {
 
 	createCanvasLayer(
 		id: string,
+		layerDimensions: ILayerDimensions,
 		options: Options,
+		renderers?: ILayerRendererDictionary,
 		layerLoadedListener?: Function,
 		layerUpdatedListener?: Function,
 	): CanvasLayer {
 		return this._createLayer(
 			LayerType.Canvas,
 			id,
+			layerDimensions,
 			options,
+			renderers,
 			layerLoadedListener,
 			layerUpdatedListener
 		) as CanvasLayer
@@ -350,7 +369,9 @@ class DMD {
 
 	createVideoLayer(
 		id: string,
+		layerDimensions: ILayerDimensions,
 		options: Options,
+		renderers?: ILayerRendererDictionary,
 		layerLoadedListener?: Function,
 		layerUpdatedListener?: Function,
 		layerOnPlayListener?: Function,
@@ -360,7 +381,9 @@ class DMD {
 		return this._createLayer(
 			LayerType.Video,
 			id,
+			layerDimensions,
 			options,
+			renderers,
 			layerLoadedListener,
 			layerUpdatedListener,
 			layerOnPlayListener,
@@ -370,7 +393,9 @@ class DMD {
 
 	createAnimationLayer(
 		id: string,
+		layerDimensions: ILayerDimensions,
 		options: Options,
+		renderers?: ILayerRendererDictionary,
 		layerLoadedListener?: Function,
 		layerUpdatedListener?: Function,
 		layerOnPlayListener?: Function,
@@ -380,7 +405,9 @@ class DMD {
 		return this._createLayer(
 			LayerType.Animation,
 			id,
+			layerDimensions,
 			options,
+			renderers,
 			layerLoadedListener,
 			layerUpdatedListener,
 			layerOnPlayListener,
@@ -391,14 +418,18 @@ class DMD {
 
 	createSpriteLayer(
 		id: string,
+		layerDimensions: ILayerDimensions,
 		options: Options,
+		renderers?: ILayerRendererDictionary,
 		layerLoadedListener?: Function,
 		layerUpdatedListener?: Function,
 	): SpritesLayer {
 		return this._createLayer(
 			LayerType.Sprites,
 			id,
+			layerDimensions,
 			options,
+			renderers,
 			layerLoadedListener,
 			layerUpdatedListener,
 		) as SpritesLayer
@@ -407,14 +438,18 @@ class DMD {
 	
 	createTextLayer(
 		id: string,
+		layerDimensions: ILayerDimensions,
 		options: Options,
+		renderers?: ILayerRendererDictionary,
 		layerLoadedListener?: Function,
 		layerUpdatedListener?: Function,
 	): TextLayer {
 		return this._createLayer(
 			LayerType.Text,
 			id,
+			layerDimensions,
 			options,
+			renderers,
 			layerLoadedListener,
 			layerUpdatedListener,
 		) as TextLayer
@@ -588,7 +623,9 @@ class DMD {
 	private _createLayer(
 		type: LayerType,
 		id: string,
+		_layerDimensions: ILayerDimensions,
 		_options: Options,
+		_layerRenderers?: ILayerRendererDictionary,
 		_layerLoadedListener?: Function,
 		_layerUpdatedListener?: Function,
 		_layerOnPlayListener?: Function,
@@ -596,29 +633,66 @@ class DMD {
 		_layerOnStopListener?: Function,
 	) {
 
+		//const _defaultOptions = new Options({ top : 0, left : 0})
+
 		// This method is called by child layer creator which can be called from javascript directly so
 		// make sure we have an Options object from now on
 		var options = new Options(_options)
 
 		if (typeof this._layers[id] === 'undefined') {
 
+			const layerWidth = _layerDimensions.width || this._outputWidth
+			const layerHeight = _layerDimensions.height || this._outputHeight
+
+			var layerTop = _layerDimensions.top || 0
+			var layerLeft = _layerDimensions.left || 0
+
+			if (typeof _layerDimensions.hAlign === 'string') {
+				switch(_layerDimensions.hAlign) {
+					case "left":
+						layerLeft = _layerDimensions.hOffset || 0
+						break
+					case "center":
+						layerLeft = (this._outputWidth - layerWidth) / 2 + (_layerDimensions.hOffset || 0) - 1
+						break
+					case "right":
+						layerLeft = this._outputWidth - layerWidth + (_layerDimensions.hOffset || 0) - 1
+						console.log(`${id}`, layerLeft)
+				}
+			}
+
+			if (typeof _layerDimensions.vAlign === 'string') {
+				switch(_layerDimensions.vAlign) {
+					case 'top':
+						layerTop = _layerDimensions.vOffset || 0
+						break
+					case 'middle':
+						layerTop = (this._outputHeight - layerHeight) / 2 + (_layerDimensions.vOffset || 0) - 1
+						break
+					case 'bottom':
+						layerTop = this._outputHeight - layerHeight + (_layerDimensions.vOffset || 0) - 1
+				}
+			}
+
+
+
 			var layer
 
 			switch (type) {
 				case LayerType.Canvas:
-					layer = new CanvasLayer(id, this._outputWidth, this._outputHeight, options, this._layerRenderers, _layerLoadedListener, _layerUpdatedListener)
+					layer = new CanvasLayer(id, layerWidth, layerHeight, options, _layerRenderers, _layerLoadedListener, _layerUpdatedListener)
 					break
 				case LayerType.Video:
-					layer = new VideoLayer(id, this._outputWidth, this._outputHeight, options, this._layerRenderers, _layerLoadedListener,_layerUpdatedListener, _layerOnPlayListener, _layerOnPauseListener)
+					layer = new VideoLayer(id, layerWidth, layerHeight, options, _layerRenderers, _layerLoadedListener,_layerUpdatedListener, _layerOnPlayListener, _layerOnPauseListener)
 					break
 				case LayerType.Animation:
-					layer = new AnimationLayer(id, this._outputWidth, this._outputHeight, options, this._layerRenderers, _layerLoadedListener,_layerUpdatedListener, _layerOnPlayListener, _layerOnPauseListener, _layerOnStopListener)
+					layer = new AnimationLayer(id, layerWidth, layerHeight, options, _layerRenderers, _layerLoadedListener,_layerUpdatedListener, _layerOnPlayListener, _layerOnPauseListener, _layerOnStopListener)
 					break
 				case LayerType.Sprites:
-					layer = new SpritesLayer(id, this._outputWidth, this._outputHeight, options, this._layerRenderers, _layerLoadedListener, _layerUpdatedListener)
+					layer = new SpritesLayer(id, layerWidth, layerHeight, options, _layerRenderers, _layerLoadedListener, _layerUpdatedListener)
 					break
 				case LayerType.Text:
-					layer = new TextLayer(id, this._outputWidth, this._outputHeight, options, this._layerRenderers, _layerLoadedListener,_layerUpdatedListener)
+					layer = new TextLayer(id, layerWidth, layerHeight, options, _layerRenderers, _layerLoadedListener,_layerUpdatedListener)
 					break
 				default:
 					throw new TypeError(`Invalid layer type : ${type}`)
@@ -628,14 +702,14 @@ class DMD {
 
 			var zIndex = this._zIndex
 
-			if (options.hasProperty('zIndex')) {
+			if (options.hasValue('zIndex')) {
 				zIndex = options.get('zIndex')
 			} else {
 				this._zIndex++
 			}
 
 			// Add new layer to sorted array
-			this._sortedLayers.push({ id: id, zIndex: zIndex })
+			this._sortedLayers.push({ id: id, zIndex: zIndex, top: layerTop, left: layerLeft })
 
 			// Sort by zIndex inc
 			this.sortLayers()
@@ -648,4 +722,4 @@ class DMD {
 
 }
 
-export { DMD }
+export { DMD, ILayerDimensions }

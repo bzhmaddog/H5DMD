@@ -3,7 +3,19 @@ import { LayerType } from "./BaseLayer.js"
 import { ILayerRendererDictionary } from "../renderers/LayerRenderer.js"
 import { Options } from "../Options.js"
 
+/**
+ * Interface to describe the values returned by computeDimensions method
+ */
+interface IDimensions {
+    top : number,
+    left : number,
+    width : number,
+    height : number
+}
 
+/**
+ * A layer which content is a canvas
+ */
 class CanvasLayer extends BaseLayer {
 
     constructor(
@@ -15,133 +27,153 @@ class CanvasLayer extends BaseLayer {
         loadedListener?: Function,
         updatedListener?: Function
     ) {
-
-        // Default options for Canvas layers
-        const defaultOptions =  new Options({ top : 0, left : 0, keepAspectRatio : true})
-        const layerOptions = Object.assign({}, defaultOptions, options)
-
-        super(id, LayerType.Canvas, width, height, layerOptions, renderers, loadedListener, updatedListener)
-
+        super(id, LayerType.Canvas, width, height, options, renderers, loadedListener, updatedListener)
         setTimeout(this._layerLoaded.bind(this), 1)
     }
 
     /**
      * Draw provided image onto canvas
      * If img is a string then image is loaded before drawing
-     * @param {ImageBitmap} img 
-     * @param {object} _options
+     * @param img bitmap object
+     * @param _options options
      */
-    drawImage(img: ImageBitmap, _options: Options) {
-        var defaultOptions = new Options({
-            width : img.width,
-            height : img.height,
-            resize : false // TODO
+    drawBitmap(img: ImageBitmap, _options?: Options) {
+
+        const defaultOptions = new Options({
+            top : 0,
+            left : 0,
+            hOffset : 0,
+            vOffset : 0,
+            fit : true,
+            keepAspectRatio : true
         })
 
-        var options: Options = this._buildOptions(new Options(_options), defaultOptions)
+        const bitmapOptions = Object.assign(defaultOptions, new Options(_options))
 
-        this._contentBuffer.context.drawImage(
-            img,
-            options.get('left'),
-            options.get('top'),
-            options.get('width'),
-            options.get('height')
-        )
+        // Compute final dimensions and position
+        const dimensions = this._computeDimensions(bitmapOptions, img.width, img.height) // new Options(_options) to handle drawBitmap calls from Javascript
+
+        this._contentBuffer.context.drawImage(img, dimensions.left, dimensions.top, dimensions.width, dimensions.height)
 
         this._layerUpdated()
     }
 
-    private _buildOptions(_options: Options, _defaultOptions: Options): Options {
+    /**
+     * Compute final dimensions and position
+     * @param _options bitmap options
+     * @param width default width
+     * @param height default height
+     * @returns a IDimensions object
+     */
+    private _computeDimensions(_options: Options, width: number, height: number ): IDimensions {
+        var t = 0
+        var l = 0
+        var w = width
+        var h = height
 
-        var options: Options = Object.assign(this._options, _defaultOptions, _options)
+        // If required to fit image then ignore provided width and height
+        if (_options.get('fit') === true) {
 
-        var isMissingDimension = (_options.get('width') === undefined || _options.get('height') === undefined)
-        var isMissingAllDimensions = (_options.get('width') === undefined && _options.get('height') === undefined)
+            if (_options.get('keepAspectRatio') === true) {
+                let ratio = width / height
 
-        if (typeof options.get('left') === 'string' && options.get('left').at(-1) === '%') {
-            var xv = parseInt(options.get('left').replace('%',''), 10)
-            options.set('left', Math.floor((xv * this.width) / 100))
-        }
+                if (ratio === 1) { // W == H
+                    let v = Math.min(this.width, this.height) // use smallest value
+                    w = v
+                    h = v
+                } else if (ratio > 1) { // W > H
+                    w = this.width
+                    h = Math.round(w * height / width)
+                } else { // H > W
+                    h = this.height
+                    width = Math.round(h * width / height)
+                }
 
-        if (typeof options.get('top') === 'string' && options.get('top').at(-1) === '%') {
-            var yv = parseInt(options.get('top').replace('%',''), 10)
-            options.set('top', Math.floor((yv * this.height) / 100))
-        }
+            // resize image to layer dimensions
+            } else {
+                w = this.width
+                h = this.height
+            }
 
-        if (typeof options.get('width') === 'string' && options.get('width').at(-1) === '%') {
-            var wv = parseInt(options.get('width').replace('%',''), 10)
-            options.set('width', Math.floor((wv * this.width) / 100))  // % of the dmd Width
-        }
+        // If one of the dimension is provided
+        } else {
 
-        if (typeof options.get('height') === 'string' && options.get('height').at(-1) === '%') {
-            var hv = parseInt(options.get('height').replace('%',''), 10)
-            options.set('height', Math.floor((hv * this.height) / 100)) // % of the dmd Height
-        }
+            var isMissingDimension = (_options.get('width') === undefined || _options.get('height') === undefined)
+            var isMissingAllDimensions = (_options.get('width') === undefined && _options.get('height') === undefined)
 
-        // If provided only one of width or height and keeping ratio is required then calculate the missing dimension
-        if (options.get('keepAspectRatio') && isMissingDimension && !isMissingAllDimensions) {
-            if (typeof _options.get('width') === 'undefined') {
-                options.set('width', Math.floor(options.get('height') * _defaultOptions.get('width') / _defaultOptions.get('height')))
-            } else if (typeof _options.get('height') === 'undefined') {
-                options.set('height', Math.floor(options.get('width') * _defaultOptions.get('height') / _defaultOptions.get('width')))
+
+            if (typeof _options.get('width') === 'number') {
+                w = _options.get('width')
+            } else if  (typeof _options.get('width') === 'string' && _options.get('width').at(-1) === '%') {
+                var wv = parseInt(_options.get('width').replace('%',''), 10)
+                w = Math.floor((wv * this.width) / 100)  // % of the dmd Width
+            }
+
+            if (typeof _options.get('height') === 'number') {
+                h = _options.get('height')
+            } else if (typeof _options.get('height') === 'string' && _options.get('height').at(-1) === '%') {
+                var hv = parseInt(_options.get('height').replace('%',''), 10)
+                h =  Math.floor((hv * this.height) / 100) // % of the dmd Height
+            }
+
+            // If provided only one of width or height and keeping ratio is required then calculate the missing dimension
+            if (_options.get('keepAspectRatio') && isMissingDimension && !isMissingAllDimensions) {
+                if (typeof _options.get('width') === 'undefined') {
+                    w = Math.round(_options.get('height') * width / height)
+                } else if (typeof _options.get('height') === 'undefined') {
+                    h =  Math.round(_options.get('width') * height / width)
+                }
             }
         }
 
-        if (typeof options.get('align') === 'string') {
-            switch(options.get('align')) {
+        if (typeof _options.get('left') === 'string' && _options.get('left').at(-1) === '%') {
+            var xv = parseInt(_options.get('left').replace('%',''), 10)
+            l = Math.round((xv * this.width) / 100)
+        }
+
+        if (typeof _options.get('top') === 'string' && _options.get('top').at(-1) === '%') {
+            var yv = parseInt(_options.get('top').replace('%',''), 10)
+            t = Math.round((yv * this.height) / 100)
+        }
+
+        if (typeof _options.get('hAlign') === 'string') {
+            switch(_options.get('hAlign')) {
                 case 'left':
-                    if (typeof _options.get('left') !== 'undefined' && options.get('left') !== 0) {
-                        console.warn(`CanvasLayer[${this.id}].drawImage() : align: 'left' is overriding left:${_options.get('left')}`)
-                    }
-                    options.set('left', 0)
+                    l = 0 + _options.get('hOffset')
                 case 'center':
-                    var alignCenter = this.width / 2 - options.get('width') / 2
-                    if (typeof _options.get('left') !== 'undefined' && options.get('left') !== alignCenter) {
-                        console.warn(`CanvasLayer[${this.id}].drawImage() : align: 'center' is overriding left:${_options.get('left')}`)
-                    }
-                    options.set('left', alignCenter)
+                    l = this.width / 2 - w / 2  + _options.get('hOffset')
                     break
                 case 'right':
-                    var alignRight = this.width - options.get('width')
-                    if (typeof _options.get('left') !== 'undefined' && options.get('left') !== alignRight) {
-                        console.warn(`CanvasLayer[${this.id}].drawImage() : align: 'right' is overriding left:${_options.get('left')}`)
-                    }
-                    options.set('left', alignRight)
+                    l = this.width - w  + _options.get('hOffset')
                     break
                 default:
-                    console.warn(`CanvasLaye[${this.id}].drawImage(): Incorrect value align:'${options.get('align')}'`)
+                    console.warn(`CanvasLaye[${this.id}].drawImage(): Incorrect value align:'${_options.get('align')}'`)
             }
         }
 
-        if (typeof options.get('vAlign') === 'string') {
-            switch(options.get('vAlign')) {
+        if (typeof _options.get('vAlign') === 'string') {
+            switch(_options.get('vAlign')) {
                 case 'top':
-                    if (typeof _options.get('top') !== 'undefined' && options.get('top') !== 0) {
-                        console.warn(`CanvasLayer[${this.id}].drawImage() : vAlign: 'top' is overriding top:${_options.get('top')}`)
-                    }
-                    options.set('top', 0) 
+                    t = 0 + _options.get('vOffset')
                     break
                 case 'middle':
-                    var alignMiddle = this.height / 2 - options.get('height') / 2
-                    if (typeof _options.get('top') !== 'undefined' && options.get('top') !== alignMiddle) {
-                        console.warn(`CanvasLayer[${this.id}].drawImage() : vAlign: 'middle' is overriding top:${_options.get('top')}`)
-                    }
-                    options.set('top', alignMiddle)
+                    t = this.height / 2 - h / 2 + _options.get('vOffset')
                     break
                 case 'bottom':
-                    var alignBottom = this.height - options.get('height')
-                    if (typeof _options.get('top') !== 'undefined' && options.get('top') !== alignBottom) {
-                        console.warn(`CanvasLayer[${this.id}].drawImage() : vAlign: 'bottom' is overriding top:${_options.get('top')}`)
-                    }
-                    options.set('top', alignBottom)
+                    t = this.height - h + _options.get('vOffset')
                     break
                 default:
-                    console.warn(`CanvasLayer[${this.id}].drawImage(): Incorrect value vAlign:'${options.get('vAlign')}'`)
+                    console.warn(`CanvasLayer[${this.id}].drawImage(): Incorrect value vAlign:'${_options.get('vAlign')}'`)
             }
 
         }
 
-        return options
+        return {
+            top : t,
+            left : l,
+            width : w,
+            height : h
+        } as IDimensions
     }
 
 }

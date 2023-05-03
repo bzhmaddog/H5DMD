@@ -65,7 +65,7 @@ class AnimationLayer extends BaseLayer {
 
         //console.log(`Frame duration = ${this._frameDuration}`)
 
-        this._contentBuffer.clear()
+        //this._contentBuffer.clear()
         this._contentBuffer.context.drawImage(this._images[this._frameIndex], 0, 0, this.width, this.height)
 
         this._layerUpdated()

@@ -269,7 +269,6 @@ class NoiseEffectRenderer extends LayerRenderer {
 
                 // Generate Image data usable by a canvas
                 const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that._width, that._height)
-
                 // return to caller
                 resolve(imageData)
             })

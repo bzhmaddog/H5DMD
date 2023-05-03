@@ -1,6 +1,7 @@
 import { OffscreenBuffer } from "../OffscreenBuffer.js"
-import { LayerRenderer, ILayerRendererDictionary, ILayerRendererParamDictionary } from "../renderers/LayerRenderer.js"
+import { LayerRenderer, ILayerRendererDictionary } from "../renderers/LayerRenderer.js"
 import { Options } from "../Options.js"
+import { ChangeAlphaRenderer } from "../renderers/ChangeAlphaRenderer.js"
 
 enum LayerType {
 	Image,
@@ -45,7 +46,6 @@ abstract class BaseLayer {
         loadedListener?: Function,
         updatedListener?: Function
     ) {
-        this._outputBuffer = new OffscreenBuffer(width, height)
         this._layerType = layerType
         this._id = id
 
@@ -56,16 +56,29 @@ abstract class BaseLayer {
         this._updatedListener = updatedListener
         this._defaultRenderQueue = []
         this._renderQueue = []
-        this._availableRenderers = Object.assign({}, renderers)
+        this._availableRenderers = Object.assign({
+            'opacity' : new ChangeAlphaRenderer(width, height)
+        }, renderers)
         this._options = new Options({ visible : true, groups : ['default'], opacity : 1, renderers : [] })
 
-        Object.assign(
-            this._options,
-            options
-        )
+        Object.assign(this._options, options)
 
         this._renderNextFrame = function() { console.log(`Layer [${this._id}] : Rendering ended`) }
 
+        let rendererPromises: Promise<void>[] = []
+
+        // Build array of promises
+        Object.keys(this._availableRenderers).forEach(id => {
+            rendererPromises.push(this._availableRenderers[id].init())
+        })
+
+
+        Promise.all<void>(rendererPromises).then(() => {
+            console.log(`Layer[${id}] : Renderers init done`)
+        })
+
+        //console.log(`${id} : available renderers =>`, this._availableRenderers)
+        //console.log(`${id} :`, this._options.get('renderers', []))
 
         if (this._options.get('renderers').length > 0) {
             // Build default render queue to save some time in renderFrame
@@ -82,6 +95,8 @@ abstract class BaseLayer {
                     console.log(`Renderer "${r}" is not in the list of available renderers`)
                 }
             }
+
+            //console.log(`${id} :`, this._defaultRenderQueue)
         }
     }
 
@@ -128,6 +143,8 @@ abstract class BaseLayer {
         // if there is a renderer in the queue then run render pass with this renderer
         if (this._renderQueue.length) {
             var renderer = this._renderQueue.shift() // pop renderer from render queue
+
+            //console.log(`${this.id} `, renderer)
 
             // Apply 'filter' to provided content with current renderer then process next renderer in queue
             renderer.instance.renderFrame(frameImageData, renderer.params).then((outputData: ImageData) => {
@@ -307,17 +324,16 @@ abstract class BaseLayer {
     /**
      * Get layer width
      */
-    get width() {
+    get width(): number {
         return this._outputBuffer.width
     }
 
     /**
      * Get layer height
      */
-    get height() {
+    get height(): number {
         return this._outputBuffer.height
     }
-    
 
     /**
      * Get output canvas
@@ -332,6 +348,10 @@ abstract class BaseLayer {
 
     get groups(): string[] {
         return this._options.get('groups', ['default'])
+    }
+
+    get options(): Options {
+        return this._options
     }
 
 }

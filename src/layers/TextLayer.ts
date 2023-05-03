@@ -4,6 +4,9 @@ import { Colors } from '../Colors.js'
 import { ILayerRendererDictionary } from '../renderers/LayerRenderer.js'
 import { Utils } from '../Utils.js'
 import { Options } from '../Options.js'
+import { IRendererDictionary } from '../renderers/Renderer.js'
+import { RemoveAliasingRenderer } from '../renderers/RemoveAliasingRenderer.js'
+import { OutlineRenderer } from '../renderers/OutlineRenderer.js'
 
 class TextLayer extends BaseLayer {
 
@@ -41,7 +44,13 @@ class TextLayer extends BaseLayer {
 
         const layerOptions = Object.assign({},defaultOptions, options)
 
-        super(id, LayerType.Text, width, height, layerOptions, renderers, loadedListener, updatedListener)
+
+        var layerRenderers = Object.assign({
+			'no-antialiasing' : new RemoveAliasingRenderer(width, height), // used by TextLayer if antialiasing  = false
+			'outline' : new OutlineRenderer(width, height)  // used by TextLayer when outlineWidth > 1
+        }, renderers) as ILayerRendererDictionary
+
+        super(id, LayerType.Text, width, height, layerOptions, layerRenderers, loadedListener, updatedListener)
 
         var that = this
 
@@ -54,15 +63,11 @@ class TextLayer extends BaseLayer {
 
         //this.#ctx.imageSmoothingEnabled = false
 
-        if (typeof renderers['no-antialiasing'] === 'undefined' || typeof renderers['outline'] === 'undefined') {
-            throw new Error("'Remove aliasing' or 'outline' filter not found")
-        }
-
         setTimeout(this._layerLoaded.bind(this), 1)
 
         //this.#buffer.context.fillStyle = 'transparent'
 
-        if (this._options.hasProperty('text')) {
+        if (this._options.hasValue('text')) {
 
             if (typeof this._options.get('text') !== 'string') {
                 throw new TypeError("options.text is not a string")
@@ -81,8 +86,7 @@ class TextLayer extends BaseLayer {
 
     /**
      * Draw text onto canvas
-     * @param {Options} options 
-     * @returns 
+     * @param _options 
      */
     private _drawText(_options: Options = new Options()) {
         var that = this
@@ -98,6 +102,7 @@ class TextLayer extends BaseLayer {
             this._textBuffer.context.imageSmoothingEnabled = options.get('antialiasing')
             this._setAntialiasing(options.get('antialiasing'))
             //}
+
 
             if (options.get('outlineWidth') > 0) {
                 options.set('strokeWidth', 0)
@@ -180,8 +185,8 @@ class TextLayer extends BaseLayer {
                 top = Math.floor((vt * this.height) / 100)
             }
 
-            if (typeof options.get('align') === 'string') {
-                switch (options.get('align')) {
+            if (typeof options.get('hAlign') === 'string') {
+                switch (options.get('hAlign')) {
                     case 'left':
                         left = 0
                         break
@@ -309,6 +314,7 @@ class TextLayer extends BaseLayer {
                     ).then(aaData => {
                         createImageBitmap(aaData).then(bitmap => {
                             this._contentBuffer.clear()
+                            this._contentBuffer.context.fillRect(0,0,this.width, this.height)
                             this._contentBuffer.context.drawImage(bitmap, 0, 0)
                             resolve()
                         })

@@ -60,7 +60,7 @@
                 <label for="matthewtext_checkbox">Matthew Patel text</label>
             </div>
             <div>
-                <input id="matthewimg_checkbox" type="checkbox" data-layer="canvas" checked />
+                <input id="matthewimg_checkbox" type="checkbox" data-layer="matthew" checked />
                 <label for="matthewimg_checkbox">Matthew Patel Image</label>
             </div>
         </div>
@@ -96,7 +96,7 @@
                     if ("gpu" in navigator) {
 
                         var output = document.getElementById('output');
-                        var dmd = new DMD(output, 2, 1, 1, 1, DotShape.Square, 14, 1, false);
+                        var dmd = new DMD(output, 2, 1, 1, 1, DotShape.Square, 14, 1, true);
 
 
                         var noises = [];
@@ -104,21 +104,13 @@
                             noises.push(`${document.baseURI}/images/noises/noise-${i}.png`);
                         }
 
-                        var scoreRenderer = new NoiseEffectRenderer(dmd.width, dmd.height, 200, noises);
-
-                        dmd.addRenderer('score-effect', scoreRenderer);
-
-
-                        window.dmd = dmd;
-
                         // Init DMD then
                         dmd.init().then( () => {
                             // Start rendering dmd
                             dmd.run();
 
                             
-
-                            var bgLayer = dmd.createCanvasLayer( 'bg', {}, (layer) => {
+                            var bgLayer = dmd.createCanvasLayer('bg', {}, {},{}, layer => {
                                 
                                 var bgURI = document.baseURI + "/images/boss-mode-bg.png";
                                 
@@ -126,20 +118,24 @@
                                 .then(response => response.blob())
                                 .then(blob => createImageBitmap(blob))
                                 .then( bitmap => {
-                                    layer.drawImage(bitmap, {
-                                        width: 426,
-                                        height: 130
-                                    });
+                                    layer.drawBitmap(bitmap);
                                 });
                                 
                             });
 
 
                             dmd.createAnimationLayer( 'animation', {
+                                width : 426,
+                                height : 90,
+                                top: 20,
+                                left : 0
+                            }, {
                                 duration : 800,
                                 autoplay : true,
                                 loop : true
-                            }, layer => {
+                            },
+                            {},
+                            layer => {
 
                                     var images =  [
                                         document.baseURI + '/images/animation/0.webp',
@@ -166,29 +162,45 @@
 
                             });
 
-                            var videoLayer = dmd.createVideoLayer('video', {
-                                autoplay : true,
-                                width : 426,
-                                height : 130,
-                                loop : true,
-                                stopOnHide : true,
-                                visible: false
-                            }, (layer) => {
+                            var videoLayer = dmd.createVideoLayer('video',
+                                {
+                                    width : 231,
+                                    height : 130,
+                                    top : 0,
+                                    left : 0
+                                },
+                                {
+                                    autoplay : true,
+                                    width : 426,
+                                    height : 130,
+                                    loop : true,
+                                    stopOnHide : true,
+                                    visible: false
+                                },
+                                {},
+                                layer => {
                                 
-                                const video = document.createElement('video');
-                                
-                                video.addEventListener('loadeddata', function () {
-                                    layer.setVideo(video); // autoplay = true so no need to call play here
+                                    const video = document.createElement('video');
+                                    
+                                    video.addEventListener('loadeddata', function () {
+                                        layer.setVideo(video); // autoplay = true so no need to call play here
+                                    });
+
+                                    video.src = document.baseURI + '/images/transparent-video.webm';
                                 });
 
-                                video.src = document.baseURI + '/images/transparent-video.webm';
-                            });
 
 
-
-                            var matthewLayer = dmd.createCanvasLayer('canvas', {
-                                opacity : 1
-                            }, function() {
+                            var matthewLayer = dmd.createCanvasLayer('matthew', {
+                                width: 218,
+                                height: 91,
+                                hAlign : 'right',
+                                vAlign : 'middle',
+                                hOffset : -1,
+                            },
+                            {},
+                            {},
+                            layer => {
 
                                 var bgURI = document.baseURI + "/images/boss-matthew-big.png";
                                 
@@ -196,58 +208,81 @@
                                 .then(response => response.blob())
                                 .then(blob => createImageBitmap(blob))
                                 .then(bitmap => {
-                                    matthewLayer.drawImage(
-                                        bitmap,
-                                        {
-                                            align: 'right',
-                                            vAlign : 'middle',
-                                            height : '70%'
-                                        }
-                                    );
+                                    matthewLayer.drawBitmap(bitmap, {
+                                        //width : 218,
+                                        //height : 91,
+                                    });
                                 });
                             });
                             
                             var textLayer1 = dmd.createTextLayer('text1', {
+                                width: 100,
+                                height: 17
+                            }, {
                                 text : "Scott Pilgrim",
-                                left : '0',
+                                left : 0,
                                 top : 0,
-                                fontSize : 10
+                                fontSize : 80,
+                                //debug : true
                             });
 
                             var textLayer2 = dmd.createTextLayer('text2', {
-                                text : "VS",
-                                align : 'center',
+                                width: 90,
+                                height : 52,
+                                hAlign : 'center',
                                 vAlign : 'middle',
+                                hOffset : -60,
+                            }, {
+                                text : "VS",
                                 fontFamily : 'Arial',
-                                fontSize : 40,
+                                fontSize : 100,
+                                hAlign : 'center',
+                                vAlign : 'middle',
                                 fontStyle : 'italic bold',
-                                color : '#FFFFFF80', // RGBA
-                                hOffset : '-15%',
-                                renderers: ["score-effect"]
-                            });
+                                color : '#FFFFFF', // RGB,
+                                renderers : ['score-effect']
+                            },
+                            {
+                                "score-effect" : new NoiseEffectRenderer(90, 52, 200, noises)
+                            }
+                            );
 
                             var textLayer3 = dmd.createTextLayer('text3', {
-                                text : "VS",
-                                align : 'center',
+                                width: 90,
+                                height : 52,
+                                hAlign : 'center',
                                 vAlign : 'middle',
+                                hOffset : -60,
+                            }, {
+                                text : "VS",
                                 fontFamily : 'Arial',
-                                fontSize : 40,
+                                fontSize : 100,
+                                hAlign : 'center',
+                                vAlign : 'middle',
                                 fontStyle : 'italic bold',
                                 color : '#00000000', // inner color totaly transparent to create an hollow text
                                 strokeWidth : 2,
-                                strokeColor : Colors.Red,
-                                hOffset : '-15%',
+                                strokeColor : Colors.Red
                             });
 
                             var textLayer4 = dmd.createTextLayer('text4', {
-                                text : "Matthew Patel",
-                                align : 'right',
+                                width : 95,
+                                height : 15,
+                                hAlign : 'right',
                                 vAlign : 'bottom',
-                                fontSize : 10,
                                 hOffset : -1
+                            }, {
+                                text : "Matthew Patel",
+                                fontSize : 80
                             });
 
-                            var spriteLayer = dmd.createSpriteLayer('sprite', {}, (layer) => {
+                            var spriteLayer = dmd.createSpriteLayer('sprite', {
+                                width: 110,
+                                height: 130
+                            },
+                            {},
+                            {},
+                            layer => {
 
                                 var bgURI = document.baseURI + "/images/scott2x.png";
                                 
@@ -286,6 +321,38 @@
                                 });
 
                             });
+
+
+                            /*var testLayer = dmd.createCanvasLayer('test', {
+                                width : 200,
+                                height : 60,
+                                hAlign : 'center',
+                                vAlign : 'middle'
+                            }, {
+                                debug : true
+                            }, layer => {
+                                
+                                var imgURI = document.baseURI + "/images/test-10x10.png";
+                                
+                                fetch(imgURI)
+                                .then(response => response.blob())
+                                .then(blob => createImageBitmap(blob))
+                                .then( bitmap => {
+                                    layer.drawBitmap(bitmap, {
+                                        left : '60%',
+                                        top : '5%',
+                                        fit : false,
+                                        //hAlign : 'right',
+                                        //vAlign : 'middle',
+                                        //hOffset : -50,
+                                        //vOffset : -5
+                                        //width : 426
+                                        //height : 130
+                                        //width : 50
+                                    });
+                                });
+                                
+                            });*/
 
                             /*var svgLayer = dmd.createCanvasLayer( 'svg', {}, (layer) => {
                                 
