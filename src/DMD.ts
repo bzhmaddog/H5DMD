@@ -197,16 +197,16 @@ class DMD {
 
 					//if (layer.layerType === LayerType.Text && layer.id === 'ball-value') {
 					//if (layer.layerType === LayerType.Text && layer.id === 'ball-text') {
-					if (layer.layerType === LayerType.Text && layer.id === 'score') {
+					//if (layer.layerType === LayerType.Text && layer.id === 'attract-credits') {
 					//if (layer.layerType === LayerType.Text) {
 						//console.log(l)
 						//this._frameBuffer.context.fillStyle = "#FF0000FF"
 						//this._frameBuffer.context.fillRect(l.left, l.top, layer.width, layer.height)
-						this._frameBuffer.context.strokeStyle = "#FF0000"
+						/*this._frameBuffer.context.strokeStyle = "#FF0000"
 						this._frameBuffer.context.beginPath()
 						this._frameBuffer.context.rect(l.left, l.top, layer.width, layer.height)
-						this._frameBuffer.context.stroke()
-					}
+						this._frameBuffer.context.stroke()*/
+					//}
 					// Draw layer content into a buffer
 					this._frameBuffer.context.drawImage(layer.canvas, l.left, l.top)
 				}
