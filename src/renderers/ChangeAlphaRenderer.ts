@@ -71,11 +71,13 @@ class ChangeAlphaRenderer extends LayerRenderer {
 
                     console.log('ChangeAlphaRenderer:init()')
 
-                    that._shaderModule.compilationInfo().then(i => {
-                        if (i.messages.length > 0 ) {
-                            console.warn("ChangeAlphaRenderer:compilationInfo() ", i.messages)
-                        }
-                    })
+                    if (typeof that._shaderModule.compilationInfo === 'function') {
+                        that._shaderModule.compilationInfo().then(i => {
+                            if (i.messages.length > 0 ) {
+                                console.warn("ChangeAlphaRenderer:compilationInfo() ", i.messages)
+                            }
+                        })
+                    }
 
                     that.renderFrame = that._doRendering
                     resolve()

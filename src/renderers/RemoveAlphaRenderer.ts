@@ -50,11 +50,13 @@ class RemoveAlphaRenderer extends LayerRenderer {
 
                     console.log('RemoveAlphaRenderer:init()')
 
-                    that._shaderModule.compilationInfo().then(i=>{
-                        if (i.messages.length > 0 ) {
-                            console.warn("RemoveAlphaRenderer:compilationInfo() ", i.messages)
-                        }
-                    })
+                    if (typeof that._shaderModule.compilationInfo === 'function') {
+                        that._shaderModule.compilationInfo().then(i => {
+                            if (i.messages.length > 0 ) {
+                                console.warn("RemoveAlphaRenderer:compilationInfo() ", i.messages)
+                            }
+                        })
+                    }
 
                     that.renderFrame = that._doRendering
                     resolve()
