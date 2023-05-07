@@ -657,7 +657,6 @@ class DMD {
 						break
 					case "right":
 						layerLeft = this._outputWidth - layerWidth + (_layerDimensions.hOffset || 0) - 1
-						console.log(`${id}`, layerLeft)
 				}
 			}
 

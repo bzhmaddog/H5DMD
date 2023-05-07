@@ -1,5 +1,5 @@
 {
     "$schema": "https://typedoc.org/schema.json",
-    "entryPoints": ["./src/DMD.ts"],
+    "entryPoints": ["./src/*","./src/layers/*","./src/renderers/*"],
     "out": "docs"
 }
