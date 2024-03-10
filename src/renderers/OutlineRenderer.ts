@@ -105,13 +105,11 @@ class OutlineRenderer extends LayerRenderer {
 
                     console.log('OutlineRenderer:init()')
 
-                    if (typeof that._shaderModule.compilationInfo === 'function') {
-                        that._shaderModule.compilationInfo().then(i => {
-                            if (i.messages.length > 0 ) {
-                                console.warn("OutlineRenderer:compilationInfo() ", i.messages)
-                            }
-                        })
-                    }
+                    that._shaderModule.getCompilationInfo()?.then(i => {
+                        if (i.messages.length > 0 ) {
+                            console.warn("OutlineRenderer:compilationInfo() ", i.messages)
+                        }
+                    })
 
                     that.renderFrame = that._doRendering
                     resolve()

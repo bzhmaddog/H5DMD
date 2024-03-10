@@ -44,13 +44,11 @@ class DummyRenderer extends LayerRenderer {
 
                     console.error('DummyRenderer:init() : Are you sure you wanted to use this renderer ?')
 
-                    if (typeof that._shaderModule.compilationInfo === 'function') {
-                        that._shaderModule.compilationInfo().then(i => {
-                            if (i.messages.length > 0 ) {
-                                console.warn("DummyRenderer:compilationInfo() ", i.messages)
-                            }
-                        })
-                    }
+                    that._shaderModule.getCompilationInfo()?.then(i => {
+                        if (i.messages.length > 0 ) {
+                            console.warn("DummyRenderer:compilationInfo() ", i.messages)
+                        }
+                    })
 
                     that.renderFrame = that._doRendering
                     resolve()
@@ -145,7 +143,7 @@ class DummyRenderer extends LayerRenderer {
 
             passEncoder.setPipeline(computePipeline)
             passEncoder.setBindGroup(0, bindGroup)
-            passEncoder.dispatch(that._width, that._height)
+            passEncoder.dispatchWorkgroups(that._width, that._height)
             passEncoder.end()
 
             commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that._bufferByteLength)

@@ -1,13 +1,12 @@
 
 {
   "compilerOptions": {
-    "outDir": "./js/",
+    "outDir": "./dist/js/",
     "noImplicitAny": true,
     "sourceMap": true,
-    "module": "es6",
-    "target": "es6",
+    "module": "esnext",
+    "target": "esnext",
     "allowJs": true,
-    "moduleResolution": "nodenext",
   	"typeRoots": [ "./node_modules/@webgpu/types", "./node_modules/@types"]
   },
     "include": ["./src/**/*"],
