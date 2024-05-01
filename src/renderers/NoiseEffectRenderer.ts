@@ -1,5 +1,5 @@
-import { OffscreenBuffer } from "../OffscreenBuffer.js"
-import { LayerRenderer } from "./LayerRenderer.js"
+import {OffscreenBuffer} from "../OffscreenBuffer.js"
+import {LayerRenderer} from "./LayerRenderer.js"
 
 class NoiseEffectRenderer extends LayerRenderer {
 
@@ -29,13 +29,11 @@ class NoiseEffectRenderer extends LayerRenderer {
             throw new TypeError("An array of images filename is expected as third argument")
         }
 
-        const that = this
-
         // Temporary buffer to draw noise image and get data array from it
         this._tmpBuffer = new OffscreenBuffer(width, height, true)
 
 
-        var promises = images.map(url => fetch(url))
+        const promises = images.map(url => fetch(url))
 	
         Promise
         .all(promises)
@@ -54,7 +52,7 @@ class NoiseEffectRenderer extends LayerRenderer {
      * @returns 
      */
     async _loadNoise(src: string) {
-        let response = await fetch(src)
+        const response = await fetch(src)
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)
@@ -65,17 +63,16 @@ class NoiseEffectRenderer extends LayerRenderer {
 
 
     init(): Promise<void> {
-        const that = this
 
         return new Promise(resolve => {
 
             navigator.gpu.requestAdapter().then( adapter => {
-                that._adapter = adapter
+                this._adapter = adapter
             
                 adapter.requestDevice().then( device => {
-                    that._device = device
+                    this._device = device
 
-                    that._shaderModule = device.createShaderModule({
+                    this._shaderModule = device.createShaderModule({
                         code: `
                             struct Image {
                                 rgba: array<u32>
@@ -87,7 +84,7 @@ class NoiseEffectRenderer extends LayerRenderer {
                             @compute
                             @workgroup_size(1)
                             fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
-                                let index : u32 = global_id.x + global_id.y * ${that._width}u;
+                                let index : u32 = global_id.x + global_id.y * ${this._width}u;
 
                                 var pixel : u32 = inputPixels.rgba[index];
                                 var noise : u32 = noisePixels.rgba[index];
@@ -121,13 +118,13 @@ class NoiseEffectRenderer extends LayerRenderer {
 
                     console.log('ScoreEffectRenderer:init()')
 
-                    that._shaderModule.getCompilationInfo()?.then(i => {
+                    this._shaderModule.getCompilationInfo()?.then(i => {
                         if (i.messages.length > 0 ) {
                             console.warn("ScoreEffectRenderer:compilationInfo() ", i.messages)
                         }
                     })
 
-                    that.renderFrame = that._doRendering
+                    this.renderFrame = this._doRendering
                     resolve()
                 }) 
             })
@@ -140,7 +137,6 @@ class NoiseEffectRenderer extends LayerRenderer {
      * @returns {ImageData}
      */
     private _doRendering(frameData: ImageData): Promise<ImageData> {
-        const that = this
 
         const gpuNoiseBuffer = this._device.createBuffer({
             mappedAtCreation: true,
@@ -226,15 +222,15 @@ class NoiseEffectRenderer extends LayerRenderer {
 
         return new Promise( resolve => {
 
-            var now = window.performance.now()
+            const now = window.performance.now()
     
             if (!this._startTime) {
                 this._startTime = now
             }
-    
-            var position = now - this._startTime
-    
-            var frameIndex = Math.floor(position / this._frameDuration)
+
+            const position = now - this._startTime
+
+            let frameIndex = Math.floor(position / this._frameDuration)
 
             // Loop back to the first image
             if (frameIndex >= this._nbFrames) {
@@ -248,18 +244,18 @@ class NoiseEffectRenderer extends LayerRenderer {
             // Put original image data in the input buffer (257x78)
             new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData.data))
             gpuInputBuffer.unmap()
-    
-            const commandEncoder = that._device.createCommandEncoder()
+
+            const commandEncoder = this._device.createCommandEncoder()
             const passEncoder = commandEncoder.beginComputePass()
 
             passEncoder.setPipeline(computePipeline)
             passEncoder.setBindGroup(0, bindGroup)
-            passEncoder.dispatchWorkgroups(that._width, that._height)
+            passEncoder.dispatchWorkgroups(this._width, this._height)
             passEncoder.end()
 
-            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that._bufferByteLength)
-    
-            that._device.queue.submit([commandEncoder.finish()])
+            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, this._bufferByteLength)
+
+            this._device.queue.submit([commandEncoder.finish()])
     
             // Render DMD output
             gpuOutputBuffer.mapAsync(GPUMapMode.READ).then( () => {
@@ -268,7 +264,7 @@ class NoiseEffectRenderer extends LayerRenderer {
                 const pixelsBuffer = new Uint8Array(gpuOutputBuffer.getMappedRange())
 
                 // Generate Image data usable by a canvas
-                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that._width, that._height)
+                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), this._width, this._height)
                 // return to caller
                 resolve(imageData)
             })
@@ -281,10 +277,9 @@ class NoiseEffectRenderer extends LayerRenderer {
      * @returns Promise<Uint8ClampedArray>
      */
     private _getImageData(bitmap: ImageBitmap): Promise<Uint8ClampedArray> {
-        var that = this
         return new Promise<Uint8ClampedArray>( resolve => {
-            that._tmpBuffer.context.drawImage(bitmap, 0, 0)
-            resolve(that._tmpBuffer.context.getImageData(0, 0, that._width, that._height).data)
+            this._tmpBuffer.context.drawImage(bitmap, 0, 0)
+            resolve(this._tmpBuffer.context.getImageData(0, 0, this._width, this._height).data)
         })
     }
 }

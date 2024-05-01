@@ -107,9 +107,9 @@
                             // Start rendering dmd
                             dmd.run();
 
-                            
-                            var bgLayer = dmd.createCanvasLayer('bg', {}, {},{}, layer => {
-                                
+
+                            var bgLayer = dmd.addCanvasLayer('bg', {}, {}, {}, layer => {
+
                                 var bgURI = document.baseURI + "/images/boss-mode-bg.png";
                                 
                                 fetch(bgURI)
@@ -122,7 +122,7 @@
                             });
 
 
-                            dmd.createAnimationLayer( 'animation', {
+                            dmd.addAnimationLayer('animation', {
                                 width : 426,
                                 height : 90,
                                 top: 20,
@@ -160,7 +160,8 @@
 
                             });
 
-                            var videoLayer = dmd.createVideoLayer('video',
+
+                            var videoLayer = dmd.addVideoLayer('video',
                                 {
                                     width : 231,
                                     height : 130,
@@ -187,9 +188,7 @@
                                     video.src = document.baseURI + '/images/transparent-video.webm';
                                 });
 
-
-
-                            var matthewLayer = dmd.createCanvasLayer('matthew', {
+                            var matthewLayer = dmd.addCanvasLayer('matthew', {
                                 width: 218,
                                 height: 91,
                                 hAlign : 'right',
@@ -212,8 +211,8 @@
                                     });
                                 });
                             });
-                            
-                            var textLayer1 = dmd.createTextLayer('text1', {
+
+                            var textLayer1 = dmd.addTextLayer('text1', {
                                 width: 100,
                                 height: 17
                             }, {
@@ -224,7 +223,7 @@
                                 //debug : true
                             });
 
-                            var textLayer2 = dmd.createTextLayer('text2', {
+                            var textLayer2 = dmd.addTextLayer('text2', {
                                 width: 90,
                                 height : 52,
                                 hAlign : 'center',
@@ -245,7 +244,7 @@
                             }
                             );
 
-                            var textLayer3 = dmd.createTextLayer('text3', {
+                            var textLayer3 = dmd.addTextLayer('text3', {
                                 width: 90,
                                 height : 52,
                                 hAlign : 'center',
@@ -263,7 +262,7 @@
                                 strokeColor : Colors.Red
                             });
 
-                            var textLayer4 = dmd.createTextLayer('text4', {
+                            var textLayer4 = dmd.addTextLayer('text4', {
                                 width : 95,
                                 height : 15,
                                 hAlign : 'right',
@@ -274,7 +273,7 @@
                                 fontSize : 80
                             });
 
-                            var spriteLayer = dmd.createSpriteLayer('sprite', {
+                            var spriteLayer = dmd.addSpriteLayer('sprite', {
                                 width: 110,
                                 height: 130
                             },
@@ -321,38 +320,38 @@
                             });
 
 
-                            /*var testLayer = dmd.createCanvasLayer('test', {
-                                width : 200,
-                                height : 60,
-                                hAlign : 'center',
-                                vAlign : 'middle'
-                            }, {
-                                debug : true
-                            }, layer => {
-                                
-                                var imgURI = document.baseURI + "/images/test-10x10.png";
-                                
-                                fetch(imgURI)
-                                .then(response => response.blob())
-                                .then(blob => createImageBitmap(blob))
-                                .then( bitmap => {
-                                    layer.drawBitmap(bitmap, {
-                                        left : '60%',
-                                        top : '5%',
-                                        fit : false,
-                                        //hAlign : 'right',
-                                        //vAlign : 'middle',
-                                        //hOffset : -50,
-                                        //vOffset : -5
-                                        //width : 426
-                                        //height : 130
-                                        //width : 50
-                                    });
-                                });
-                                
-                            });*/
+                            /* var testLayer = dmd.addCanvasLayer('test', {
+                                 width : 200,
+                                 height : 60,
+                                 hAlign : 'center',
+                                 vAlign : 'middle'
+                             }, {
+                                 debug : true
+                             }, layer => {
 
-                            /*var svgLayer = dmd.createCanvasLayer( 'svg', {}, (layer) => {
+                                 var imgURI = document.baseURI + "/images/test-10x10.png";
+
+                                 fetch(imgURI)
+                                 .then(response => response.blob())
+                                 .then(blob => createImageBitmap(blob))
+                                 .then( bitmap => {
+                                     layer.drawBitmap(bitmap, {
+                                         left : '60%',
+                                         top : '5%',
+                                         fit : false,
+                                         //hAlign : 'right',
+                                         //vAlign : 'middle',
+                                         //hOffset : -50,
+                                         //vOffset : -5
+                                         //width : 426
+                                         //height : 130
+                                         //width : 50
+                                     });
+                                 });
+
+                             });*/
+
+                            /*var svgLayer = dmd.addCanvasLayer( 'svg', {}, (layer) => {
                                 
                                 var imgURI = document.baseURI + "/images/sptitle.svg";
                                 

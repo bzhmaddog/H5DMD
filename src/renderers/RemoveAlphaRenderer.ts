@@ -1,5 +1,4 @@
-import { LayerRenderer } from "./LayerRenderer.js"
-import { Options } from "../Options.js"
+import {LayerRenderer} from "./LayerRenderer.js"
 
 class RemoveAlphaRenderer extends LayerRenderer {
 
@@ -12,17 +11,16 @@ class RemoveAlphaRenderer extends LayerRenderer {
     }
 
     init(): Promise<void> {
-        const that = this
 
         return new Promise(resolve => {
 
             navigator.gpu.requestAdapter().then( adapter => {
-                that._adapter = adapter
+                this._adapter = adapter
             
                 adapter.requestDevice().then( device => {
-                    that._device = device
+                    this._device = device
 
-                    that._shaderModule = device.createShaderModule({
+                    this._shaderModule = device.createShaderModule({
                         code: `
                             struct Image {
                                 rgba: array<u32>
@@ -34,7 +32,7 @@ class RemoveAlphaRenderer extends LayerRenderer {
                             @compute
                             @workgroup_size(1)
                             fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
-                                let index : u32 = global_id.x + global_id.y * ${that._width}u;
+                                let index : u32 = global_id.x + global_id.y * ${this._width}u;
 
                                 var pixel : u32 = inputPixels.rgba[index];
                                 
@@ -50,13 +48,13 @@ class RemoveAlphaRenderer extends LayerRenderer {
 
                     console.log('RemoveAlphaRenderer:init()')
 
-                    that._shaderModule.getCompilationInfo()?.then(i => {
+                    this._shaderModule.getCompilationInfo()?.then(i => {
                         if (i.messages.length > 0 ) {
                             console.warn("RemoveAlphaRenderer:compilationInfo() ", i.messages)
                         }
                     })
 
-                    that.renderFrame = that._doRendering
+                    this.renderFrame = this._doRendering
                     resolve()
                 })
             })
@@ -69,9 +67,7 @@ class RemoveAlphaRenderer extends LayerRenderer {
      * @param {ImageData} frameData 
      * @returns {Promise<ImageData>}
      */
-    private _doRendering(frameData: ImageData, options?: Options): Promise<ImageData> {
-
-        const that = this
+    private _doRendering(frameData: ImageData): Promise<ImageData> {
 
         const gpuInputBuffer = this._device.createBuffer({
             mappedAtCreation: true,
@@ -141,18 +137,18 @@ class RemoveAlphaRenderer extends LayerRenderer {
             // Put original image data in the input buffer (257x78)
             new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData.data))
             gpuInputBuffer.unmap()
-    
-            const commandEncoder = that._device.createCommandEncoder()
+
+            const commandEncoder = this._device.createCommandEncoder()
             const passEncoder = commandEncoder.beginComputePass()
 
             passEncoder.setPipeline(computePipeline)
             passEncoder.setBindGroup(0, bindGroup)
-            passEncoder.dispatchWorkgroups(that._width, that._height)
+            passEncoder.dispatchWorkgroups(this._width, this._height)
             passEncoder.end()
 
-            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that._bufferByteLength)
-    
-            that._device.queue.submit([commandEncoder.finish()])
+            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, this._bufferByteLength)
+
+            this._device.queue.submit([commandEncoder.finish()])
     
             // Render DMD output
             gpuOutputBuffer.mapAsync(GPUMapMode.READ).then( () => {
@@ -161,7 +157,7 @@ class RemoveAlphaRenderer extends LayerRenderer {
                 const pixelsBuffer = new Uint8Array(gpuOutputBuffer.getMappedRange())
 
                 // Generate Image data usable by a canvas
-                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that._width, that._height)
+                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), this._width, this._height)
 
                 // return to caller
                 resolve(imageData)

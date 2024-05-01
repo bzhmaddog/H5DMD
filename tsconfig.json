@@ -2,12 +2,18 @@
 {
   "compilerOptions": {
     "outDir": "./dist/js/",
+    "baseUrl": "src",
     "noImplicitAny": true,
     "sourceMap": true,
-    "module": "esnext",
-    "target": "esnext",
-    "allowJs": true,
-  	"typeRoots": [ "./node_modules/@webgpu/types", "./node_modules/@types"]
+    "module": "es2022",
+    "target": "es2022",
+    "allowJs": false,
+    "typeRoots": [
+      "./node_modules/@webgpu/types",
+      "./node_modules/@types"
+    ],
+    "esModuleInterop": true,
+    "moduleResolution": "node"
   },
     "include": ["./src/**/*"],
     "exclude": ["node_modules"]

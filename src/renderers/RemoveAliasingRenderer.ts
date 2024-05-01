@@ -1,6 +1,6 @@
-import { LayerRenderer } from './LayerRenderer.js'
-import { Utils } from '../Utils.js'
-import { Options } from '../Options.js'
+import {LayerRenderer} from './LayerRenderer.js'
+import {Utils} from '../Utils.js'
+import {Options} from '../Options.js'
 
 class RemoveAliasingRenderer extends LayerRenderer {
 
@@ -13,17 +13,16 @@ class RemoveAliasingRenderer extends LayerRenderer {
     }
 
     init(): Promise<void> {
-        const that = this
 
         return new Promise(resolve => {
 
             navigator.gpu.requestAdapter().then( adapter => {
-                that._adapter = adapter
+                this._adapter = adapter
             
                 adapter.requestDevice().then( device => {
-                    that._device = device
+                    this._device = device
 
-                    that._shaderModule = device.createShaderModule({
+                    this._shaderModule = device.createShaderModule({
                         code: `
                             struct UBO {
                                 treshold : u32,
@@ -40,7 +39,7 @@ class RemoveAliasingRenderer extends LayerRenderer {
                             @compute
                             @workgroup_size(1)
                             fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
-                                let lineSize : u32 = ${that._width}u;
+                                let lineSize : u32 = ${this._width}u;
                                 let lineWidth : u32 = 1u;
 
                                 let index : u32 = global_id.x + global_id.y * lineSize;
@@ -62,7 +61,7 @@ class RemoveAliasingRenderer extends LayerRenderer {
 
                                     var innerColorFound = false;
 
-                                    if (global_id.x > 0u && global_id.x < ${that._width - 1}u && global_id.y > 0u && global_id.y < ${that._height - 1}u) {
+                                    if (global_id.x > 0u && global_id.x < ${this._width - 1}u && global_id.y > 0u && global_id.y < ${this._height - 1}u) {
 
                                         //outputPixels.rgba[index] = 255u << 24u | 255u << 16u | 255u << 8u | 0u;
 
@@ -109,13 +108,13 @@ class RemoveAliasingRenderer extends LayerRenderer {
 
                     console.log('RemoveAliasingRenderer:init()')
 
-                    that._shaderModule.getCompilationInfo()?.then(i=>{
+                    this._shaderModule.getCompilationInfo()?.then(i => {
                         if (i.messages.length > 0 ) {
                             console.warn("RemoveAliasingRenderer:compilationInfo() ", i.messages)
                         }
                     })
 
-                    that.renderFrame = that._doRendering
+                    this.renderFrame = this._doRendering
                     resolve()
                 })
             })
@@ -123,11 +122,12 @@ class RemoveAliasingRenderer extends LayerRenderer {
     
     }
 
-    private _doRendering(frameData: ImageData, options?: Options): Promise<ImageData> {
-        const that = this
+    private _doRendering(frameData: ImageData, _options?: Options): Promise<ImageData> {
 
-        const treshold: number = options.get('treshold', 0)
-        const baseColor: string = options.get('baseColor')
+        const options = new Options({
+            treshold: 0,
+            baseColor: 'FFFFFFFF' // Check Impact
+        }).merge(_options)
 
         const UBOBuffer = this._device.createBuffer({
             size: 8,
@@ -217,23 +217,23 @@ class RemoveAliasingRenderer extends LayerRenderer {
             gpuInputBuffer.unmap()
         
            // Write values to uniform buffer object
-            const uniformData = [treshold, Utils.hexColorToInt(Utils.rgba2abgr(baseColor))]
+            const uniformData = [options.get('treshold'), Utils.hexColorToInt(Utils.rgba2abgr(options.get('baseColor')))]
 
             const uniformTypedArray = new Int32Array(uniformData)
 
             this._device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer)
 
-            const commandEncoder = that._device.createCommandEncoder()
+            const commandEncoder = this._device.createCommandEncoder()
             const passEncoder = commandEncoder.beginComputePass()
 
             passEncoder.setPipeline(computePipeline)
             passEncoder.setBindGroup(0, bindGroup)
-            passEncoder.dispatchWorkgroups(that._width, that._height)
+            passEncoder.dispatchWorkgroups(this._width, this._height)
             passEncoder.end()
 
-            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that._bufferByteLength)
-    
-            that._device.queue.submit([commandEncoder.finish()])
+            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, this._bufferByteLength)
+
+            this._device.queue.submit([commandEncoder.finish()])
     
             // Render DMD output
             gpuOutputBuffer.mapAsync(GPUMapMode.READ).then( () => {
@@ -242,7 +242,7 @@ class RemoveAliasingRenderer extends LayerRenderer {
                 const pixelsBuffer = new Uint8Array(gpuOutputBuffer.getMappedRange())
 
                 // Generate Image data usable by a canvas
-                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that._width, that._height)
+                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), this._width, this._height)
 
                 // return to caller
                 resolve(imageData)

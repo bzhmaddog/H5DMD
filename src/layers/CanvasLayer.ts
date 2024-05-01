@@ -1,7 +1,6 @@
-import { BaseLayer } from "./BaseLayer.js"
-import { LayerType } from "./BaseLayer.js"
-import { ILayerRendererDictionary } from "../renderers/LayerRenderer.js"
-import { Options } from "../Options.js"
+import {BaseLayer, LayerType} from "./BaseLayer.js"
+import {ILayerRendererDictionary} from "../renderers/LayerRenderer.js"
+import {Options} from "../Options.js"
 
 /**
  * Interface to describe the values returned by computeDimensions method
@@ -24,8 +23,8 @@ class CanvasLayer extends BaseLayer {
         height: number,
         options?: Options,
         renderers?: ILayerRendererDictionary,
-        loadedListener?: Function,
-        updatedListener?: Function
+        loadedListener?: (layer: CanvasLayer) => void,
+        updatedListener?: (layer: CanvasLayer) => void
     ) {
         super(id, LayerType.Canvas, width, height, options, renderers, loadedListener, updatedListener)
         setTimeout(this._layerLoaded.bind(this), 1)
@@ -39,16 +38,14 @@ class CanvasLayer extends BaseLayer {
      */
     drawBitmap(img: ImageBitmap, _options?: Options) {
 
-        const defaultOptions = new Options({
+        const bitmapOptions = new Options({
             top : 0,
             left : 0,
             hOffset : 0,
             vOffset : 0,
             fit : true,
             keepAspectRatio : true
-        })
-
-        const bitmapOptions = Object.assign(defaultOptions, new Options(_options))
+        }).merge(_options)
 
         // Compute final dimensions and position
         const dimensions = this._computeDimensions(bitmapOptions, img.width, img.height) // new Options(_options) to handle drawBitmap calls from Javascript
@@ -66,19 +63,19 @@ class CanvasLayer extends BaseLayer {
      * @returns a IDimensions object
      */
     private _computeDimensions(_options: Options, width: number, height: number ): IDimensions {
-        var t = 0
-        var l = 0
-        var w = width
-        var h = height
+        let t = 0
+        let l = 0
+        let w = width
+        let h = height
 
         // If required to fit image then ignore provided width and height
         if (_options.get('fit') === true) {
 
             if (_options.get('keepAspectRatio') === true) {
-                let ratio = width / height
+                const ratio = width / height
 
                 if (ratio === 1) { // W == H
-                    let v = Math.min(this.width, this.height) // use smallest value
+                    const v = Math.min(this.width, this.height) // use smallest value
                     w = v
                     h = v
                 } else if (ratio > 1) { // W > H
@@ -98,21 +95,21 @@ class CanvasLayer extends BaseLayer {
         // If one of the dimension is provided
         } else {
 
-            var isMissingDimension = (_options.get('width') === undefined || _options.get('height') === undefined)
-            var isMissingAllDimensions = (_options.get('width') === undefined && _options.get('height') === undefined)
+            const isMissingDimension = (_options.get('width') === undefined || _options.get('height') === undefined)
+            const isMissingAllDimensions = (_options.get('width') === undefined && _options.get('height') === undefined)
 
 
             if (typeof _options.get('width') === 'number') {
                 w = _options.get('width')
             } else if  (typeof _options.get('width') === 'string' && _options.get('width').at(-1) === '%') {
-                var wv = parseInt(_options.get('width').replace('%',''), 10)
+                const wv = parseInt(_options.get('width').replace('%', ''), 10)
                 w = Math.floor((wv * this.width) / 100)  // % of the dmd Width
             }
 
             if (typeof _options.get('height') === 'number') {
                 h = _options.get('height')
             } else if (typeof _options.get('height') === 'string' && _options.get('height').at(-1) === '%') {
-                var hv = parseInt(_options.get('height').replace('%',''), 10)
+                const hv = parseInt(_options.get('height').replace('%', ''), 10)
                 h =  Math.floor((hv * this.height) / 100) // % of the dmd Height
             }
 
@@ -127,12 +124,12 @@ class CanvasLayer extends BaseLayer {
         }
 
         if (typeof _options.get('left') === 'string' && _options.get('left').at(-1) === '%') {
-            var xv = parseInt(_options.get('left').replace('%',''), 10)
+            const xv = parseInt(_options.get('left').replace('%', ''), 10)
             l = Math.round((xv * this.width) / 100)
         }
 
         if (typeof _options.get('top') === 'string' && _options.get('top').at(-1) === '%') {
-            var yv = parseInt(_options.get('top').replace('%',''), 10)
+            const yv = parseInt(_options.get('top').replace('%', ''), 10)
             t = Math.round((yv * this.height) / 100)
         }
 
@@ -140,6 +137,7 @@ class CanvasLayer extends BaseLayer {
             switch(_options.get('hAlign')) {
                 case 'left':
                     l = 0 + _options.get('hOffset')
+                    break;
                 case 'center':
                     l = this.width / 2 - w / 2  + _options.get('hOffset')
                     break

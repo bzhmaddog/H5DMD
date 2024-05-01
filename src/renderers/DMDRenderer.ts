@@ -1,5 +1,4 @@
-
-import { Renderer } from "./Renderer.js"
+import {Renderer} from "./Renderer.js"
 
 enum DotShape { 
 	Square,
@@ -75,13 +74,13 @@ class DMDRenderer extends Renderer {
             this.setBrightness(brightness)
         }
 
-        var bgp2 = this._bgBrightness*this._bgBrightness
+        const bgp2 = this._bgBrightness * this._bgBrightness
 
         this._bgHSP = Math.sqrt(0.299 * bgp2 + 0.587 * bgp2 + 0.114 * bgp2)
     }
 
     private _int2Hex(n: number): string {
-        var hex = n.toString(16)
+        let hex = n.toString(16)
 
         if (hex.length < 2) {
             hex = "0" + hex
@@ -91,17 +90,16 @@ class DMDRenderer extends Renderer {
     }
 
     init(): Promise<void> {
-        const that = this
 
         return new Promise(resolve => {
 
             navigator.gpu.requestAdapter().then( adapter => {
-                that._adapter = adapter
+                this._adapter = adapter
 
                 adapter.requestDevice().then( device => {
-                    that._device = device
+                    this._device = device
 
-                    that._shaderModule = device.createShaderModule({
+                    this._shaderModule = device.createShaderModule({
                         code: `
                             struct UBO {
                                 brightness: f32
@@ -126,8 +124,8 @@ class DMDRenderer extends Renderer {
                             @compute
                             @workgroup_size(1)
                             fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
-                                var bgBrightness : u32 = ${that._bgBrightness}u;
-                                var index : u32 = global_id.x + global_id.y *  ${that._dmdWidth}u;
+                                var bgBrightness : u32 = ${this._bgBrightness}u;
+                                var index : u32 = global_id.x + global_id.y *  ${this._dmdWidth}u;
                                 var pixel : u32 = inputPixels.rgba[index];
                                 var brightness : f32 = uniforms.brightness;
                                 var br = 0u;
@@ -163,19 +161,19 @@ class DMDRenderer extends Renderer {
                                 // Pixels that are too dark will be hacked to give the 'off' dot look of the DMD
                                 //if (t < bgBrightness*3u) {
                                 if (hsp - 8f < ${this._bgHSP}f) {
-                                    pixel = ${that._bgColor}u;
+                                    pixel = ${this._bgColor}u;
                                     //pixel = 4294901760u;
                                 }
                 
                                 // First byte index of the output dot
-                                var resizedPixelIndex : u32 = (global_id.x * ${that._pixelSize}u)  + (global_id.x * ${that._dotSpace}u) + (global_id.y * ${that._screenWidth}u * (${that._pixelSize}u + ${that._dotSpace}u));
+                                var resizedPixelIndex : u32 = (global_id.x * ${this._pixelSize}u)  + (global_id.x * ${this._dotSpace}u) + (global_id.y * ${this._screenWidth}u * (${this._pixelSize}u + ${this._dotSpace}u));
                 
-                                for ( var row: u32 = 0u ; row < ${that._pixelSize}u; row = row + 1u ) {
-                                    for ( var col: u32 = 0u ; col < ${that._pixelSize}u; col = col + 1u ) {
+                                for ( var row: u32 = 0u ; row < ${this._pixelSize}u; row = row + 1u ) {
+                                    for ( var col: u32 = 0u ; col < ${this._pixelSize}u; col = col + 1u ) {
                                         outputPixels.rgba[resizedPixelIndex] = pixel;
                                         resizedPixelIndex = resizedPixelIndex + 1u;
                                     }
-                                    resizedPixelIndex = resizedPixelIndex + ${that._screenWidth}u - ${that._pixelSize}u;
+                                    resizedPixelIndex = resizedPixelIndex + ${this._screenWidth}u - ${this._pixelSize}u;
                                 }
                             }
                         `
@@ -189,7 +187,7 @@ class DMDRenderer extends Renderer {
                         }
                     })
 
-                    that.renderFrame = that._doRendering
+                    this.renderFrame = this._doRendering
                     resolve()
                 })
             })
@@ -215,8 +213,6 @@ class DMDRenderer extends Renderer {
      * @returns {ImageData}
      */
     private _doRendering(frameData: ImageData): Promise<ImageData> {
-
-        const that = this
 
         const UBOBuffer = this._device.createBuffer({
             size: 4,
@@ -309,17 +305,17 @@ class DMDRenderer extends Renderer {
             const uniformData = [this._brightness]
             const uniformTypedArray = new Float32Array(uniformData)
             this._device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer)
-    
-            const commandEncoder = that._device.createCommandEncoder()
+
+            const commandEncoder = this._device.createCommandEncoder()
             const passEncoder = commandEncoder.beginComputePass()
             passEncoder.setPipeline(computePipeline)
             passEncoder.setBindGroup(0, bindGroup)
-            passEncoder.dispatchWorkgroups(that._dmdWidth, that._dmdHeight)
+            passEncoder.dispatchWorkgroups(this._dmdWidth, this._dmdHeight)
             passEncoder.end()
-    
-            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that._screenBufferByteLength)
-    
-            that._device.queue.submit([commandEncoder.finish()])
+
+            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, this._screenBufferByteLength)
+
+            this._device.queue.submit([commandEncoder.finish()])
     
             // Render DMD output
             gpuOutputBuffer.mapAsync(GPUMapMode.READ).then( () => {
@@ -328,7 +324,7 @@ class DMDRenderer extends Renderer {
                 const pixelsBuffer = new Uint8Array(gpuOutputBuffer.getMappedRange())
     
                 // Generate Image data usable by a canvas
-                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that._screenWidth, that._screenHeight)
+                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), this._screenWidth, this._screenHeight)
 
                // console.log(imageData)
     
@@ -343,8 +339,10 @@ class DMDRenderer extends Renderer {
      * @param {float} b 
      */
     setBrightness(b: number) {
-        var b = Math.max(0, Math.min(b, 1)) // normalize
-        this._brightness = Math.round(b * 1e3) / 1e3 // round to 1 digit after dot
+        const brightness = Math.max(0, Math.min(b, 1)) // normalize
+        this._brightness = Math.round(brightness * 1e3) / 1e3 // round to 1 digit after dot
+
+        console.log(this._bgBrightness)
     }
 
     get brightness() {

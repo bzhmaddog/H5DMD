@@ -14,7 +14,7 @@ class OffscreenBuffer {
 		this._canvas.width = width
 		this._canvas.height = height
 
-		var options = null
+        let options = null
 
 		if (willReadFrequently) {
 			//console.log("Buffer() : Settings willReadyFrequently to true")

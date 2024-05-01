@@ -1,9 +1,3 @@
-interface ISyncedImageBitmap {
-	bitmap: ImageBitmap,
-	index: number
-}
-
-
 class Utils {
 
 	/**
@@ -41,9 +35,7 @@ class Utils {
 	 * @returns {number}
 	 */
 	static hexColorToInt(str: string, prefix?: string): number {
-		var p = prefix || ""
-
-		return parseInt(str.replace(/^#/gi, p), 16)
+        return parseInt(str.replace(/^#/gi, prefix || ""), 16)
 	}
 
 	/**
@@ -52,7 +44,7 @@ class Utils {
 	 * @returns {string} abgr string
 	 */
 	static rgba2abgr(rgba: string): string {
-		var arr = rgba.match(/.{2}/g)
+        const arr = rgba.match(/.{2}/g)
 
 		if (arr === null) {
 			throw new TypeError("Invalid rgba string")
@@ -77,10 +69,7 @@ class Utils {
      */
 	static loadImagesOrdered(images: string[]) {
 
-		var bitmaps: ImageBitmap[] = []
-		var cnt = 0
-
-		var promises = images.map(url => fetch(url))
+        const promises = images.map(url => fetch(url))
 
 		return Promise
 		.all(promises)
@@ -96,15 +85,12 @@ class Utils {
      */
 	static async loadImagesOrderedAsync(images: string[]) {
 
-			var bitmaps: ImageBitmap[] = []
-			var cnt = 0
-	
-			var promises = images.map(url => fetch(url))
-	
-			return await Promise
-			.all(promises)
-			.then(responses => Promise.all(responses.map(res => res.blob())))
-			.then(blobs => Promise.all(blobs.map(blob => createImageBitmap(blob))))
+        const promises = images.map(url => fetch(url))
+
+        return await Promise
+            .all(promises)
+            .then(responses => Promise.all(responses.map(res => res.blob())))
+            .then(blobs => Promise.all(blobs.map(blob => createImageBitmap(blob))))
 	}
 
 }

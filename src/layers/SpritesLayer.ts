@@ -1,7 +1,7 @@
-import { Options } from "../Options.js"
-import { BaseLayer, LayerType } from "./BaseLayer.js"
-import { ILayerRendererDictionary } from "../renderers/LayerRenderer.js"
-import { Sprite } from "../Sprite.js"
+import {Options} from "../Options.js"
+import {BaseLayer, LayerType} from "./BaseLayer.js"
+import {ILayerRendererDictionary} from "../renderers/LayerRenderer.js"
+import {Sprite} from "../Sprite.js"
 
 interface ISpriteItem {
     x : number,
@@ -18,21 +18,18 @@ class SpritesLayer extends BaseLayer {
 
     private _sprites: ISpriteDictionnary
     private _runningSprites: number
-    private __renderNextFrame: Function
+    private __renderNextFrame: () => void
     
 	constructor(
         id: string,
         width: number,
         height: number,
-        options: Options,
+        options?: Options,
         renderers?: ILayerRendererDictionary,
-        loadedListener?: Function,
-        updatedListener?: Function
+        loadedListener?: (layer: SpritesLayer) => void,
+        updatedListener?: (layer: SpritesLayer) => void
     ) {
-
-		
-        const defaultOptions = { loop : false, autoplay : false }
-        const layerOptions = Object.assign({}, defaultOptions, options)
+        const layerOptions = new Options({loop: false, autoplay: false}).merge(options)
 
         super(id, LayerType.Sprites, width, height, layerOptions, renderers, loadedListener, updatedListener)
 
@@ -47,16 +44,17 @@ class SpritesLayer extends BaseLayer {
      * Render frame with all sprites data
      */
     private __renderFrame() {
-        const that = this
 
         this._contentBuffer.clear()
         
         Object.keys(this._sprites).forEach(id => {
-            if (this._sprites[id].visible) {
+            const sprite = this._sprites[id]
+
+            if (sprite.visible) {
                 this._contentBuffer.context.drawImage(
-                    that._sprites[id].sprite.data,
-                    that._sprites[id].x,
-                    that._sprites[id].y
+                    sprite.sprite.data,
+                    sprite.x,
+                    sprite.y
                 )
             }
         })
@@ -90,19 +88,18 @@ class SpritesLayer extends BaseLayer {
         x: string,
         y: string
     ): Promise<Sprite> {
-        const that = this
 
         return new Promise<Sprite>( (resolve, reject) => {
             if (typeof this._sprites[id] === 'undefined') {
                 if (animations.length) {
-                    var sprite = new Sprite(id, spriteSheet, hFrameOffset, vFrameOffset)
-                    
-                    for(var i = 0 ; i < animations.length ; i++) {
+                    const sprite = new Sprite(id, spriteSheet, hFrameOffset, vFrameOffset)
+
+                    for (let i = 0; i < animations.length; i++) {
                         const args: [string, number, number, number, number, number, number] = animations[i]
                         sprite.addAnimation(...args)
                     }
 
-                    that.addSprite(id, sprite, x, y)
+                    this.addSprite(id, sprite, x, y)
 
                     resolve(sprite)
                 } else {
@@ -124,7 +121,7 @@ class SpritesLayer extends BaseLayer {
      * @returns {boolean} true if sprite was assed false otherwise
      */
     addSprite(id: string, sprite: Sprite, _x: string, _y: string, v?: boolean) {
-        var isVisible = true
+        let isVisible = true
 
         if (typeof sprite === 'object' && sprite.constructor !== Sprite) {
             console.error("Provided sprite is not a Sprite object")
@@ -140,18 +137,18 @@ class SpritesLayer extends BaseLayer {
             isVisible = !!v
         }
 
-        var x = _x || 0
-        var y = _y || 0
+        let x = _x || 0
+        let y = _y || 0
 
         if (_x.at(-1) === '%') {
-            var vx = parseFloat(_x.replace('%',''))
+            const vx = parseFloat(_x.replace('%', ''))
             x = Math.floor((vx * this.width) / 100)
         } else {
             x = parseInt(_x, 10)
         }
 
         if (_y.at(-1) === '%') {
-            var vy = parseFloat(_y.replace('%',''))
+            const vy = parseFloat(_y.replace('%', ''))
             y = Math.floor((vy * this.height) / 100)
         } else {
             y = parseInt(_y, 10)
@@ -174,10 +171,9 @@ class SpritesLayer extends BaseLayer {
     }
 
     /**
-     * End of quest listener
-     * @param {string} id : sprite queue which ended
+     * End of queue listener
      */
-    private _onQueueEnded(id: string) {
+    private _onQueueEnded() {
         this._runningSprites--
 
         // If not more sprite is running then no need to keep rendering new frames

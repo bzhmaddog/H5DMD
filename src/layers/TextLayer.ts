@@ -1,12 +1,11 @@
-import { BaseLayer, LayerType } from './BaseLayer.js'
-import { OffscreenBuffer } from '../OffscreenBuffer.js'
-import { Colors } from '../Colors.js'
-import { ILayerRendererDictionary } from '../renderers/LayerRenderer.js'
-import { Utils } from '../Utils.js'
-import { Options } from '../Options.js'
-import { IRendererDictionary } from '../renderers/Renderer.js'
-import { RemoveAliasingRenderer } from '../renderers/RemoveAliasingRenderer.js'
-import { OutlineRenderer } from '../renderers/OutlineRenderer.js'
+import {BaseLayer, LayerType} from './BaseLayer.js'
+import {OffscreenBuffer} from '../OffscreenBuffer.js'
+import {Colors} from '../Colors.js'
+import {ILayerRendererDictionary} from '../renderers/LayerRenderer.js'
+import {Utils} from '../Utils.js'
+import {Options} from '../Options.js'
+import {RemoveAliasingRenderer} from '../renderers/RemoveAliasingRenderer.js'
+import {OutlineRenderer} from '../renderers/OutlineRenderer.js'
 
 class TextLayer extends BaseLayer {
 
@@ -19,11 +18,11 @@ class TextLayer extends BaseLayer {
         height: number,
         options: Options,
         renderers?: ILayerRendererDictionary,
-        loadedListener?: Function,
-        updatedListener?: Function
+        loadedListener?: (layer: TextLayer) => void,
+        updatedListener?: (layer: TextLayer) => void
     ) {
 
-        const defaultOptions = new Options({
+        const layerOptions = new Options({
             top: 0,
             left: 0,
             color: Colors.White,
@@ -40,24 +39,19 @@ class TextLayer extends BaseLayer {
             outlineWidth: 0,
             outlineColor: Colors.Black,
             antialiasing: true
-        })
-
-        const layerOptions = Object.assign({},defaultOptions, options)
+        }).merge(options)
 
 
-        var layerRenderers = Object.assign({
+        const layerRenderers = Object.assign({
 			'no-antialiasing' : new RemoveAliasingRenderer(width, height), // used by TextLayer if antialiasing  = false
 			'outline' : new OutlineRenderer(width, height)  // used by TextLayer when outlineWidth > 1
         }, renderers) as ILayerRendererDictionary
 
         super(id, LayerType.Text, width, height, layerOptions, layerRenderers, loadedListener, updatedListener)
 
-        var that = this
-
         this._textBuffer = new OffscreenBuffer(this.width, this.height)
 
         this._text = ""
-
 
         //this._contentBuffer.imageSmoothingEnabled = this._options.antialiasing
 
@@ -67,7 +61,7 @@ class TextLayer extends BaseLayer {
 
         //this.#buffer.context.fillStyle = 'transparent'
 
-        if (this._options.hasValue('text')) {
+        if (this._options.has('text')) {
 
             if (typeof this._options.get('text') !== 'string') {
                 throw new TypeError("options.text is not a string")
@@ -78,7 +72,7 @@ class TextLayer extends BaseLayer {
 
                 //console.log(this._id, this.#text)
                 this._drawText().then(() => {
-                    setTimeout(that._layerUpdated.bind(that), 1)
+                    setTimeout(this._layerUpdated.bind(this), 1)
                 })
             }
         }
@@ -88,11 +82,10 @@ class TextLayer extends BaseLayer {
      * Draw text onto canvas
      * @param _options 
      */
-    private _drawText(_options: Options = new Options()) {
-        var that = this
+    private _drawText(_options?: Options) {
 
         // merge passed options with default options set during layer creation
-        var options = Object.assign(new Options(), this._options, _options)
+        const options = new Options(this._options).merge(_options)
 
         return new Promise<void>(resolve => {
 
@@ -114,9 +107,9 @@ class TextLayer extends BaseLayer {
                 throw new Error("Cannot draw empty text")
             }*/
 
-            var left = options.get('left')
-            var top = options.get('top')
-            var m
+            let left = options.get('left')
+            let top = options.get('top')
+            let m
 
 
             // fillText doesn't at 0 font pb ?
@@ -134,8 +127,8 @@ class TextLayer extends BaseLayer {
             }*/
 
 
-            var fontSize = options.get('fontSize')
-            var fontUnit = options.get('fontUnit')
+            let fontSize = options.get('fontSize')
+            let fontUnit = options.get('fontUnit')
 
             // Approximation of the height in percentage
             // TODO : Check with different fonts
@@ -148,14 +141,14 @@ class TextLayer extends BaseLayer {
             // Adjust size of font so that the text fit the screen
             // TODO : Fix that to handle text that are not aligned 
             if (options.get('adjustWidth')) {
-                var textOk = false
+                let textOk = false
 
                 while (!textOk) {
                     this._textBuffer.context.font = options.get('fontStyle') + " " + fontSize + fontUnit + ' ' + options.get('fontFamily')
                     m = this._textBuffer.context.measureText(this._text)
 
                     if (m.width > this.width - 5) {
-                        var fs = options.get('fontSize')
+                        const fs = options.get('fontSize')
                         options.set('fontSize', fs - 1)
                     } else {
                         textOk = true
@@ -168,19 +161,19 @@ class TextLayer extends BaseLayer {
 
             // https://stackoverflow.com/questions/1134586/how-can-you-find-the-height-of-text-on-an-html-canvas
             // Approximation of line height since api doesn't provide native method
-            var textHeight = this._textBuffer.context.measureText('M').width
+            const textHeight = this._textBuffer.context.measureText('M').width
 
 
             // Convert % to pixels/dots
             if (typeof options.get('left') === 'string' && options.get('left').at(-1) === '%') {
-                var vl = parseFloat(options.get('left').replace('%', ''))
+                const vl = parseFloat(options.get('left').replace('%', ''))
                 //left =  ((vl * this.width) / 100) - (m.width / 2)
                 left = Math.floor((vl * this.width) / 100)
             }
 
             // Convert % to pixels/dots
             if (typeof options.get('top') === 'string' && options.get('top').at(-1) === '%') {
-                var vt = parseFloat(options.get('top').replace('%', ''))
+                const vt = parseFloat(options.get('top').replace('%', ''))
                 //top = ((vt * this.height) / 100) - (this.#textBuffer.context.measureText('M').width / 2) // m.height not available
                 top = Math.floor((vt * this.height) / 100)
             }
@@ -212,19 +205,19 @@ class TextLayer extends BaseLayer {
                 }
             }
 
-            var hOffset = options.get('hOffset')
-            var vOffset = options.get('vOffset')
+            let hOffset = options.get('hOffset')
+            const vOffset = options.get('vOffset')
 
             // convert % in pixels
             if (typeof options.get('hOffset') === 'string' && options.get('hOffset').at(-1) === '%') {
-                var vh = parseFloat(options.get('hOffset').replace('%', ''))
+                const vh = parseFloat(options.get('hOffset').replace('%', ''))
                 //hOffset = ((vh * m.width) / 100)
                 hOffset = Math.floor((vh * this.width) / 100)
             }
 
             // convert % in pixels
             if (typeof options.get('vOffset') === 'string' && options.get('vOffset').at(-1) === '%') {
-                var vv = parseFloat(options.get('vOffset').replace('%', ''))
+                const vv = parseFloat(options.get('vOffset').replace('%', ''))
                 //hOffset = ((vv * textHeight) / 100)
                 hOffset = Math.floor((vv * this.height) / 100)
             }
@@ -244,7 +237,7 @@ class TextLayer extends BaseLayer {
             this._textBuffer.context.fillText(this._text, left, top)
 
             //console.log(this.getId(),this.#textBuffer.context.getImageData(0,0, this.width, this.height).data)
-            var frameImageData = this._textBuffer.context.getImageData(0, 0, this.width, this.height)
+            const frameImageData = this._textBuffer.context.getImageData(0, 0, this.width, this.height)
 
             // If outlined text then pixelate first then render outline
             if (options.get('outlineWidth') > 0) {
@@ -330,7 +323,6 @@ class TextLayer extends BaseLayer {
      * @param {object} options (if options is not an object drawText will use this._options)
      */
     setText(text: string, options?: Options) {
-        var that = this
 
         if (typeof text !== 'string') {
             throw new TypeError("text is not a string")
@@ -339,12 +331,12 @@ class TextLayer extends BaseLayer {
         if (typeof text !== 'undefined' && text !== "" && text !== this._text) {
             this._text = text
             this._drawText(options).then(() => {
-                that._layerUpdated()
+                this._layerUpdated()
             })
         }
     }
 
-    setVisibility(isVisible: Boolean): void {
+    setVisibility(isVisible: boolean): void {
         super.setVisibility(isVisible)
     }
 }

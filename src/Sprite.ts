@@ -1,4 +1,4 @@
-import { OffscreenBuffer } from "./OffscreenBuffer.js"
+import {OffscreenBuffer} from "./OffscreenBuffer.js"
 
 interface IAnimation {
     width: number,
@@ -33,7 +33,7 @@ class Sprite {
     private _vFrameOffset: number
     private _maxHeight: number
     private _maxWidth: number
-    private _endOfQueueListener?: Function
+    private _endOfQueueListener?: (id: string) => void
     private _frameDuration: number
     private _frameIndex: number
     private _startTime?: number
@@ -104,14 +104,14 @@ class Sprite {
      * Main render routine
      */
     private _doAnimation(t: number) {
-        var now = t
-        var previousFrameIndex = this._frameIndex
+        const now = t
+        const previousFrameIndex = this._frameIndex
 
         if (this._startTime === null) {
             this._startTime = now
         }
 
-        var delta = now - this._startTime
+        const delta = now - this._startTime
 
         // Calculate frame number given delta and duration
         this._frameIndex = Math.floor(delta / this._frameDuration)
@@ -134,9 +134,9 @@ class Sprite {
 
         // Only redraw buffer is frame is different
         if (this._frameIndex !== previousFrameIndex) {
-            let xOffset = this._frameIndex * (this._animation.params.width + this._hFrameOffset) + this._animation.params.xOffset
+            const xOffset = this._frameIndex * (this._animation.params.width + this._hFrameOffset) + this._animation.params.xOffset
             // Shift vertical position so that sprites are aligned at the bottom
-            let yPos = this._maxHeight - this._animation.params.height
+            const yPos = this._maxHeight - this._animation.params.height
 
             //console.log(`${this._frameIndex} / ${xOffset} / ${yPos}`)
    
@@ -220,7 +220,7 @@ class Sprite {
         // Build array of animation
         // array[0] = animation id
         // array[1] = number of loop
-        for (var i = 0 ; i < seq.length ; i++) {
+        for (let i = 0; i < seq.length; i++) {
             this._queue.push({
                 params : this._animations[seq[i][0]],
                 loop : Math.max(1, seq[i][1])
@@ -288,7 +288,7 @@ class Sprite {
      * Set the End of queue listener that will be called when current queue is empty
      * @param {Function} listener 
      */
-    setEndOfQueueListener(listener: Function) {
+    setEndOfQueueListener(listener: (id: string) => void) {
         this._endOfQueueListener = listener
     }
 }

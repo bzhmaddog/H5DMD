@@ -1,6 +1,6 @@
-import { BaseLayer, LayerType } from "./BaseLayer.js"
-import { Options } from "../Options.js"
-import { ILayerRendererDictionary } from "../renderers/LayerRenderer.js"
+import {BaseLayer, LayerType} from "./BaseLayer.js"
+import {Options} from "../Options.js"
+import {ILayerRendererDictionary} from "../renderers/LayerRenderer.js"
 
 enum VideoState {
 	STOPPED,
@@ -11,10 +11,10 @@ enum VideoState {
 class VideoLayer extends BaseLayer {
 
     private _video: HTMLVideoElement
-	private _onPlayListener?: Function
-	private _onPauseListener?: Function
-	private _onStopListener?: Function
-    private __renderNextFrame: Function
+	private _onPlayListener?: (layer: VideoLayer) => void
+	private _onPauseListener?: (layer: VideoLayer) => void
+	private _onStopListener?: (layer: VideoLayer) => void
+	private __renderNextFrame: (layer: VideoLayer) => void
 	private _internalAction: boolean
 
 	private _state: VideoState = VideoState.STOPPED
@@ -23,16 +23,20 @@ class VideoLayer extends BaseLayer {
 		id: string,
 		width: number,
 		height: number,
-		options: Options,
+		options?: Options,
 		renderers?: ILayerRendererDictionary,
-		loadedListener?: Function,
-		updatedListener?: Function,
-		playListener?: Function,
-		pauseListener?: Function,
-		stopListener?: Function
+		loadedListener?: (layer: VideoLayer) => void,
+		updatedListener?: (layer: VideoLayer) => void,
+		playListener?: (layer: VideoLayer) => void,
+		pauseListener?: (layer: VideoLayer) => void,
+		stopListener?: (layer: VideoLayer) => void
     ) {
-        const defaultOptions = new Options({loop : false, autoplay : false, pauseOnHide : true, stopOnHide : false })
-        const layerOptions = Object.assign({}, defaultOptions, options)
+		const layerOptions = new Options({
+			loop: false,
+			autoplay: false,
+			pauseOnHide: true,
+			stopOnHide: false
+		}).merge(options)
 
 		super(id, LayerType.Video, width, height, layerOptions, renderers, loadedListener, updatedListener)
 
@@ -74,7 +78,7 @@ class VideoLayer extends BaseLayer {
 		this._requestRenderNextFrame()
 
 		if (typeof this._onPlayListener === 'function') {
-			this._onPlayListener()
+			this._onPlayListener(this)
 		}
 	}
 
@@ -83,14 +87,14 @@ class VideoLayer extends BaseLayer {
 		this._stopRendering()
 
 		if (typeof this._onPauseListener === 'function') {
-			this._onPauseListener()
+			this._onPauseListener(this)
 		}
 	}
 
 	private __renderFrame() {
 		this._contentBuffer.clear()
 		this._contentBuffer.context.drawImage(this._video, 0, 0, this._options.get('width'), this._options.get('height'))
-		this.__renderNextFrame()
+		this.__renderNextFrame(this)
 	}
 
 	private _requestRenderNextFrame() {
@@ -161,7 +165,7 @@ class VideoLayer extends BaseLayer {
 	 * Override default setVisibility to pause/resume the video if needed
 	 * @param isVisible boolean
 	 */
-	setVisibility(isVisible: Boolean): void {
+	setVisibility(isVisible: boolean): void {
 		if (isVisible === this.isVisible()) {
 			return
 		}
@@ -187,7 +191,7 @@ class VideoLayer extends BaseLayer {
 	 */
 	setVideo(video: HTMLVideoElement) {
 		this._video = video
-		this._video.loop = this._options.get('loop', false)
+		this._video.loop = this._options.get('loop')
 
 		this._video.addEventListener('play', this._onVideoPlayed.bind(this))
 		this._video.addEventListener('pause', this._onVideoPaused.bind(this))
@@ -201,9 +205,9 @@ class VideoLayer extends BaseLayer {
 		this._video = document.createElement('video')
 
 		// set the dimensions
-		this._video.width = this._options.get('width', this.width)
-		this._video.height = this._options.get('height', this.height)
-		this._video.loop = this._options.get('loop', false)
+		this._video.width = this._options.get('width') || this.width
+		this._video.height = this._options.get('height') || this.height
+		this._video.loop = this._options.get('loop') || false
 		
 		// Bind loaded event of the video to publish an event so the client 
 		// can do whatever it want (example: play the video) 

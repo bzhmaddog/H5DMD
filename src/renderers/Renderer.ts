@@ -1,3 +1,4 @@
+import {Options} from "../Options.js"
 
 abstract class Renderer {
 
@@ -5,18 +6,19 @@ abstract class Renderer {
     protected _device: GPUDevice
     protected _shaderModule: GPUShaderModule
 
-    private _name: String
-    protected _initDone: Boolean
+    private _name: string
+    protected _initDone: boolean
 
-    constructor(name: String) {
+    constructor(name: string) {
         this._name = name
     }
 
 
     abstract init(): Promise<void>
-    abstract renderFrame(frameData: ImageData, options?: {}): Promise<ImageData>
 
-    getName(): String {
+    abstract renderFrame(frameData: ImageData, options?: Options): Promise<ImageData>
+
+    get name(): string {
         return this._name
     }
 }

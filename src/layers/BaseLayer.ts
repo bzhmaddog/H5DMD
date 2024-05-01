@@ -1,7 +1,7 @@
-import { OffscreenBuffer } from "../OffscreenBuffer.js"
-import { LayerRenderer, ILayerRendererDictionary } from "../renderers/LayerRenderer.js"
-import { Options } from "../Options.js"
-import { ChangeAlphaRenderer } from "../renderers/ChangeAlphaRenderer.js"
+import {OffscreenBuffer} from "../OffscreenBuffer.js"
+import {ILayerRendererDictionary, LayerRenderer} from "../renderers/LayerRenderer.js"
+import {Options} from "../Options.js"
+import {ChangeAlphaRenderer} from "../renderers/ChangeAlphaRenderer.js"
 
 enum LayerType {
 	Image,
@@ -25,13 +25,13 @@ abstract class BaseLayer {
     protected _options: Options
 
     private _id: string
-    private _loaded: Boolean = false
+    private _loaded: boolean = false
     private _outputBuffer: OffscreenBuffer
     private _layerType: LayerType
-    private _renderNextFrame: Function
+    private _renderNextFrame: () => void
 
-    private _loadedListener?: Function
-    private _updatedListener?: Function
+    private _loadedListener?: (layer: BaseLayer) => void
+    private _updatedListener?: (layer: BaseLayer) => void
     private _availableRenderers: ILayerRendererDictionary
     private _defaultRenderQueue: IRenderQueueItem[]
     private _renderQueue: IRenderQueueItem[]
@@ -41,10 +41,10 @@ abstract class BaseLayer {
         layerType: LayerType,
         width: number,
         height: number,
-        options: Options,
+        options?: Options,
         renderers?: ILayerRendererDictionary,
-        loadedListener?: Function,
-        updatedListener?: Function
+        loadedListener?: (layer: BaseLayer) => void,
+        updatedListener?: (layer: BaseLayer) => void
     ) {
         this._layerType = layerType
         this._id = id
@@ -59,13 +59,12 @@ abstract class BaseLayer {
         this._availableRenderers = Object.assign({
             'opacity' : new ChangeAlphaRenderer(width, height)
         }, renderers)
-        this._options = new Options({ visible : true, groups : ['default'], opacity : 1, renderers : [] })
 
-        Object.assign(this._options, options)
+        this._options = new Options({visible: true, groups: ['default'], opacity: 1, renderers: []}).merge(options)
 
         this._renderNextFrame = function() { console.log(`Layer [${this._id}] : Rendering ended`) }
 
-        let rendererPromises: Promise<void>[] = []
+        const rendererPromises: Promise<void>[] = []
 
         // Build array of promises
         Object.keys(this._availableRenderers).forEach(id => {
@@ -83,7 +82,7 @@ abstract class BaseLayer {
         if (this._options.get('renderers').length > 0) {
             // Build default render queue to save some time in renderFrame
             // Since this should not change after creation
-            for (var i = 0; i < this._options.get('renderers').length; i++) {
+            for (let i = 0; i < this._options.get('renderers').length; i++) {
                 const r = this._options.get('renderers')[i]
 
                 if (typeof this._availableRenderers[r] !== 'undefined') {
@@ -111,7 +110,6 @@ abstract class BaseLayer {
      * Start rendering process
      */
     private _renderFrame() {
-        const that = this
 
         // clone renderers array
         this._renderQueue = [...this._defaultRenderQueue] || []
@@ -126,7 +124,7 @@ abstract class BaseLayer {
         }
 
         // Get initial data from layer content
-        var frameImageData = this._contentBuffer.context.getImageData(0, 0, this._outputBuffer.width, this._outputBuffer.height)
+        const frameImageData = this._contentBuffer.context.getImageData(0, 0, this._outputBuffer.width, this._outputBuffer.height)
 
         // start renderers queue processing
         this._processRenderQueue(frameImageData)
@@ -138,30 +136,29 @@ abstract class BaseLayer {
      * @returns {ImageData} result data of the renderer
      */
     private _processRenderQueue(frameImageData: ImageData) {
-        var that = this
 
         // if there is a renderer in the queue then run render pass with this renderer
         if (this._renderQueue.length) {
-            var renderer = this._renderQueue.shift() // pop renderer from render queue
+            const renderer = this._renderQueue.shift() // pop renderer from render queue
 
             //console.log(`${this.id} `, renderer)
 
             // Apply 'filter' to provided content with current renderer then process next renderer in queue
-            renderer.instance.renderFrame(frameImageData, renderer.params).then((outputData: ImageData) => {
-                that._processRenderQueue(outputData)
+            renderer?.instance.renderFrame(frameImageData, renderer.params).then((outputData: ImageData) => {
+                this._processRenderQueue(outputData)
             })
         // no more renderer in queue then draw final image and start queue process again	
         } else {
 
             // Erase current output buffer content
-            that._outputBuffer.clear()
+            this._outputBuffer.clear()
 
             // Put final frame data into output buffer and start process again (if needed)
             createImageBitmap(frameImageData).then(bitmap => {
                 // Put final layer data in the output buffer
-                that._outputBuffer.context.drawImage(bitmap, 0, 0)
+                this._outputBuffer.context.drawImage(bitmap, 0, 0)
                 // request next frame rendering
-                that._renderNextFrame()
+                this._renderNextFrame()
             })
         }
     }
@@ -170,8 +167,7 @@ abstract class BaseLayer {
      * Layer is loaded : Start rendering and call the callback if needed
      * @param {boolean} startRenderingLoop 
      */
-    protected _layerLoaded(startRenderingLoop: Boolean = false) {
-        var that = this
+    protected _layerLoaded(startRenderingLoop: boolean = false) {
 
         this._loaded = true
 
@@ -180,11 +176,11 @@ abstract class BaseLayer {
         // If no renderer in the queue then just render the frame data once
         if (this._defaultRenderQueue.length === 0 && this._options.get('opacity') === 1) {
             // Put content data in output buffer
-            var frameImageData = this._contentBuffer.context.getImageData(0, 0, this._outputBuffer.width, this._outputBuffer.height)
+            const frameImageData = this._contentBuffer.context.getImageData(0, 0, this._outputBuffer.width, this._outputBuffer.height)
 
             this._outputBuffer.clear()
             createImageBitmap(frameImageData).then(bitmap => {
-                that._outputBuffer.context.drawImage(bitmap, 0, 0)
+                this._outputBuffer.context.drawImage(bitmap, 0, 0)
             })
         }
 
@@ -278,7 +274,7 @@ abstract class BaseLayer {
         return this._defaultRenderQueue.length > 0
     }
 
-    setVisibility(isVisible: Boolean) {
+    setVisibility(isVisible: boolean) {
         if (isVisible === this.isVisible()) {
             return
         }
@@ -305,11 +301,11 @@ abstract class BaseLayer {
     }
 
 
-    isVisible(): Boolean {
+    isVisible(): boolean {
         return this._options.get('visible')
     }
 
-    isLoaded(): Boolean {
+    isLoaded(): boolean {
         return this._loaded
     }
 
@@ -347,7 +343,7 @@ abstract class BaseLayer {
     }
 
     get groups(): string[] {
-        return this._options.get('groups', ['default'])
+        return this._options.get('groups') || ['default']
     }
 
     get options(): Options {

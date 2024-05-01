@@ -1,6 +1,6 @@
-import { LayerRenderer } from './LayerRenderer.js'
-import { Utils } from '../Utils.js'
-import { Options } from '../Options.js'
+import {LayerRenderer} from './LayerRenderer.js'
+import {Utils} from '../Utils.js'
+import {Options} from '../Options.js'
 
 class OutlineRenderer extends LayerRenderer {
 
@@ -14,17 +14,16 @@ class OutlineRenderer extends LayerRenderer {
     }
 
     init(): Promise<void> {
-        const that = this
 
         return new Promise(resolve => {
 
             navigator.gpu.requestAdapter().then( adapter => {
-                that._adapter = adapter
+                this._adapter = adapter
             
                 adapter.requestDevice().then( device => {
-                    that._device = device
+                    this._device = device
 
-                    that._shaderModule = device.createShaderModule({
+                    this._shaderModule = device.createShaderModule({
                         code: `
                             struct UBO {
                                 innerColor: u32,
@@ -42,8 +41,8 @@ class OutlineRenderer extends LayerRenderer {
                             @compute
                             @workgroup_size(1)
                             fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
-                                let index : u32 = global_id.x + global_id.y * ${that._width}u;
-                                let lineSize : u32 = ${that._width}u;
+                                let index : u32 = global_id.x + global_id.y * ${this._width}u;
+                                let lineSize : u32 = ${this._width}u;
 
                                 let pixelColor : u32 = inputPixels.rgba[index];
                                 let innerColor : u32 = uniforms.innerColor;
@@ -62,7 +61,7 @@ class OutlineRenderer extends LayerRenderer {
 
                                     var innerColorFound = false;
                                     
-                                    if (global_id.x > 0u && global_id.x < ${that._width - 1}u && global_id.y > 0u && global_id.y < ${that._height - 1}u) {
+                                    if (global_id.x > 0u && global_id.x < ${this._width - 1}u && global_id.y > 0u && global_id.y < ${this._height - 1}u) {
                                         let topPixel = index - lineSize * lineWidth;
                                         let bottomPixel = index + lineSize * lineWidth;
                                         let leftPixel = index - lineWidth;
@@ -105,13 +104,13 @@ class OutlineRenderer extends LayerRenderer {
 
                     console.log('OutlineRenderer:init()')
 
-                    that._shaderModule.getCompilationInfo()?.then(i => {
+                    this._shaderModule.getCompilationInfo()?.then(i => {
                         if (i.messages.length > 0 ) {
                             console.warn("OutlineRenderer:compilationInfo() ", i.messages)
                         }
                     })
 
-                    that.renderFrame = that._doRendering
+                    this.renderFrame = this._doRendering
                     resolve()
                 })
             })
@@ -126,7 +125,6 @@ class OutlineRenderer extends LayerRenderer {
      * @returns {Promise<ImageData>}
      */
     private _doRendering(frameData: ImageData, options?: Options): Promise<ImageData> {
-        const that = this
 
         const UBOBuffer = this._device.createBuffer({
             size: 3 * 4,
@@ -227,18 +225,18 @@ class OutlineRenderer extends LayerRenderer {
             const uniformTypedArray = new Int32Array(uniformData)
 
             this._device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer)
-    
-            const commandEncoder = that._device.createCommandEncoder()
+
+            const commandEncoder = this._device.createCommandEncoder()
             const passEncoder = commandEncoder.beginComputePass()
 
             passEncoder.setPipeline(computePipeline)
             passEncoder.setBindGroup(0, bindGroup)
-            passEncoder.dispatchWorkgroups(that._width, that._height)
+            passEncoder.dispatchWorkgroups(this._width, this._height)
             passEncoder.end()
 
-            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, that._bufferByteLength)
-    
-            that._device.queue.submit([commandEncoder.finish()])
+            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, this._bufferByteLength)
+
+            this._device.queue.submit([commandEncoder.finish()])
     
             // Render DMD output
             gpuOutputBuffer.mapAsync(GPUMapMode.READ).then( () => {
@@ -247,7 +245,7 @@ class OutlineRenderer extends LayerRenderer {
                 const pixelsBuffer = new Uint8Array(gpuOutputBuffer.getMappedRange())
 
                 // Generate Image data usable by a canvas
-                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), that._width, that._height)
+                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), this._width, this._height)
 
                 // return to caller
                 resolve(imageData)
