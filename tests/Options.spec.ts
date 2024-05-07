@@ -1,4 +1,4 @@
-import {Options} from '../src/Options'
+import {Options} from '../src/utils/Options'
 
 describe('testing Options helper class', () => {
 

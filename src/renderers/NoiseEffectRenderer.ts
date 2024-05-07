@@ -1,4 +1,4 @@
-import {OffscreenBuffer} from "../OffscreenBuffer.js"
+import {OffscreenBuffer} from "../utils/OffscreenBuffer"
 import {LayerRenderer} from "./LayerRenderer.js"
 
 class NoiseEffectRenderer extends LayerRenderer {

@@ -16,7 +16,7 @@ node_modules
 **/.history
 
 ### Build files
-js/
+dist/
 
 ### Documentation
 docs/

@@ -1,6 +1,6 @@
 import {BaseLayer, LayerType} from "./BaseLayer.js"
-import {ILayerRendererDictionary} from "../renderers/LayerRenderer.js"
-import {Options} from "../Options.js"
+import {ILayerRendererDictionary} from "../interfaces/ILayerRendererDictionnary"
+import {Options} from "../utils/Options"
 
 /**
  * Interface to describe the values returned by computeDimensions method

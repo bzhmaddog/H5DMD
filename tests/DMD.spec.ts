@@ -3,7 +3,7 @@ import {setupJestCanvasMock} from 'jest-canvas-mock';
 import {DMDRenderer, DotShape} from '../src/renderers/DMDRenderer';
 import {ChangeAlphaRenderer} from '../src/renderers/ChangeAlphaRenderer';
 import {DMD} from '../src/DMD'
-import {Options} from '../src/Options';
+import {Options} from '../src/utils/Options';
 import {CanvasLayer} from '../src/layers/CanvasLayer';
 import {AnimationLayer} from "../src/layers/AnimationLayer";
 import {SpritesLayer} from "../src/layers/SpritesLayer";

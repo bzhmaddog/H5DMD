@@ -1,4 +1,4 @@
-import {OffscreenBuffer} from "./OffscreenBuffer.js"
+import {OffscreenBuffer} from "./OffscreenBuffer"
 
 interface IAnimation {
     width: number,

@@ -1,14 +1,16 @@
-import {OffscreenBuffer} from './OffscreenBuffer.js'
-import {Easing} from './Easing.js'
-import {DMDRenderer, DotShape} from './renderers/DMDRenderer.js'
-import {ILayerRendererDictionary, LayerRenderer} from './renderers/LayerRenderer.js'
+import {OffscreenBuffer} from './utils/OffscreenBuffer'
+import {Easing} from './utils/Easing'
+import {DMDRenderer} from './renderers/DMDRenderer.js'
+import {LayerRenderer} from './renderers/LayerRenderer.js'
 import {BaseLayer, LayerType} from './layers/BaseLayer.js'
 import {CanvasLayer} from './layers/CanvasLayer.js'
 import {VideoLayer} from './layers/VideoLayer.js'
 import {AnimationLayer} from './layers/AnimationLayer.js'
 import {SpritesLayer} from './layers/SpritesLayer.js'
 import {TextLayer} from './layers/TextLayer.js'
-import {Options} from './Options.js'
+import {Options} from './utils/Options'
+import {DotShape} from "./enums/DotShape";
+import {ILayerRendererDictionary} from "./interfaces/ILayerRendererDictionnary";
 
 
 interface ILayerDimensions {
@@ -289,13 +291,15 @@ class DMD {
         const startBrightness = this._renderer.brightness
 
         return new Promise(resolve => {
+            const renderer = this._renderer
+
             const cb = function () {
                 const delta = window.performance.now() - start
                 const b = startBrightness - Easing.easeOutSine(delta, 0, startBrightness, duration)
-                this._renderer.setBrightness(b)
+                renderer.setBrightness(b)
 
-                if (this._renderer.brightness <= 0 || delta > duration) {
-                    this._renderer.setBrightness(0)
+                if (renderer.brightness <= 0 || delta > duration) {
+                    renderer.setBrightness(0)
                     resolve()
                 } else {
                     setTimeout(cb, 1)
@@ -317,17 +321,17 @@ class DMD {
 
 
         return new Promise(resolve => {
-            const r = this._renderer;
+            const renderer = this._renderer
 
             const cb = function () {
 
                 const delta = window.performance.now() - start
                 const b = Easing.easeOutSine(delta, startBrightness, 1, duration)
 
-                r.setBrightness(b)
+                renderer.setBrightness(b)
 
-                if (r.brightness >= 1 || delta > duration) {
-                    r.setBrightness(1)
+                if (renderer.brightness >= 1 || delta > duration) {
+                    renderer.setBrightness(1)
                     resolve()
                 } else {
                     setTimeout(cb, 1)

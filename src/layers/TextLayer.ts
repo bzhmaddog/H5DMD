@@ -1,9 +1,9 @@
 import {BaseLayer, LayerType} from './BaseLayer.js'
-import {OffscreenBuffer} from '../OffscreenBuffer.js'
-import {Colors} from '../Colors.js'
-import {ILayerRendererDictionary} from '../renderers/LayerRenderer.js'
-import {Utils} from '../Utils.js'
-import {Options} from '../Options.js'
+import {OffscreenBuffer} from '../utils/OffscreenBuffer'
+import {Colors} from '../enums/Colors'
+import {ILayerRendererDictionary} from '../interfaces/ILayerRendererDictionnary'
+import {Utils} from '../utils/Utils'
+import {Options} from '../utils/Options'
 import {RemoveAliasingRenderer} from '../renderers/RemoveAliasingRenderer.js'
 import {OutlineRenderer} from '../renderers/OutlineRenderer.js'
 
@@ -251,7 +251,7 @@ class TextLayer extends BaseLayer {
                             outerColor: Utils.hexRGBToHexRGBA(this._options.get('outlineColor').replace('#', ''), 'FF'),
                             width: this._options.get('outlineWidth') // TODO Check if correct
                         })
-                    ).then((outputData) => {
+                    ).then((outputData: ImageData) => {
                         createImageBitmap(outputData).then(bitmap => {
                             this._contentBuffer.clear()
                             this._contentBuffer.context.drawImage(bitmap, 0, 0)
@@ -268,7 +268,7 @@ class TextLayer extends BaseLayer {
                             treshold: 255, // TODO find how param was set before
                             baseColor: Utils.hexRGBToHexRGBA(this._options.get('color').replace('#', ''), 'FF')
                         })
-                    ).then(aaData => {
+                    ).then((aaData: ImageData) => {
                         this._getRendererInstance('outline').renderFrame(
                             aaData,
                             new Options({
@@ -276,7 +276,7 @@ class TextLayer extends BaseLayer {
                                 outerColor: Utils.hexRGBToHexRGBA(this._options.get('outlineColor').replace('#', ''), 'FF'),
                                 width: this._options.get('outlineWidth')
                             })
-                        ).then(outputData => {
+                        ).then((outputData: ImageData) => {
                             createImageBitmap(outputData).then(bitmap => {
                                 this._contentBuffer.clear()
                                 this._contentBuffer.context.drawImage(bitmap, 0, 0)
@@ -304,7 +304,7 @@ class TextLayer extends BaseLayer {
                             treshold: 255, // TODO: Find how param was set before
                             baseColor: Utils.hexRGBToHexRGBA(this._options.get('color').replace('#', ''), 'FF')
                         })
-                    ).then(aaData => {
+                    ).then((aaData: ImageData) => {
                         createImageBitmap(aaData).then(bitmap => {
                             this._contentBuffer.clear()
                             this._contentBuffer.context.fillRect(0,0,this.width, this.height)

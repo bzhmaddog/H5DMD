@@ -71,12 +71,11 @@
             </ul>
         </div>
         <script type="module">
-			import { DMD } from "./dist/js/DMD.js";
-			import { Colors } from "./dist/js/Colors.js";
-			import { DotShape } from "./dist/js/renderers/DMDRenderer.js";
-            import { NoiseEffectRenderer } from "./dist/js/renderers/NoiseEffectRenderer.js";
-			import { Options } from "./dist/js/Options.js";
-            import { Utils } from "./dist/js/Utils.js";
+            import {DMD} from "./dist/DMD.js";
+            import {Colors} from "./dist/Colors.js";
+            import {DotShape} from "./dist/renderers/DMDRenderer.js";
+            import {NoiseEffectRenderer} from "./dist/renderers/NoiseEffectRenderer.js";
+            import {Utils} from "./dist/Utils.js";
 		
             (function () {
                 'use strict';
@@ -273,7 +272,7 @@
                                 fontSize : 80
                             });
 
-                            var spriteLayer = dmd.addSpriteLayer('sprite', {
+                            var spriteLayer = dmd.addSpritesLayer('sprite', {
                                 width: 110,
                                 height: 130
                             },

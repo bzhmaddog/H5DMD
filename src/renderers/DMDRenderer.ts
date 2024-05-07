@@ -1,9 +1,5 @@
-import {Renderer} from "./Renderer.js"
-
-enum DotShape { 
-	Square,
-	Circle,
-}
+import {Renderer} from "./Renderer"
+import {DotShape} from "../enums/DotShape";
 
 class DMDRenderer extends Renderer {
 
@@ -351,4 +347,4 @@ class DMDRenderer extends Renderer {
 
 }
 
-export { DMDRenderer, DotShape }
+export {DMDRenderer}

@@ -1,4 +1,4 @@
-import {Options} from "../Options.js"
+import {Options} from "../utils/Options"
 
 abstract class Renderer {
 

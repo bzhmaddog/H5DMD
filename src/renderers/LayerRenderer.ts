@@ -1,5 +1,5 @@
 import {Renderer} from "./Renderer.js";
-import {Options} from "../Options.js";
+import {Options} from "../utils/Options";
 
 abstract class LayerRenderer extends Renderer {
     protected _width: number;
@@ -30,16 +30,7 @@ abstract class LayerRenderer extends Renderer {
     }
 }
 
-interface ILayerRendererDictionary {
-    [index: string]: LayerRenderer;
-}
-
-interface ILayerRendererParamDictionary {
-    [index: string]: string | number | boolean; // WAS any before linter
-}
 
 export {
-    LayerRenderer,
-    ILayerRendererDictionary,
-    ILayerRendererParamDictionary,
+    LayerRenderer
 };
