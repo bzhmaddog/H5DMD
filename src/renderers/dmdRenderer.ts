@@ -337,8 +337,6 @@ class DmdRenderer extends Renderer {
     setBrightness(b: number) {
         const brightness = Math.max(0, Math.min(b, 1)) // normalize
         this._brightness = Math.round(brightness * 1e3) / 1e3 // round to 1 digit after dot
-
-        console.log(this._bgBrightness)
     }
 
     get brightness() {
