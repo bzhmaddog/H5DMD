@@ -1,4 +1,4 @@
-import {Renderer} from "../src/renderers/Renderer"
+import {Renderer} from "../src/renderers/renderer"
 
 class MockRenderer extends Renderer {
 

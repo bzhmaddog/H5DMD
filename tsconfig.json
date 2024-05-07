@@ -1,5 +1,23 @@
 {
   "compilerOptions": {
+    "baseUrl": "./src",
+    "paths": {
+      "@utils/*": [
+        "utils/*"
+      ],
+      "@layers/*": [
+        "layers/*"
+      ],
+      "@interfaces/*": [
+        "interfaces/*"
+      ],
+      "@renderers/*": [
+        "renderers/*"
+      ],
+      "@enums/*": [
+        "enums/*"
+      ]
+    },
     "importHelpers": true,
     "declaration": true,
     "outDir": "./dist",

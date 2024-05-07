@@ -1,16 +1,17 @@
-import {Options} from "../utils/Options"
+import {Options} from "@utils/options"
 
-abstract class Renderer {
+export abstract class Renderer {
 
     protected _adapter: GPUAdapter
     protected _device: GPUDevice
     protected _shaderModule: GPUShaderModule
 
-    private _name: string
+    private readonly _name: string
     protected _initDone: boolean
 
-    constructor(name: string) {
+    protected constructor(name: string) {
         this._name = name
+        this._initDone = false
     }
 
 
@@ -22,9 +23,3 @@ abstract class Renderer {
         return this._name
     }
 }
-
-interface IRendererDictionary {
-    [index: string]: Renderer
-}
-
-export { Renderer, IRendererDictionary }

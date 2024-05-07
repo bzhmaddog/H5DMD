@@ -1,11 +1,11 @@
-import {BaseLayer, LayerType} from './BaseLayer.js'
-import {OffscreenBuffer} from '../utils/OffscreenBuffer'
-import {Colors} from '../enums/Colors'
-import {ILayerRendererDictionary} from '../interfaces/ILayerRendererDictionnary'
-import {Utils} from '../utils/Utils'
-import {Options} from '../utils/Options'
-import {RemoveAliasingRenderer} from '../renderers/RemoveAliasingRenderer.js'
-import {OutlineRenderer} from '../renderers/OutlineRenderer.js'
+import {BaseLayer, LayerType} from './baseLayer'
+import {OffscreenBuffer} from '@utils/offscreenBuffer'
+import {Colors} from '@enums/colors'
+import {ILayerRendererDictionary} from '@interfaces/iLayerRendererDictionnary'
+import {Utils} from '@utils/utils'
+import {Options} from '@utils/options'
+import {RemoveAliasingRenderer} from '@renderers/removeAliasingRenderer'
+import {OutlineRenderer} from '@renderers/outlineRenderer'
 
 class TextLayer extends BaseLayer {
 

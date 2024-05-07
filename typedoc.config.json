@@ -1,5 +1,12 @@
 {
     "$schema": "https://typedoc.org/schema.json",
-    "entryPoints": ["./src/*","./src/layers/*","./src/renderers/*"],
+  "entryPoints": [
+    "./src/*",
+    "./src/layers/*",
+    "./src/renderers/*",
+    "./src/enums/*",
+    "./src/interfaces/*",
+    "./src/utils/*"
+  ],
     "out": "docs"
 }

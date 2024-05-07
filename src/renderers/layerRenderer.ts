@@ -1,7 +1,7 @@
-import {Renderer} from "./Renderer.js";
-import {Options} from "../utils/Options";
+import {Renderer} from "./renderer";
+import {Options} from "@utils/options";
 
-abstract class LayerRenderer extends Renderer {
+export abstract class LayerRenderer extends Renderer {
     protected _width: number;
     protected _height: number;
     protected _bufferByteLength: number;
@@ -26,11 +26,6 @@ abstract class LayerRenderer extends Renderer {
     protected _doNothing(frameData: ImageData): Promise<ImageData> {
         return new Promise((resolve) => {
             resolve(frameData);
-        });
+        })
     }
 }
-
-
-export {
-    LayerRenderer
-};

@@ -1,2 +1,2 @@
-export * from './ILayerRendererDictionnary';
-export * from './ILayerRendererParamDictionnary';
+export * from './iLayerRendererDictionnary';
+export * from './iLayerRendererParamDictionnary';

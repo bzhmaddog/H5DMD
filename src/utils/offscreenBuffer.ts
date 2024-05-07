@@ -1,5 +1,5 @@
 /**
- * Provide a simple class to build a buffer for our layers and our DMD
+ * Provide a simple class to build a buffer for our layers and our Dmd
  */
 class OffscreenBuffer {
 	private _canvas: HTMLCanvasElement

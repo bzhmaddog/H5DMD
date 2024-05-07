@@ -1,20 +1,18 @@
-import {LayerRenderer} from "./LayerRenderer.js"
-import {Options} from "../utils/Options"
+import {LayerRenderer} from './layerRenderer'
+import {Utils} from '@utils/utils'
+import {Options} from '@utils/options'
 
-class ChangeAlphaRenderer extends LayerRenderer {
+class OutlineRenderer extends LayerRenderer {
 
     /**
      * @param {number} width 
      * @param {number} height 
      */
+
     constructor(width: number, height: number) {
-        super("ChangeAlphaRenderer", width, height)
+        super("OutlineRenderer", width, height)
     }
 
-    /**
-     * Init renderer
-     * @returns Promise
-     */
     init(): Promise<void> {
 
         return new Promise(resolve => {
@@ -28,15 +26,12 @@ class ChangeAlphaRenderer extends LayerRenderer {
                     this._shaderModule = device.createShaderModule({
                         code: `
                             struct UBO {
-                                opacity: f32
+                                innerColor: u32,
+                                outerColor: u32,
+                                lineWidth: u32
                             }
-
                             struct Image {
                                 rgba: array<u32>
-                            }
-
-                            fn f2u(f: f32) -> u32 {
-                                return u32(ceil(f));
                             }
 
                             @group(0) @binding(0) var<storage,read> inputPixels: Image;
@@ -47,33 +42,71 @@ class ChangeAlphaRenderer extends LayerRenderer {
                             @workgroup_size(1)
                             fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
                                 let index : u32 = global_id.x + global_id.y * ${this._width}u;
+                                let lineSize : u32 = ${this._width}u;
+
                                 let pixelColor : u32 = inputPixels.rgba[index];
-                                let opacity : f32 = uniforms.opacity;
+                                let innerColor : u32 = uniforms.innerColor;
+                                let outerColor : u32 = uniforms.outerColor;
+                                let lineWidth : u32 = uniforms.lineWidth;
 
                                 
                                 var a : u32 = (pixelColor >> 24u) & 255u;
                                 let b : u32 = (pixelColor >> 16u) & 255u;
                                 let g : u32 = (pixelColor >> 8u) & 255u;
                                 let r : u32 = (pixelColor & 255u);
+                                
 
-                                var aa = f2u(floor(f32(a) * opacity));
+                                // if inner color pixel found check pixels around
+                                if (pixelColor != innerColor) {
 
-                                // Hack : Todo find why floor not working (0 * anything) should give 0
-                                if (opacity == 0f) {
-                                    aa = 0u;
+                                    var innerColorFound = false;
+                                    
+                                    if (global_id.x > 0u && global_id.x < ${this._width - 1}u && global_id.y > 0u && global_id.y < ${this._height - 1}u) {
+                                        let topPixel = index - lineSize * lineWidth;
+                                        let bottomPixel = index + lineSize * lineWidth;
+                                        let leftPixel = index - lineWidth;
+                                        let rightPixel = index + lineWidth;
+                                        let topLeftPixel = topPixel - lineWidth;
+                                        let topRightPixel = topPixel + lineWidth;
+                                        let bottomLeftPixel = bottomPixel - lineWidth;
+                                        let bottomRightPixel = bottomPixel + lineWidth;
+
+                                        if (
+                                            inputPixels.rgba[topPixel] == innerColor ||
+                                            inputPixels.rgba[rightPixel] == innerColor ||
+                                            inputPixels.rgba[bottomPixel] == innerColor ||
+                                            inputPixels.rgba[leftPixel] == innerColor ||
+                                            inputPixels.rgba[topLeftPixel] == innerColor ||
+                                            inputPixels.rgba[topRightPixel] == innerColor ||
+                                            inputPixels.rgba[bottomLeftPixel] == innerColor ||
+                                            inputPixels.rgba[bottomRightPixel] == innerColor
+                                        ) {
+                                            innerColorFound = true;
+                                        }
+                                    }
+
+
+                                    if (innerColorFound) {
+                                        outputPixels.rgba[index] = outerColor;
+                                    } else {
+                                        outputPixels.rgba[index] = pixelColor;
+                                        //outputPixels.rgba[index] = 4294967040u;
+                                    }
+
+                                } else {
+                                    outputPixels.rgba[index] = pixelColor;
                                 }
 
-                                outputPixels.rgba[index] = (aa << 24u) | (b << 16u) | (g << 8u) | r;
+                                //outputPixels.rgba[index] = 4278190335u;
                             }
                         `
                     })
 
-                    console.log('ChangeAlphaRenderer:init()')
-
+                    console.log('OutlineRenderer:init()')
 
                     this._shaderModule.getCompilationInfo()?.then(i => {
                         if (i.messages.length > 0 ) {
-                            console.warn("ChangeAlphaRenderer:compilationInfo() ", i.messages)
+                            console.warn("OutlineRenderer:compilationInfo() ", i.messages)
                         }
                     })
 
@@ -86,17 +119,15 @@ class ChangeAlphaRenderer extends LayerRenderer {
     }
 
     /**
-     * Apply filter to provided data then return altered data
-     * @param {ImageData} frameData
-     * @param {Options} _options
+     * Render frame
+     * @param {ImageData} frameData 
+     * @param {Options} options
      * @returns {Promise<ImageData>}
      */
-    private _doRendering(frameData: ImageData, _options?: Options): Promise<ImageData> {
-
-        const options = new Options({opacity: 1}).merge(_options)
+    private _doRendering(frameData: ImageData, options?: Options): Promise<ImageData> {
 
         const UBOBuffer = this._device.createBuffer({
-            size: 4,
+            size: 3 * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
 
@@ -117,7 +148,7 @@ class ChangeAlphaRenderer extends LayerRenderer {
         })
     
         const bindGroupLayout = this._device.createBindGroupLayout({
-            entries : [
+            entries: [
                 {
                     binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
@@ -176,16 +207,22 @@ class ChangeAlphaRenderer extends LayerRenderer {
             }
         })
 
-
         return new Promise( resolve => {
 
             // Put original image data in the input buffer (257x78)
             new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData.data))
             gpuInputBuffer.unmap()
 
+    
+
             // Write values to uniform buffer object
-            const uniformData = [options.get('opacity')]
-            const uniformTypedArray = new Float32Array(uniformData)
+            const uniformData = [
+                Utils.hexColorToInt(Utils.rgba2abgr(options.get('innerColor'))),
+                Utils.hexColorToInt(Utils.rgba2abgr(options.get('outerColor'))),
+                options.get('width')
+            ]
+
+            const uniformTypedArray = new Int32Array(uniformData)
 
             this._device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer)
 
@@ -200,8 +237,8 @@ class ChangeAlphaRenderer extends LayerRenderer {
             commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, this._bufferByteLength)
 
             this._device.queue.submit([commandEncoder.finish()])
-    
-            // Render DMD output
+
+            // Render Dmd output
             gpuOutputBuffer.mapAsync(GPUMapMode.READ).then( () => {
     
                 // Grab data from output buffer
@@ -215,6 +252,7 @@ class ChangeAlphaRenderer extends LayerRenderer {
             })
         })
 	}
+
 }
 
-export { ChangeAlphaRenderer }
+export { OutlineRenderer }

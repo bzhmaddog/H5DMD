@@ -1,7 +1,8 @@
 # H5DMD
-A Virtual DMD (Dot Matrix Display) powered by HTML5 Canvas and WebGPU(optional)
 
-![256x78 DMD on a 1280x390 display](/logo.png?raw=true "1 dot = 4x4 pixels")
+A Virtual Dmd (Dot Matrix Display) powered by HTML5 Canvas and WebGPU(optional)
+
+![256x78 Dmd on a 1280x390 display](/logo.png?raw=true "1 dot = 4x4 pixels")
 
 Quick demonstration videos (tests before using mpf):
 
@@ -15,9 +16,11 @@ https://www.youtube.com/watch?v=q58dZAbNXe8
 
 
 # Requirements
-This project uses a lot of experimental features and has been tested with chromium 105+ Linux/Windows and Chrome Canary on MacOS
 
-It requires some experimental flags to be enabled
+https://caniuse.com/webgpu
+
+Some experimental flags where used during the development of this project : Some might still need to be enabled
+depending on your platform
 ```
 --use-gl=desktop
 --ignore-gpu-blocklist
@@ -45,7 +48,7 @@ If it doesn't load look at the console to see errors
 
 ```
 
-# Install
+# Install dependencies
 ```
 npm install
 ```
@@ -53,13 +56,20 @@ npm install
 # Build and watch
 ```
 #Transpile all files
-./build.sh
+npm run build
 
 #Watch file changes
-./watch.sh
-```
+npm run watch
 
-Note : Files are not bundled into one big file (using webpack for example) because it is not working well with ES modules
+#Run eslinter
+npm run lint
+
+#Run tests
+npm run test
+
+#Build documentation
+npm run build-documentation
+```
 
 # Documentation
 

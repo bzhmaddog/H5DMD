@@ -1,7 +1,7 @@
-import {Options} from "../utils/Options"
-import {BaseLayer, LayerType} from "./BaseLayer.js"
-import {ILayerRendererDictionary} from "../interfaces/ILayerRendererDictionnary"
-import {Sprite} from "../utils/Sprite"
+import {BaseLayer, LayerType} from "./baseLayer"
+import {ILayerRendererDictionary} from "@interfaces/iLayerRendererDictionnary"
+import {Sprite} from "@utils/sprite"
+import {Options} from "@utils/options";
 
 interface ISpriteItem {
     x : number,

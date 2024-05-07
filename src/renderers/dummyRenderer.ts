@@ -1,4 +1,4 @@
-import {LayerRenderer} from "./LayerRenderer.js"
+import {LayerRenderer} from "./layerRenderer"
 
 class DummyRenderer extends LayerRenderer {
 
@@ -147,8 +147,8 @@ class DummyRenderer extends LayerRenderer {
             commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, this._bufferByteLength)
 
             this._device.queue.submit([commandEncoder.finish()])
-    
-            // Render DMD output
+
+            // Render Dmd output
             gpuOutputBuffer.mapAsync(GPUMapMode.READ).then( () => {
     
                 // Grab data from output buffer

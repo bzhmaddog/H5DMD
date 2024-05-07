@@ -1,2 +1,2 @@
-export * from './Colors';
-export * from './DotShape';
+export * from './colors';
+export * from './dotShape';

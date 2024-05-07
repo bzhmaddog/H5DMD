@@ -1,7 +1,7 @@
-import {Renderer} from "./Renderer"
-import {DotShape} from "../enums/DotShape";
+import {Renderer} from "./renderer"
+import {DotShape} from "@enums/dotShape";
 
-class DMDRenderer extends Renderer {
+class DmdRenderer extends Renderer {
 
     private _dmdWidth: number
     private _dmdHeight: number
@@ -43,7 +43,7 @@ class DMDRenderer extends Renderer {
         bgBrightness: number,
         brightness: number
     ) {
-        super("DMDRenderer")
+        super("DmdRenderer")
 
         this._dmdWidth = dmdWidth
         this._dmdHeight = dmdHeight
@@ -204,7 +204,7 @@ class DMDRenderer extends Renderer {
     }
 
     /**
-     * Render a DMD frame
+     * Render a Dmd frame
      * @param {ImageData} frameData 
      * @returns {ImageData}
      */
@@ -312,8 +312,8 @@ class DMDRenderer extends Renderer {
             commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, this._screenBufferByteLength)
 
             this._device.queue.submit([commandEncoder.finish()])
-    
-            // Render DMD output
+
+            // Render Dmd output
             gpuOutputBuffer.mapAsync(GPUMapMode.READ).then( () => {
     
                 // Grab data from output buffer
@@ -347,4 +347,4 @@ class DMDRenderer extends Renderer {
 
 }
 
-export {DMDRenderer}
+export {DmdRenderer}

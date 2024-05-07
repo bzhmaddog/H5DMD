@@ -1,6 +1,6 @@
-import {BaseLayer, LayerType} from "./BaseLayer.js"
-import {Options} from "../utils/Options"
-import {ILayerRendererDictionary} from "../interfaces/ILayerRendererDictionnary"
+import {BaseLayer, LayerType} from "./baseLayer"
+import {Options} from "@utils/options"
+import {ILayerRendererDictionary} from "@interfaces/iLayerRendererDictionnary"
 
 class AnimationLayer extends BaseLayer {
 

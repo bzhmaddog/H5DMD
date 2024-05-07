@@ -1,15 +1,13 @@
 import {setupJestCanvasMock} from 'jest-canvas-mock';
 
-import {DMDRenderer, DotShape} from '../src/renderers/DMDRenderer';
-import {ChangeAlphaRenderer} from '../src/renderers/ChangeAlphaRenderer';
-import {DMD} from '../src/DMD'
-import {Options} from '../src/utils/Options';
-import {CanvasLayer} from '../src/layers/CanvasLayer';
-import {AnimationLayer} from "../src/layers/AnimationLayer";
-import {SpritesLayer} from "../src/layers/SpritesLayer";
+import {ChangeAlphaRenderer, DmdRenderer} from '../src/renderers';
+import {Dmd} from '../src'
+import {Options} from '../src/utils';
+import {AnimationLayer, CanvasLayer, SpritesLayer} from '../src/layers';
+import {DotShape} from "../src/enums";
 
-jest.mock('../src/renderers/DMDRenderer');
-jest.mock('../src/renderers/ChangeAlphaRenderer')
+jest.mock('../src/renderers/dmdRenderer');
+jest.mock('../src/renderers/changeAlphaRenderer')
 
 describe('testing entry file', () => {
 
@@ -23,25 +21,25 @@ describe('testing entry file', () => {
         setupJestCanvasMock();
 
         const mockInit = jest.fn()
-        DMDRenderer.prototype.init = mockInit
+        DmdRenderer.prototype.init = mockInit
         ChangeAlphaRenderer.prototype.init = mockInit
 
         const mockRenderFrame = jest.fn()
-        DMDRenderer.prototype.renderFrame = mockRenderFrame
+        DmdRenderer.prototype.renderFrame = mockRenderFrame
         ChangeAlphaRenderer.prototype.renderFrame = mockRenderFrame
     });
 
 
     test('Class should be created', () => {
-        const dmd = new DMD(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
+        const dmd = new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
         expect(dmd).toBeTruthy()
-        expect(dmd).toBeInstanceOf(DMD)
+        expect(dmd).toBeInstanceOf(Dmd)
     });
 
     test('Created Layer should exist and match class CanvasLayer', () => {
 
 
-        const dmd = new DMD(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
+        const dmd = new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
 
         const layer = dmd.addCanvasLayer('test', {}, new Options(), {}, (l) => {
             expect(l).toBe(layer)
@@ -53,7 +51,7 @@ describe('testing entry file', () => {
     });
 
     test('Created Layer should exist and match class AnimationLayer', () => {
-        const dmd = new DMD(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
+        const dmd = new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
         const layer = dmd.addAnimationLayer('test', {}, new Options(), {}, (l) => {
             expect(l).toBe(layer)
         }, () => {
@@ -64,7 +62,7 @@ describe('testing entry file', () => {
     });
 
     test('Created Layer should exist and match class SpritesLayer', () => {
-        const dmd = new DMD(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
+        const dmd = new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
         const layer = dmd.addSpritesLayer('test', {}, new Options(), {}, (l) => {
             expect(l).toBe(layer)
         }, () => {
@@ -75,7 +73,7 @@ describe('testing entry file', () => {
     });
 
     /*test('Created Layer should exist and match class TextLayer', () => {
-        const dmd = new DMD(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
+        const dmd = new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
         const layer = dmd.addTextLayer('test', {}, new Options(), {}, (l) => {
             expect(l).toBe(layer)
         }, () => {})

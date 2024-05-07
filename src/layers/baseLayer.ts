@@ -1,8 +1,8 @@
-import {OffscreenBuffer} from "../utils/OffscreenBuffer"
-import {LayerRenderer} from "../renderers/LayerRenderer.js"
-import {Options} from "../utils/Options"
-import {ChangeAlphaRenderer} from "../renderers/ChangeAlphaRenderer.js"
-import {ILayerRendererDictionary} from "../interfaces/ILayerRendererDictionnary";
+import {OffscreenBuffer} from "@utils/offscreenBuffer"
+import {LayerRenderer} from "../renderers"
+import {Options} from "@utils/options"
+import {ChangeAlphaRenderer} from "@renderers/changeAlphaRenderer"
+import {ILayerRendererDictionary} from "@interfaces/iLayerRendererDictionnary";
 
 enum LayerType {
 	Image,
