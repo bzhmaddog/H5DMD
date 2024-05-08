@@ -12,15 +12,10 @@ import {
     VideoLayer
 } from "h5dmd";
 
-
-// Fix base uri when running demo in nested path
-const base = document.createElement('base');
-base.href = document.location.href.replace("/index.html", "");
-document.getElementsByTagName('head')[0].appendChild(base);
-
-
 // When dom is loaded create the objects and bind the events
 document.addEventListener('DOMContentLoaded', function () {
+
+    const imagesPath = document.baseURI.replace('index.html', '') + 'images';
 
     // Check if webgpu is supported
     if ("gpu" in navigator) {
@@ -31,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const noises: string[] = [];
         for (let i = 0; i < 6; i++) {
-            noises.push(`${document.baseURI}/images/noises/noise-${i}.png`);
+            noises.push(`${imagesPath}/noises/noise-${i}.png`);
         }
 
         // Init Dmd then
@@ -42,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             dmd.addCanvasLayer('bg', {}, {} as Options, {}, (layer: CanvasLayer) => {
 
-                const bgURI = document.baseURI + "/images/boss-mode-bg.png";
+                const bgURI = `${imagesPath}/boss-mode-bg.png`;
 
                 fetch(bgURI)
                     .then(response => response.blob())
@@ -71,24 +66,25 @@ document.addEventListener('DOMContentLoaded', function () {
                 (layer: AnimationLayer) => {
 
                     const images = [
-                        document.baseURI + '/images/animation/0.webp',
-                        document.baseURI + '/images/animation/1.webp',
-                        document.baseURI + '/images/animation/2.webp',
-                        document.baseURI + '/images/animation/3.webp',
-                        document.baseURI + '/images/animation/4.webp',
-                        document.baseURI + '/images/animation/5.webp',
-                        document.baseURI + '/images/animation/6.webp',
-                        document.baseURI + '/images/animation/7.webp',
-                        document.baseURI + '/images/animation/8.webp',
-                        document.baseURI + '/images/animation/9.webp',
-                        document.baseURI + '/images/animation/10.webp',
-                        document.baseURI + '/images/animation/11.webp',
-                        document.baseURI + '/images/animation/12.webp',
-                        document.baseURI + '/images/animation/13.webp',
-                        document.baseURI + '/images/animation/14.webp'
+                        `${imagesPath}/animation/0.webp`,
+                        `${imagesPath}/animation/1.webp`,
+                        `${imagesPath}/animation/2.webp`,
+                        `${imagesPath}/animation/3.webp`,
+                        `${imagesPath}/animation/4.webp`,
+                        `${imagesPath}/animation/5.webp`,
+                        `${imagesPath}/animation/6.webp`,
+                        `${imagesPath}/animation/7.webp`,
+                        `${imagesPath}/animation/8.webp`,
+                        `${imagesPath}/animation/9.webp`,
+                        `${imagesPath}/animation/10.webp`,
+                        `${imagesPath}/animation/11.webp`,
+                        `${imagesPath}/animation/12.webp`,
+                        `${imagesPath}/animation/13.webp`,
+                        `${imagesPath}/animation/14.webp`
                     ];
 
-                    Utils.loadImagesOrdered(images)
+                    Utils
+                        .loadImagesOrdered(images)
                         .then((bitmaps) => {
                             layer.setAnimationData(bitmaps);
                         });
@@ -121,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         layer.setVideo(video); // autoplay = true so no need to call play here
                     });
 
-                    video.src = document.baseURI + '/images/transparent-video.webm';
+                    video.src = `${imagesPath}/transparent-video.webm`;
                 });
 
             dmd.addCanvasLayer(
@@ -137,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 {},
                 (layer: CanvasLayer) => {
 
-                    const bgURI = document.baseURI + "/images/boss-matthew-big.png";
+                    const bgURI = `${imagesPath}/boss-matthew-big.png`;
 
                     fetch(bgURI)
                         .then(response => response.blob())
@@ -234,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 {},
                 (layer: SpritesLayer) => {
 
-                    const bgURI = document.baseURI + "/images/scott2x.png";
+                    const bgURI = `${imagesPath}/scott2x.png`;
 
                     fetch(bgURI)
                         .then(response => response.blob())
