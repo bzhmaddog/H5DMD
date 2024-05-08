@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>H5DMD Demo</title>
+    <meta charset="UTF-8"/>
+    <link rel="icon" type="image/svg+xml" href="/webgpu.svg"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: black;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        span, li, label {
+            color: white;
+        }
+
+        /*#output {
+            border: 1px solid red;
+        }*/
+    </style>
+</head>
+<body>
+<canvas id="output" width="1280" height="390"></canvas>
+<br/>
+<div id="checkboxes">
+    <div>
+        <input id="background_checkbox" type="checkbox" data-layer="bg" checked/>
+        <label for="background_checkbox">Background</label>
+    </div>
+    <div>
+        <input id="sprite_checkbox" type="checkbox" data-layer="sprite" checked/>
+        <label for="sprite_checkbox">Sprite</label>
+    </div>
+    <div>
+        <input id="animation_checkbox" type="checkbox" data-layer="animation" checked/>
+        <label for="animation_checkbox">Background animation</label>
+    </div>
+    <div>
+        <input id="video_checkbox" type="checkbox" data-layer="video"/>
+        <label for="video_checkbox">Transparent video</label>
+    </div>
+    <div>
+        <input id="vstext_checkbox" type="checkbox" data-layer="text2" checked/>
+        <label for="vstext_checkbox">VS text inner</label>
+    </div>
+    <div>
+        <input id="vstext_checkbox2" type="checkbox" data-layer="text3" checked/>
+        <label for="vstext_checkbox2">VS text outer</label>
+    </div>
+    <div>
+        <input id="scotttext_checkbox" type="checkbox" data-layer="text1" checked/>
+        <label for="scotttext_checkbox">Scott pilgrim text</label>
+    </div>
+    <div>
+        <input id="matthewtext_checkbox" type="checkbox" data-layer="text4" checked/>
+        <label for="matthewtext_checkbox">Matthew Patel text</label>
+    </div>
+    <div>
+        <input id="matthewimg_checkbox" type="checkbox" data-layer="matthew" checked/>
+        <label for="matthewimg_checkbox">Matthew Patel Image</label>
+    </div>
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

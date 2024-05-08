@@ -1,6 +1,6 @@
 import {BaseLayer, LayerType} from "./baseLayer"
-import {Options} from "@utils/options"
-import {ILayerRendererDictionary} from "@interfaces/iLayerRendererDictionnary"
+import {Options} from "../utils"
+import {ILayerRendererDictionary} from "../interfaces"
 
 enum VideoState {
 	STOPPED,

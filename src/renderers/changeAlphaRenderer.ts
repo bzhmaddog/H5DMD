@@ -1,5 +1,5 @@
 import {LayerRenderer} from "./layerRenderer"
-import {Options} from "@utils/options"
+import {Options} from "../utils"
 
 class ChangeAlphaRenderer extends LayerRenderer {
 

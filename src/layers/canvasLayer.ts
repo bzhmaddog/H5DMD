@@ -1,6 +1,6 @@
 import {BaseLayer, LayerType} from "./baseLayer"
-import {ILayerRendererDictionary} from "@interfaces/iLayerRendererDictionnary"
-import {Options} from "@utils/options"
+import {ILayerRendererDictionary} from "../interfaces"
+import {Options} from "../utils"
 
 /**
  * Interface to describe the values returned by computeDimensions method

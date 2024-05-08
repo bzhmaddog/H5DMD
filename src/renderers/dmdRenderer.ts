@@ -1,5 +1,5 @@
 import {Renderer} from "./renderer"
-import {DotShape} from "@enums/dotShape";
+import {DotShape} from "../enums";
 
 class DmdRenderer extends Renderer {
 

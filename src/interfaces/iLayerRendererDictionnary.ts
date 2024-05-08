@@ -1,4 +1,4 @@
-import {LayerRenderer} from "@renderers/layerRenderer";
+import {LayerRenderer} from "../renderers/layerRenderer";
 
 export interface ILayerRendererDictionary {
     [index: string]: LayerRenderer;

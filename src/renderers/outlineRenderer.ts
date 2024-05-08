@@ -1,6 +1,5 @@
 import {LayerRenderer} from './layerRenderer'
-import {Utils} from '@utils/utils'
-import {Options} from '@utils/options'
+import {Options, Utils} from '../utils'
 
 class OutlineRenderer extends LayerRenderer {
 

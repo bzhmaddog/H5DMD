@@ -65,7 +65,6 @@ class Utils {
 	/**
      * Fetch image from server with an index used to determine position
      * @param {array} images
-     * @param {number} index
      */
 	static loadImagesOrdered(images: string[]) {
 
@@ -81,7 +80,6 @@ class Utils {
 	/**
      * Fetch image from server with an index used to determine position
      * @param {array} images
-     * @param {number} index
      */
 	static async loadImagesOrderedAsync(images: string[]) {
 

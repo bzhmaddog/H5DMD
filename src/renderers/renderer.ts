@@ -1,4 +1,4 @@
-import {Options} from "@utils/options"
+import {Options} from "../utils"
 
 export abstract class Renderer {
 

@@ -1,3 +1,4 @@
+export * from './baseLayer';
 export * from './animationLayer';
 export * from './canvasLayer';
 export * from './spritesLayer';

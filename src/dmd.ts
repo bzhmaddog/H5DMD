@@ -1,19 +1,11 @@
-import {OffscreenBuffer} from '@utils/offscreenBuffer'
-import {Easing} from '@utils/easing'
-import {DmdRenderer} from '@renderers/dmdRenderer'
-import {LayerRenderer} from '@renderers/layerRenderer'
-import {BaseLayer, LayerType} from '@layers/baseLayer'
-import {CanvasLayer} from '@layers/canvasLayer'
-import {VideoLayer} from '@layers/videoLayer'
-import {AnimationLayer} from '@layers/animationLayer'
-import {SpritesLayer} from '@layers/spritesLayer'
-import {TextLayer} from '@layers/textLayer'
-import {Options} from '@utils/options'
-import {DotShape} from "@enums/dotShape";
-import {ILayerRendererDictionary} from "@interfaces/iLayerRendererDictionnary";
+import {Easing, OffscreenBuffer, Options} from './utils'
+import {DmdRenderer, LayerRenderer} from './renderers'
+import {AnimationLayer, BaseLayer, CanvasLayer, LayerType, SpritesLayer, TextLayer, VideoLayer} from './layers'
+import {DotShape} from "./enums"
+import {ILayerRendererDictionary} from "./interfaces"
 
 
-interface ILayerDimensions {
+export interface ILayerDimensions {
     width?: number,
     height?: number,
     top?: number,
@@ -28,14 +20,14 @@ interface ILayerDictionnary {
     [index: string]: BaseLayer
 }
 
-interface ILayer {
+export interface ILayer {
     id: string,
     zIndex: number,
     top: number,
     left: number
 }
 
-class Dmd {
+export class Dmd {
 
     private _outputCanvas: HTMLCanvasElement
     private _outputContext: CanvasRenderingContext2D
@@ -725,7 +717,4 @@ class Dmd {
         return layer as BaseLayer
 
     }
-
 }
-
-export {Dmd, ILayerDimensions, ILayer}

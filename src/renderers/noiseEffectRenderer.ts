@@ -1,4 +1,4 @@
-import {OffscreenBuffer} from "@utils/offscreenBuffer"
+import {OffscreenBuffer} from "../utils"
 import {LayerRenderer} from "./layerRenderer"
 
 class NoiseEffectRenderer extends LayerRenderer {

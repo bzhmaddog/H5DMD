@@ -37,14 +37,15 @@ depending on your platform
 ```
 
 # Live demo
-https://bzhmaddog.github.io/h5dmd/Demo.html
+
+https://bzhmaddog.github.io/h5dmd/index.html
 
 If it doesn't load look at the console to see errors
 
 # Examples
 
 ```
-[See Demo.html](https://github.com/bzhmaddog/H5DMD/blob/master/Demo.html)
+[See main.ts](https://github.com/bzhmaddog/H5DMD/blob/master/Demo/src/main.ts)
 
 ```
 

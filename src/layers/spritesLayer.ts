@@ -1,7 +1,6 @@
 import {BaseLayer, LayerType} from "./baseLayer"
-import {ILayerRendererDictionary} from "@interfaces/iLayerRendererDictionnary"
-import {Sprite} from "@utils/sprite"
-import {Options} from "@utils/options";
+import {ILayerRendererDictionary, ISpriteAnimationItem, ISpriteSequenceItem} from "../interfaces"
+import {Options, Sprite} from "../utils"
 
 interface ISpriteItem {
     x : number,
@@ -71,11 +70,11 @@ class SpritesLayer extends BaseLayer {
 
     /**
      * Create a sprite and add it to the layer
-     * @param {string} id 
-     * @param {string} src 
+     * @param {string} id
+     * @param spriteSheet
      * @param {number} hFrameOffset  (horizontal distance between frames)
      * @param {number} vFrameOffset  (vertical distance between frames)
-     * @param {array<string>} animations 
+     * @param {array<string>} animations
      * @param {string} x (horizontal position on layer)
      * @param {string} y (vertical position on layer)
      */
@@ -84,7 +83,7 @@ class SpritesLayer extends BaseLayer {
         spriteSheet: ImageBitmap,
         hFrameOffset: number,
         vFrameOffset: number,
-        animations: [],
+        animations: ISpriteAnimationItem[],
         x: string,
         y: string
     ): Promise<Sprite> {
@@ -95,8 +94,7 @@ class SpritesLayer extends BaseLayer {
                     const sprite = new Sprite(id, spriteSheet, hFrameOffset, vFrameOffset)
 
                     for (let i = 0; i < animations.length; i++) {
-                        const args: [string, number, number, number, number, number, number] = animations[i]
-                        sprite.addAnimation(...args)
+                        sprite.addAnimation(animations[i].key, animations[i].animationParams)
                     }
 
                     this.addSprite(id, sprite, x, y)
@@ -270,7 +268,7 @@ class SpritesLayer extends BaseLayer {
      * @param {array} queue 
      * @param {boolean} loop 
      */
-    enqueueSequence(id: string, queue: [], loop: boolean) {
+    enqueueSequence(id: string, queue: ISpriteSequenceItem[], loop: boolean) {
         if (typeof this._sprites[id] !== 'undefined') {
             this._sprites[id].sprite.enqueueSequence(queue, loop)
         } else {

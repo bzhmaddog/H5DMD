@@ -1,5 +1,5 @@
 import {Renderer} from "./renderer";
-import {Options} from "@utils/options";
+import {Options} from "../utils";
 
 export abstract class LayerRenderer extends Renderer {
     protected _width: number;

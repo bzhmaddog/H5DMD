@@ -1,21 +1,14 @@
 import {OffscreenBuffer} from "./offscreenBuffer"
-
-interface IAnimation {
-    width: number,
-    height: number,
-    nbFrames : number,
-    xOffset : number,
-    yOffset : number,
-    duration : number
-}
+import {ISpriteAnimation} from "../interfaces/iSpriteAnimation";
+import {ISpriteSequenceItem} from "../interfaces";
 
 interface IAnimationQueueItem {
-    params: IAnimation, 
+    params: ISpriteAnimation,
     loop: number
 }
 
 interface IAnimationDictionnary {
-    [index: string]: IAnimation
+    [index: string]: ISpriteAnimation
 }
 
 
@@ -39,8 +32,9 @@ class Sprite {
     private _startTime?: number
 
     /**
-     * 
-     * @param {string} spriteSheetSrc Path to the spritesheet file
+     *
+     * @param id
+     * @param spriteSheet
      * @param {number} hFrameOffset Distance between each frame (horizontaly)
      * @param {number} vFrameOffset Distance between each frame (vertically))
      */
@@ -64,37 +58,20 @@ class Sprite {
     }
 
     /**
-     * 
+     *
      * @param {string} id Name of the animation (used to run/stop it)
-     * @param {number} nbFrames Number of frames in this animation
-     * @param {number} width Number of horizontal pixels of each frame
-     * @param {number} height Number of vertical pixels of each frame
-     * @param {number} xOffset Offset from the left side of the spritesheet
-     * @param {number} Yoffset Offset from the top of the spritesheet
-     * @param {number} duration duration of animation (ms)
+     * @param animationParams
      */
     addAnimation(
         id: string,
-        nbFrames: number,
-        width: number,
-        height: number,
-        xOffset: number,
-        Yoffset: number,
-        duration: number
+        animationParams: ISpriteAnimation
     ) {
 
         if (typeof this._animations[id] === 'undefined') {
-            this._animations[id] = {
-                width: width,
-                height: height,
-                nbFrames : nbFrames,
-                xOffset : xOffset,
-                yOffset : Yoffset,
-                duration : duration
-            }
+            this._animations[id] = animationParams
 
-            this._maxHeight = Math.max(this._maxHeight, height)
-            this._maxWidth = Math.max(this._maxWidth, width)
+            this._maxHeight = Math.max(this._maxHeight, animationParams.height)
+            this._maxWidth = Math.max(this._maxWidth, animationParams.width)
         } else {
             throw new Error(`Animation [${id} already exists in sprite [${this._id}]`)
         }
@@ -197,8 +174,8 @@ class Sprite {
 
     /**
      * Play a single animation
-     * @param {string} Animation id
-     * @param {number} nbLoop 
+     * @param {string} id
+     * @param {number} nbLoop
      */
     enqueueSingle(id: string, nbLoop: number) {
         this._queue.push({
@@ -210,11 +187,11 @@ class Sprite {
 
 
     /**
-     * 
-     * @param {array} An array of ids and number of loop 
-     * @param {boolean} should the sequence loop indefinitely
+     *
+     * @param seq
+     * @param loop
      */
-    enqueueSequence(seq: [], loop?: boolean) {
+    enqueueSequence(seq: ISpriteSequenceItem[], loop?: boolean) {
 
       
         // Build array of animation
@@ -222,8 +199,8 @@ class Sprite {
         // array[1] = number of loop
         for (let i = 0; i < seq.length; i++) {
             this._queue.push({
-                params : this._animations[seq[i][0]],
-                loop : Math.max(1, seq[i][1])
+                params: this._animations[seq[i].key],
+                loop: Math.max(1, seq[i].nbLoop)
             })
         }
 

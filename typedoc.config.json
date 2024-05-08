@@ -1,5 +1,5 @@
 {
-    "$schema": "https://typedoc.org/schema.json",
+  "$schema": "https://typedoc.org/schema.json",
   "entryPoints": [
     "./src/*",
     "./src/layers/*",
