@@ -30,7 +30,6 @@ export interface ILayer {
 export class Dmd {
 
     private _outputCanvas: HTMLCanvasElement
-    private _outputContext: CanvasRenderingContext2D
     private _xOffset: number
     private _yOffset: number
     private _layers: ILayerDictionnary
@@ -52,6 +51,10 @@ export class Dmd {
 
     private _minFPS: number
     private _maxFPS: number
+
+    get _outputContext(): CanvasRenderingContext2D | null {
+        return this._outputCanvas.getContext('2d')
+    }
 
     /**
      *
@@ -83,7 +86,6 @@ export class Dmd {
             this._outputCanvas = outputCanvas
         }
 
-        this._outputContext = this._outputCanvas.getContext('2d')
         this._xOffset = xOffset
         this._yOffset = yOffset
         this._outputWidth = Math.floor(this._outputCanvas.width / (dotSize + dotSpace))
