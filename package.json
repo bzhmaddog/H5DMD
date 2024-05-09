@@ -1,7 +1,7 @@
 {
   "name": "h5dmd",
   "homepage": "https://github.com/bzhmaddog/h5dmd#readme",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "license": "LGPL-3.0-or-later",
   "main": "dist/index.js",
   "dependencies": {

@@ -30,6 +30,7 @@ export interface ILayer {
 export class Dmd {
 
     private _outputCanvas: HTMLCanvasElement
+    private _outputContext: CanvasRenderingContext2D
     private _xOffset: number
     private _yOffset: number
     private _layers: ILayerDictionnary
@@ -52,10 +53,6 @@ export class Dmd {
     private _minFPS: number
     private _maxFPS: number
 
-    get _outputContext(): CanvasRenderingContext2D | null {
-        return this._outputCanvas.getContext('2d')
-    }
-
     /**
      *
      * @param {HTMLCanvasElement} outputCanvas Dom Element where the Dmd will be drawed
@@ -69,7 +66,7 @@ export class Dmd {
      * @param {boolean} showFPS show FPS count or not
      */
     constructor(
-        outputCanvas: HTMLCanvasElement | string,
+        outputCanvas: HTMLCanvasElement,
         dotSize: number,
         dotSpace: number,
         xOffset: number,
@@ -80,12 +77,8 @@ export class Dmd {
         showFPS: boolean
     ) {
 
-        if (typeof outputCanvas === 'string') {
-            this._outputCanvas = document.getElementById(outputCanvas) as HTMLCanvasElement
-        } else {
-            this._outputCanvas = outputCanvas
-        }
-
+        this._outputCanvas = outputCanvas
+        this._outputContext = this._outputCanvas.getContext('2d')
         this._xOffset = xOffset
         this._yOffset = yOffset
         this._outputWidth = Math.floor(this._outputCanvas.width / (dotSize + dotSpace))
