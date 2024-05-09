@@ -66,7 +66,7 @@ export class Dmd {
      * @param {boolean} showFPS show FPS count or not
      */
     constructor(
-        outputCanvas: HTMLCanvasElement,
+        outputCanvas: HTMLCanvasElement | string,
         dotSize: number,
         dotSpace: number,
         xOffset: number,
@@ -77,7 +77,12 @@ export class Dmd {
         showFPS: boolean
     ) {
 
-        this._outputCanvas = outputCanvas
+        if (typeof outputCanvas === 'string') {
+            this._outputCanvas = document.getElementById(outputCanvas) as HTMLCanvasElement
+        } else {
+            this._outputCanvas = outputCanvas
+        }
+
         this._outputContext = this._outputCanvas.getContext('2d')
         this._xOffset = xOffset
         this._yOffset = yOffset
