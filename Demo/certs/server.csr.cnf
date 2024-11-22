@@ -1,0 +1,25 @@
+[req]
+default_bits=2048
+prompt=no
+default_md=sha256
+distinguished_name=dn
+x509_extensions=v3_req
+
+[dn]
+C=FR
+ST=Bretagne
+L=Lannion
+O=BrokenPipe
+OU=None
+emailAddress=cedmart1@gmail.com
+CN=h5dmd-demo.dev
+
+[v3_req]
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = h5dmd-demo.dev
+DNS.2 = www.h5dmd-demo.dev

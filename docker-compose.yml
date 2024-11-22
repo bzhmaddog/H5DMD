@@ -1,0 +1,9 @@
+name: h5dmd-demo
+
+services:
+  lib:
+    image: h5dmd-lib:latest
+    container_name: h5dmd-lib
+    volumes:
+      - ./dist:/h5dmd/dist
+      - ./src:/h5dmd/src
