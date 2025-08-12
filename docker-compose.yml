@@ -7,3 +7,11 @@ services:
     volumes:
       - ./dist:/h5dmd/dist
       - ./src:/h5dmd/src
+  demo:
+    image: h5dmd-demo:latest
+    container_name: h5dmd-demo
+    volumes:
+      - ./Demo/src:/app/src/
+      - ./dist:/app/node_modules/h5dmd/dist/
+    ports:
+      - "443:5173/tcp"

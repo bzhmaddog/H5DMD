@@ -22,3 +22,5 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+/.certs/h5dmd-demo.dev+3.pem
+/.certs/h5dmd-demo.dev+3-key.pem

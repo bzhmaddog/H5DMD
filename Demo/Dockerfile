@@ -2,28 +2,28 @@
 
 FROM node:latest
 
+RUN apt-get update && apt-get install -y inotify-tools
+
 RUN mkdir -p /app
 RUN mkdir -p /app/.certs
 RUN mkdir -p /app/public
 RUN mkdir -p /app/public/images
 RUN mkdir -p /app/src
-#RUN mkdir -p /lib/h5dmd
 
 COPY ./ /app/
 COPY ./public /app/public/
 COPY ./public/images /app/public/images/
-#COPY ./src /app/src/
-
+COPY ./tools/h5dmd-watcher.sh /
+COPY ./tools/watch.sh /
 COPY .certs/* /app/.certs/
 
+RUN chmod +x /watch.sh
+RUN chmod +x /h5dmd-watcher.sh
+
 WORKDIR /app
-
-#RUN mkdir -p node_modules
-
 
 RUN npm install
 
 
 
-ENTRYPOINT ["npm","run","dev"]
-#CMD ["/bin/bash", "-c", "npm install && npm run dev"]
+ENTRYPOINT ["/watch.sh"]

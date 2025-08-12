@@ -15,6 +15,8 @@ import {
 // When dom is loaded create the objects and bind the events
 document.addEventListener('DOMContentLoaded', function () {
 
+    //alert("XXX")
+
     const imagesPath = document.baseURI.replace('index.html', '') + 'images';
 
     // Check if webgpu is supported
