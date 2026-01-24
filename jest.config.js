@@ -6,7 +6,7 @@ function moduleNameMapperFromTSPaths(tsconfig) {
     return fromPairs(
         Object.entries(tsconfig.compilerOptions.paths).map(([k, [v]]) => [
             `^${k.replace(/\*/, "(.*)")}`,
-            path.join(__dirname, tsconfig.compilerOptions.baseUrl || './', v.replace(/\*/, '$1')),
+            path.join(__dirname, tsconfig.compilerOptions.baseUrl || './', v.replace(/\*/g, '$1')),
         ]),
     )
 }
