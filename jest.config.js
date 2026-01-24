@@ -5,7 +5,7 @@ const path = require('node:path')
 function moduleNameMapperFromTSPaths(tsconfig) {
     return fromPairs(
         Object.entries(tsconfig.compilerOptions.paths).map(([k, [v]]) => [
-            `^${k.replace(/\*/, "(.*)")}`,
+            `^${k.replace(/\*/g, "(.*)")}`,
             path.join(__dirname, tsconfig.compilerOptions.baseUrl || './', v.replace(/\*/g, '$1')),
         ]),
     )
