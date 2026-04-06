@@ -12,7 +12,7 @@
     "@webgpu/types": "^0.1.40",
     "vite-plugin-tsc-watch": "^3.1.1",
     "typescript": "^5.2.2",
-    "vite": "^7.3.1"
+    "vite": "^7.3.2"
   },
   "dependencies": {
   }
