@@ -111,7 +111,7 @@ abstract class BaseLayer {
     private _renderFrame() {
 
         // clone renderers array
-        this._renderQueue = [...this._defaultRenderQueue] || []
+        this._renderQueue = [...this._defaultRenderQueue]
 
         // If opacity is below 1 add opacity renderer
         if (this._options.get('opacity') < 1) {

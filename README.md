@@ -19,28 +19,23 @@ https://www.youtube.com/watch?v=q58dZAbNXe8
 
 https://caniuse.com/webgpu
 
-Some experimental flags where used during the development of this project : Some might still need to be enabled
-depending on your platform
+WebGPU now ships by default in modern browsers (Chrome/Edge 113+), so the GPU-enabling flags that
+were once required (such as `--enable-unsafe-webgpu`, `--enable-features=Vulkan,UseSkiaRenderer`,
+`--enable-gpu-rasterization`) are no longer needed.
+
+The demo plays a video without a user gesture, so depending on your platform you may still want to
+launch the browser with autoplay enabled:
+
 ```
---use-gl=desktop
---ignore-gpu-blocklist
---enable-gpu-rasterization
---enable-zero-copy
---enable-features=VaapiVideoDecoder,Vulkan,UseSkiaRenderer
---enable-accelerated-2d-canvas
---enable-user-stylesheet
 --autoplay-policy=no-user-gesture-required
 --ignore-autoplay-restrictions
---disk-cache-dir=/dev/null
---disk-cache-size=1
---enable-unsafe-webgpu
 ```
 
 # Live demo
 
 https://bzhmaddog.github.io/h5dmd/index.html
 
-If it doesn't load look at the console to see errors
+If it doesn't load check the developer console for errors
 
 # Examples
 
@@ -71,6 +66,29 @@ npm run test
 #Build documentation
 npm run build-documentation
 ```
+
+# Running the demo locally
+
+The [Demo](Demo) app imports this library as the `h5dmd` package. To run it against your local
+build, expose the library through a global link:
+
+```
+# From the repository root: build the library so dist/ exists, then link it
+npm install
+npm run build
+npm link
+```
+
+Then link it inside the demo and start the dev server:
+
+```
+cd Demo
+npm install
+npm link h5dmd
+npm run dev
+```
+
+See [Demo/README.md](Demo/README.md) for more details.
 
 # Documentation
 

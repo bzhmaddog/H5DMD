@@ -1,5 +1,5 @@
 export * from './easing';
-export * from './offscreenBuffer';
+export * from './offscreen-buffer';
 export * from './options';
 export * from './sprite';
 export * from './utils';

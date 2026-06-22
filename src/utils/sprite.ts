@@ -1,4 +1,4 @@
-import {OffscreenBuffer} from "./offscreenBuffer"
+import {OffscreenBuffer} from "./offscreen-buffer"
 import {ISpriteAnimation} from "../interfaces/iSpriteAnimation";
 import {ISpriteSequenceItem} from "../interfaces";
 

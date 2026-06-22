@@ -29,6 +29,11 @@ export interface ILayer {
 
 export class Dmd {
 
+    /**
+     * H5DMD library version (kept in sync with package.json)
+     */
+    static readonly version: string = '1.0.7'
+
     private _outputCanvas: HTMLCanvasElement
     private _outputContext: CanvasRenderingContext2D
     private _xOffset: number
@@ -557,6 +562,13 @@ export class Dmd {
      */
     get brightness() {
         return this._renderer.brightness
+    }
+
+    /**
+     * Get the H5DMD library version
+     */
+    get version(): string {
+        return Dmd.version
     }
 
     /**
