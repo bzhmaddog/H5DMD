@@ -1,5 +1,5 @@
 import {Renderer} from "../renderers/renderer";
 
-export interface IRendererDictionary {
+export interface RendererDictionary {
     [index: string]: Renderer
 }

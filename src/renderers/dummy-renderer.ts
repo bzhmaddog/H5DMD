@@ -2,6 +2,11 @@ import {LayerRenderer} from "./layer-renderer"
 
 class DummyRenderer extends LayerRenderer {
 
+    private _inputBuffer: GPUBuffer
+    private _tempBuffer: GPUBuffer
+    private _outputBuffer: GPUBuffer
+    private _bindGroup: GPUBindGroup
+    private _computePipeline: GPUComputePipeline
 
     /**
      * @param {number} width 
@@ -49,6 +54,8 @@ class DummyRenderer extends LayerRenderer {
                         }
                     })
 
+                    this._createResources()
+
                     this.renderFrame = this._doRendering
                     resolve()
                 })
@@ -60,28 +67,26 @@ class DummyRenderer extends LayerRenderer {
 
 
     /**
-     * This renderer serve as a template for other renderers. It does nothing but returning the exact array of pixels it was provided
-     * @param {ImageData} frameData 
-     * @returns {Promise<ImageData>}
+     * Create and cache the GPU resources reused across frames.
+     * Done once after init to avoid per-frame allocations (memory leak / GC churn).
      */
-    private _doRendering(frameData: ImageData): Promise<ImageData> {
+    private _createResources() {
 
-        const gpuInputBuffer = this._device.createBuffer({
-            mappedAtCreation: true,
+        this._inputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         })
-    
-        const gpuTempBuffer = this._device.createBuffer({
+
+        this._tempBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
         })
-    
-        const gpuOutputBuffer = this._device.createBuffer({
+
+        this._outputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
         })
-    
+
         const bindGroupLayout = this._device.createBindGroupLayout({
             entries: [
                 {
@@ -100,26 +105,26 @@ class DummyRenderer extends LayerRenderer {
                 }
             ]
         })
-    
-        const bindGroup = this._device.createBindGroup({
+
+        this._bindGroup = this._device.createBindGroup({
             layout: bindGroupLayout,
             entries: [
                 {
                     binding: 0,
                     resource: {
-                        buffer: gpuInputBuffer
+                        buffer: this._inputBuffer
                     }
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: gpuTempBuffer
+                        buffer: this._tempBuffer
                     }
                 }
             ]
         })
 
-        const computePipeline =this._device.createComputePipeline({
+        this._computePipeline = this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
                 bindGroupLayouts: [bindGroupLayout]
             }),
@@ -128,35 +133,44 @@ class DummyRenderer extends LayerRenderer {
                 entryPoint: "main"
             }
         })
+    }
 
+    /**
+     * This renderer serve as a template for other renderers. It does nothing but returning the exact array of pixels it was provided.
+     * Reuses the GPU resources created in init() : only per-frame pixels are uploaded each call.
+     * @param {ImageData} frameData 
+     * @returns {Promise<ImageData>}
+     */
+    private _doRendering(frameData: ImageData): Promise<ImageData> {
+
+        // Upload frame pixels into the persistent input buffer
+        this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
+
+        const commandEncoder = this._device.createCommandEncoder()
+        const passEncoder = commandEncoder.beginComputePass()
+
+        passEncoder.setPipeline(this._computePipeline)
+        passEncoder.setBindGroup(0, this._bindGroup)
+        passEncoder.dispatchWorkgroups(this._width, this._height)
+        passEncoder.end()
+
+        commandEncoder.copyBufferToBuffer(this._tempBuffer, 0, this._outputBuffer, 0, this._bufferByteLength)
+
+        this._device.queue.submit([commandEncoder.finish()])
 
         return new Promise( resolve => {
-         
-            // Put original image data in the input buffer (257x78)
-            new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData.data))
-            gpuInputBuffer.unmap()
-
-            const commandEncoder = this._device.createCommandEncoder()
-            const passEncoder = commandEncoder.beginComputePass()
-
-            passEncoder.setPipeline(computePipeline)
-            passEncoder.setBindGroup(0, bindGroup)
-            passEncoder.dispatchWorkgroups(this._width, this._height)
-            passEncoder.end()
-
-            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, this._bufferByteLength)
-
-            this._device.queue.submit([commandEncoder.finish()])
 
             // Render Dmd output
-            gpuOutputBuffer.mapAsync(GPUMapMode.READ).then( () => {
-    
-                // Grab data from output buffer
-                const pixelsBuffer = new Uint8Array(gpuOutputBuffer.getMappedRange())
+            this._outputBuffer.mapAsync(GPUMapMode.READ).then( () => {
+
+                // Grab data from output buffer (copy out before unmapping)
+                const pixelsBuffer = new Uint8Array(this._outputBuffer.getMappedRange())
 
                 // Generate Image data usable by a canvas
                 const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), this._width, this._height)
 
+                // Release the mapping so the buffer can be reused next frame
+                this._outputBuffer.unmap()
 
                 // return to caller
                 resolve(imageData)

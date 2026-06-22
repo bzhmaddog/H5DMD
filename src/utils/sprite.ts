@@ -1,14 +1,14 @@
 import {OffscreenBuffer} from "./offscreen-buffer"
-import {ISpriteAnimation} from "../interfaces/i-sprite-animation";
-import {ISpriteSequenceItem} from "../interfaces";
+import {SpriteAnimation} from "../interfaces/sprite-animation";
+import {SpriteSequenceItem} from "../interfaces";
 
 interface IAnimationQueueItem {
-    params: ISpriteAnimation,
+    params: SpriteAnimation,
     loop: number
 }
 
 interface IAnimationDictionnary {
-    [index: string]: ISpriteAnimation
+    [index: string]: SpriteAnimation
 }
 
 
@@ -64,7 +64,7 @@ class Sprite {
      */
     addAnimation(
         id: string,
-        animationParams: ISpriteAnimation
+        animationParams: SpriteAnimation
     ) {
 
         if (typeof this._animations[id] === 'undefined') {
@@ -191,7 +191,7 @@ class Sprite {
      * @param seq
      * @param loop
      */
-    enqueueSequence(seq: ISpriteSequenceItem[], loop?: boolean) {
+    enqueueSequence(seq: SpriteSequenceItem[], loop?: boolean) {
 
       
         // Build array of animation

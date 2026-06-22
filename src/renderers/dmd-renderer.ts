@@ -16,7 +16,14 @@ class DmdRenderer extends Renderer {
     private _bgColor: number
     private _brightness: number
     private _bgHSP: number
-    
+
+    private _uboBuffer: GPUBuffer
+    private _inputBuffer: GPUBuffer
+    private _tempBuffer: GPUBuffer
+    private _outputBuffer: GPUBuffer
+    private _bindGroup: GPUBindGroup
+    private _computePipeline: GPUComputePipeline
+
     renderFrame: (frameData: ImageData) => Promise<ImageData>
 
 
@@ -183,6 +190,8 @@ class DmdRenderer extends Renderer {
                         }
                     })
 
+                    this._createResources()
+
                     this.renderFrame = this._doRendering
                     resolve()
                 })
@@ -204,33 +213,31 @@ class DmdRenderer extends Renderer {
     }
 
     /**
-     * Render a Dmd frame
-     * @param {ImageData} frameData 
-     * @returns {ImageData}
+     * Create and cache the GPU resources reused across frames.
+     * Done once after init to avoid per-frame allocations (memory leak / GC churn).
      */
-    private _doRendering(frameData: ImageData): Promise<ImageData> {
+    private _createResources() {
 
-        const UBOBuffer = this._device.createBuffer({
+        this._uboBuffer = this._device.createBuffer({
             size: 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
 
-        const gpuInputBuffer = this._device.createBuffer({
-            mappedAtCreation: true,
+        this._inputBuffer = this._device.createBuffer({
             size: this._dmdBufferByteLength,
-            usage: GPUBufferUsage.STORAGE
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         })
-    
-        const gpuTempBuffer = this._device.createBuffer({
+
+        this._tempBuffer = this._device.createBuffer({
             size: this._screenBufferByteLength,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
         })
-    
-        const gpuOutputBuffer = this._device.createBuffer({
+
+        this._outputBuffer = this._device.createBuffer({
             size: this._screenBufferByteLength,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
         })
-    
+
         const bindGroupLayout = this._device.createBindGroupLayout({
             entries: [
                 {
@@ -256,32 +263,32 @@ class DmdRenderer extends Renderer {
                 } as GPUBindGroupLayoutEntry
             ]
         })
-    
-        const bindGroup = this._device.createBindGroup({
+
+        this._bindGroup = this._device.createBindGroup({
             layout: bindGroupLayout,
             entries: [
                 {
                     binding: 0,
                     resource: {
-                        buffer: gpuInputBuffer
+                        buffer: this._inputBuffer
                     }
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: gpuTempBuffer
+                        buffer: this._tempBuffer
                     }
                 },
                 {
-                    binding: 2, 
+                    binding: 2,
                     resource: {
-                      buffer: UBOBuffer
+                      buffer: this._uboBuffer
                     }
                 }
             ]
         })
 
-        const computePipeline =this._device.createComputePipeline({
+        this._computePipeline = this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
                 bindGroupLayouts: [bindGroupLayout]
             }),
@@ -290,40 +297,50 @@ class DmdRenderer extends Renderer {
                 entryPoint: "main"
             }
         })
+    }
 
-        return new Promise( resolve => {
+    /**
+     * Render a Dmd frame.
+     * Reuses the GPU resources created in init() : only the per-frame data
+     * (pixels + uniforms) is uploaded each call.
+     * NOTE : renderFrame is called serially (one frame in flight at a time) so
+     * reusing the mappable output buffer is safe.
+     * @param {ImageData} frameData 
+     * @returns {ImageData}
+     */
+    private _doRendering(frameData: ImageData): Promise<ImageData> {
 
-            // Put original image data in the input buffer (257x78)
-            new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData.data))
-            gpuInputBuffer.unmap()
+        // Upload frame pixels into the persistent input buffer
+        this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
-            // Write values to uniform buffer object
-            const uniformData = [this._brightness]
-            const uniformTypedArray = new Float32Array(uniformData)
-            this._device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer)
+        // Write values to uniform buffer object
+        const uniformTypedArray = new Float32Array([this._brightness])
+        this._device.queue.writeBuffer(this._uboBuffer, 0, uniformTypedArray.buffer)
 
-            const commandEncoder = this._device.createCommandEncoder()
-            const passEncoder = commandEncoder.beginComputePass()
-            passEncoder.setPipeline(computePipeline)
-            passEncoder.setBindGroup(0, bindGroup)
-            passEncoder.dispatchWorkgroups(this._dmdWidth, this._dmdHeight)
-            passEncoder.end()
+        const commandEncoder = this._device.createCommandEncoder()
+        const passEncoder = commandEncoder.beginComputePass()
+        passEncoder.setPipeline(this._computePipeline)
+        passEncoder.setBindGroup(0, this._bindGroup)
+        passEncoder.dispatchWorkgroups(this._dmdWidth, this._dmdHeight)
+        passEncoder.end()
 
-            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, this._screenBufferByteLength)
+        commandEncoder.copyBufferToBuffer(this._tempBuffer, 0, this._outputBuffer, 0, this._screenBufferByteLength)
 
-            this._device.queue.submit([commandEncoder.finish()])
+        this._device.queue.submit([commandEncoder.finish()])
 
+        return new Promise(resolve => {
             // Render Dmd output
-            gpuOutputBuffer.mapAsync(GPUMapMode.READ).then( () => {
-    
-                // Grab data from output buffer
-                const pixelsBuffer = new Uint8Array(gpuOutputBuffer.getMappedRange())
-    
+            this._outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
+
+                // Grab data from output buffer (copy out before unmapping)
+                const pixelsBuffer = new Uint8Array(this._outputBuffer.getMappedRange())
+
                 // Generate Image data usable by a canvas
                 const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), this._screenWidth, this._screenHeight)
 
-               // console.log(imageData)
-    
+                // Release the mapping so the buffer can be reused next frame
+                this._outputBuffer.unmap()
+
                 // return to caller
                 resolve(imageData)
             })

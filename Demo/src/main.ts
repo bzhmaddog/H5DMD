@@ -1,15 +1,12 @@
 import {
-    AnimationLayer,
-    CanvasLayer,
     Colors,
     Dmd,
     DotShape,
-    ISpriteSequenceItem,
+    SpriteSequenceItem,
     NoiseEffectRenderer,
     Options,
     SpritesLayer,
-    Utils,
-    VideoLayer
+    Utils
 } from "h5dmd";
 
 // When dom is loaded create the objects and bind the events
@@ -41,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
             dmd.run();
 
 
-            dmd.addCanvasLayer('bg', {}, {} as Options, {}, (layer: CanvasLayer) => {
+            dmd.addCanvasLayer('bg', {}, {} as Options, {}, (layer) => {
 
                 const bgURI = `${imagesPath}/boss-mode-bg.png`;
 
@@ -69,7 +66,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     loop: true
                 }),
                 {},
-                (layer: AnimationLayer) => {
+                (layer) => {
 
                     const images = [
                         `${imagesPath}/animation/0.webp`,
@@ -115,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     visible: false
                 }),
                 {},
-                (layer: VideoLayer) => {
+                (layer) => {
 
                     const video = document.createElement('video');
 
@@ -137,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 {} as Options,
                 {},
-                (layer: CanvasLayer) => {
+                (layer) => {
 
                     const bgURI = `${imagesPath}/boss-matthew-big.png`;
 
@@ -234,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 {} as Options,
                 {},
-                (layer: SpritesLayer) => {
+                (layer) => {
 
                     const bgURI = `${imagesPath}/scott2x.png`;
 
@@ -308,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 '2%',
                                 '2%'
                             ).then(() => {
-                                const seq: ISpriteSequenceItem[] = [
+                                const seq: SpriteSequenceItem[] = [
                                     {key: 'idle', nbLoop: 3},
                                     {key: 'walk', nbLoop: 5},
                                     {key: 'run', nbLoop: 4},

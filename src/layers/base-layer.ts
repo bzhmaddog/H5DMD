@@ -1,6 +1,6 @@
 import {OffscreenBuffer, Options} from "../utils"
 import {ChangeAlphaRenderer, LayerRenderer} from "../renderers"
-import {ILayerRendererDictionary} from "../interfaces";
+import {LayerRendererDictionary} from "../interfaces";
 
 enum LayerType {
 	Image,
@@ -11,7 +11,7 @@ enum LayerType {
 	Sprites
 }
 
-interface IRenderQueueItem {
+interface RenderQueueItem {
     id: string,
     instance: LayerRenderer,
     params?: Options
@@ -31,9 +31,9 @@ abstract class BaseLayer {
 
     private _loadedListener?: (layer: BaseLayer) => void
     private _updatedListener?: (layer: BaseLayer) => void
-    private _availableRenderers: ILayerRendererDictionary
-    private _defaultRenderQueue: IRenderQueueItem[]
-    private _renderQueue: IRenderQueueItem[]
+    private _availableRenderers: LayerRendererDictionary
+    private _defaultRenderQueue: RenderQueueItem[]
+    private _renderQueue: RenderQueueItem[]
 
     constructor(
         id: string,
@@ -41,7 +41,7 @@ abstract class BaseLayer {
         width: number,
         height: number,
         options?: Options,
-        renderers?: ILayerRendererDictionary,
+        renderers?: LayerRendererDictionary,
         loadedListener?: (layer: BaseLayer) => void,
         updatedListener?: (layer: BaseLayer) => void
     ) {
@@ -75,9 +75,6 @@ abstract class BaseLayer {
             console.log(`Layer[${id}] : Renderers init done`)
         })
 
-        //console.log(`${id} : available renderers =>`, this._availableRenderers)
-        //console.log(`${id} :`, this._options.get('renderers', []))
-
         if (this._options.get('renderers').length > 0) {
             // Build default render queue to save some time in renderFrame
             // Since this should not change after creation
@@ -93,8 +90,6 @@ abstract class BaseLayer {
                     console.log(`Renderer "${r}" is not in the list of available renderers`)
                 }
             }
-
-            //console.log(`${id} :`, this._defaultRenderQueue)
         }
     }
 
@@ -139,8 +134,6 @@ abstract class BaseLayer {
         // if there is a renderer in the queue then run render pass with this renderer
         if (this._renderQueue.length) {
             const renderer = this._renderQueue.shift() // pop renderer from render queue
-
-            //console.log(`${this.id} `, renderer)
 
             // Apply 'filter' to provided content with current renderer then process next renderer in queue
             renderer?.instance.renderFrame(frameImageData, renderer.params).then((outputData: ImageData) => {

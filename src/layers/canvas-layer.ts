@@ -1,5 +1,5 @@
 import {BaseLayer, LayerType} from "./base-layer"
-import {ILayerRendererDictionary} from "../interfaces"
+import {LayerRendererDictionary} from "../interfaces"
 import {Options} from "../utils"
 
 /**
@@ -22,7 +22,7 @@ class CanvasLayer extends BaseLayer {
         width: number,
         height: number,
         options?: Options,
-        renderers?: ILayerRendererDictionary,
+        renderers?: LayerRendererDictionary,
         loadedListener?: (layer: CanvasLayer) => void,
         updatedListener?: (layer: CanvasLayer) => void
     ) {

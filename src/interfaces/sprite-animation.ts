@@ -1,4 +1,4 @@
-export interface ISpriteAnimation {
+export interface SpriteAnimation {
     width: number,
     height: number,
     nbFrames: number,

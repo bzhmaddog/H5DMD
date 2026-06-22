@@ -3,6 +3,13 @@ import {Options} from "../utils"
 
 class ChangeAlphaRenderer extends LayerRenderer {
 
+    private _uboBuffer: GPUBuffer
+    private _inputBuffer: GPUBuffer
+    private _tempBuffer: GPUBuffer
+    private _outputBuffer: GPUBuffer
+    private _bindGroup: GPUBindGroup
+    private _computePipeline: GPUComputePipeline
+
     /**
      * @param {number} width 
      * @param {number} height 
@@ -77,6 +84,8 @@ class ChangeAlphaRenderer extends LayerRenderer {
                         }
                     })
 
+                    this._createResources()
+
                     this.renderFrame = this._doRendering
                     resolve()
                 })
@@ -86,36 +95,31 @@ class ChangeAlphaRenderer extends LayerRenderer {
     }
 
     /**
-     * Apply filter to provided data then return altered data
-     * @param {ImageData} frameData
-     * @param {Options} _options
-     * @returns {Promise<ImageData>}
+     * Create and cache the GPU resources reused across frames.
+     * Done once after init to avoid per-frame allocations (memory leak / GC churn).
      */
-    private _doRendering(frameData: ImageData, _options?: Options): Promise<ImageData> {
+    private _createResources() {
 
-        const options = new Options({opacity: 1}).merge(_options)
-
-        const UBOBuffer = this._device.createBuffer({
+        this._uboBuffer = this._device.createBuffer({
             size: 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
 
-        const gpuInputBuffer = this._device.createBuffer({
-            mappedAtCreation: true,
+        this._inputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
         })
-    
-        const gpuTempBuffer = this._device.createBuffer({
+
+        this._tempBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
         })
-    
-        const gpuOutputBuffer = this._device.createBuffer({
+
+        this._outputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
         })
-    
+
         const bindGroupLayout = this._device.createBindGroupLayout({
             entries : [
                 {
@@ -141,32 +145,32 @@ class ChangeAlphaRenderer extends LayerRenderer {
                 }
             ]
         })
-    
-        const bindGroup = this._device.createBindGroup({
+
+        this._bindGroup = this._device.createBindGroup({
             layout: bindGroupLayout,
             entries: [
                 {
                     binding: 0,
                     resource: {
-                        buffer: gpuInputBuffer
+                        buffer: this._inputBuffer
                     }
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: gpuTempBuffer
+                        buffer: this._tempBuffer
                     }
                 },
                 {
-                    binding: 2, 
+                    binding: 2,
                     resource: {
-                      buffer: UBOBuffer
+                      buffer: this._uboBuffer
                     }
                 }
             ]
         })
 
-        const computePipeline =this._device.createComputePipeline({
+        this._computePipeline = this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
                 bindGroupLayouts: [bindGroupLayout]
             }),
@@ -175,40 +179,52 @@ class ChangeAlphaRenderer extends LayerRenderer {
                 entryPoint: "main"
             }
         })
+    }
 
+    /**
+     * Apply filter to provided data then return altered data.
+     * Reuses the GPU resources created in init() : only per-frame data
+     * (pixels + uniforms) is uploaded each call.
+     * @param {ImageData} frameData
+     * @param {Options} _options
+     * @returns {Promise<ImageData>}
+     */
+    private _doRendering(frameData: ImageData, _options?: Options): Promise<ImageData> {
+
+        const options = new Options({opacity: 1}).merge(_options)
+
+        // Upload frame pixels into the persistent input buffer
+        this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
+
+        // Write values to uniform buffer object
+        const uniformTypedArray = new Float32Array([options.get('opacity')])
+        this._device.queue.writeBuffer(this._uboBuffer, 0, uniformTypedArray.buffer)
+
+        const commandEncoder = this._device.createCommandEncoder()
+        const passEncoder = commandEncoder.beginComputePass()
+
+        passEncoder.setPipeline(this._computePipeline)
+        passEncoder.setBindGroup(0, this._bindGroup)
+        passEncoder.dispatchWorkgroups(this._width, this._height)
+        passEncoder.end()
+
+        commandEncoder.copyBufferToBuffer(this._tempBuffer, 0, this._outputBuffer, 0, this._bufferByteLength)
+
+        this._device.queue.submit([commandEncoder.finish()])
 
         return new Promise( resolve => {
 
-            // Put original image data in the input buffer (257x78)
-            new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData.data))
-            gpuInputBuffer.unmap()
-
-            // Write values to uniform buffer object
-            const uniformData = [options.get('opacity')]
-            const uniformTypedArray = new Float32Array(uniformData)
-
-            this._device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer)
-
-            const commandEncoder = this._device.createCommandEncoder()
-            const passEncoder = commandEncoder.beginComputePass()
-
-            passEncoder.setPipeline(computePipeline)
-            passEncoder.setBindGroup(0, bindGroup)
-            passEncoder.dispatchWorkgroups(this._width, this._height)
-            passEncoder.end()
-
-            commandEncoder.copyBufferToBuffer(gpuTempBuffer, 0, gpuOutputBuffer, 0, this._bufferByteLength)
-
-            this._device.queue.submit([commandEncoder.finish()])
-
             // Render Dmd output
-            gpuOutputBuffer.mapAsync(GPUMapMode.READ).then( () => {
-    
-                // Grab data from output buffer
-                const pixelsBuffer = new Uint8Array(gpuOutputBuffer.getMappedRange())
+            this._outputBuffer.mapAsync(GPUMapMode.READ).then( () => {
+
+                // Grab data from output buffer (copy out before unmapping)
+                const pixelsBuffer = new Uint8Array(this._outputBuffer.getMappedRange())
 
                 // Generate Image data usable by a canvas
                 const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), this._width, this._height)
+
+                // Release the mapping so the buffer can be reused next frame
+                this._outputBuffer.unmap()
 
                 // return to caller
                 resolve(imageData)

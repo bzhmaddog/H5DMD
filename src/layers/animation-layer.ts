@@ -1,6 +1,6 @@
 import {BaseLayer, LayerType} from "./base-layer"
 import {Options} from "../utils"
-import {ILayerRendererDictionary} from "../interfaces"
+import {LayerRendererDictionary} from "../interfaces"
 
 class AnimationLayer extends BaseLayer {
 
@@ -21,7 +21,7 @@ class AnimationLayer extends BaseLayer {
 		width: number,
 		height: number,
         options?: Options,
-		renderers?: ILayerRendererDictionary,
+		renderers?: LayerRendererDictionary,
         loadedListener?: (layer: AnimationLayer) => void,
         updatedListener?: (layer: AnimationLayer) => void,
         playListener?: (layer: AnimationLayer) => void,

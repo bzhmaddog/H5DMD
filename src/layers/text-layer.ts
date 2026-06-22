@@ -1,7 +1,7 @@
 import {BaseLayer, LayerType} from './base-layer'
 import {OffscreenBuffer, Options, Utils} from '../utils'
 import {Colors} from '../enums'
-import {ILayerRendererDictionary} from '../interfaces'
+import {LayerRendererDictionary} from '../interfaces'
 import {OutlineRenderer, RemoveAliasingRenderer} from '../renderers'
 
 class TextLayer extends BaseLayer {
@@ -14,7 +14,7 @@ class TextLayer extends BaseLayer {
         width: number,
         height: number,
         options: Options,
-        renderers?: ILayerRendererDictionary,
+        renderers?: LayerRendererDictionary,
         loadedListener?: (layer: TextLayer) => void,
         updatedListener?: (layer: TextLayer) => void
     ) {
@@ -42,7 +42,7 @@ class TextLayer extends BaseLayer {
         const layerRenderers = Object.assign({
 			'no-antialiasing' : new RemoveAliasingRenderer(width, height), // used by TextLayer if antialiasing  = false
 			'outline' : new OutlineRenderer(width, height)  // used by TextLayer when outlineWidth > 1
-        }, renderers) as ILayerRendererDictionary
+        }, renderers) as LayerRendererDictionary
 
         super(id, LayerType.Text, width, height, layerOptions, layerRenderers, loadedListener, updatedListener)
 

@@ -2,29 +2,11 @@ import {Easing, OffscreenBuffer, Options} from './utils'
 import {DmdRenderer, LayerRenderer} from './renderers'
 import {AnimationLayer, BaseLayer, CanvasLayer, LayerType, SpritesLayer, TextLayer, VideoLayer} from './layers'
 import {DotShape} from "./enums"
-import {ILayerRendererDictionary} from "./interfaces"
+import {Layer, LayerDimensions, LayerRendererDictionary} from "./interfaces"
 
 
-export interface ILayerDimensions {
-    width?: number,
-    height?: number,
-    top?: number,
-    left?: number,
-    hAlign?: string,
-    vAlign?: string,
-    hOffset?: number,
-    vOffset?: number
-}
-
-interface ILayerDictionnary {
+interface LayerDictionnary {
     [index: string]: BaseLayer
-}
-
-export interface ILayer {
-    id: string,
-    zIndex: number,
-    top: number,
-    left: number
 }
 
 export class Dmd {
@@ -38,18 +20,18 @@ export class Dmd {
     private _outputContext: CanvasRenderingContext2D
     private _xOffset: number
     private _yOffset: number
-    private _layers: ILayerDictionnary
-    private _sortedLayers: ILayer[]
+    private _layers: LayerDictionnary
+    private _sortedLayers: Layer[]
     private _outputWidth: number
     private _outputHeight: number
     private _frameBuffer: OffscreenBuffer
-    private _fpsBox: HTMLDivElement
+    private _fpsBox?: HTMLDivElement
     private _zIndex: number
     private _renderer: DmdRenderer
     private _isRunning: boolean
     private _fps: number
     private _lastRenderTime: number
-    private _layerRenderers: ILayerRendererDictionary
+    private _layerRenderers: LayerRendererDictionary
     private _initDone: boolean
     private _backgroundColor: string
     private _renderNextFrame: () => void
@@ -57,6 +39,7 @@ export class Dmd {
 
     private _minFPS: number
     private _maxFPS: number
+    private _fpsSamples: number[]
 
     /**
      *
@@ -83,14 +66,21 @@ export class Dmd {
     ) {
 
         this._outputCanvas = outputCanvas
-        this._outputContext = this._outputCanvas.getContext('2d')
+
+        const outputContext = this._outputCanvas.getContext('2d')
+        if (!outputContext) {
+            throw new Error('H5DMD: could not get a 2D rendering context from the output canvas (is it already used with another context type?)')
+        }
+
+        this._outputContext = outputContext
+
         this._xOffset = xOffset
         this._yOffset = yOffset
         this._outputWidth = Math.floor(this._outputCanvas.width / (dotSize + dotSpace))
         this._outputHeight = Math.floor(this._outputCanvas.height / (dotSize + dotSpace))
         this._frameBuffer = new OffscreenBuffer(this._outputWidth, this._outputHeight, true)
         this._zIndex = 1
-        this._layers = {} as ILayerDictionnary
+        this._layers = {} as LayerDictionnary
         this._sortedLayers = []
         this._renderFPS = function () {
         } // Does nothing
@@ -102,6 +92,8 @@ export class Dmd {
         this._fps = 0
         this._minFPS = 9999
         this._maxFPS = 0
+        this._fpsSamples = []
+        this._lastRenderTime = 0
 
         console.log(`Creating a ${this._outputWidth}x${this._outputHeight} DMD on a ${this._outputCanvas.width}x${this._outputCanvas.height} canvas`)
 
@@ -112,7 +104,7 @@ export class Dmd {
             //'opacity' : new ChangeAlphaRenderer(this._outputWidth, this._outputHeight), // used by layer with opacity < 1
             //'no-antialiasing' : new RemoveAliasingRenderer(this._outputWidth, this._outputHeight), // used by TextLayer if antialiasing  = false
             //'outline' : new OutlineRenderer(this._outputWidth, this._outputHeight)  // used by TextLayer when outlineWidth > 1
-        } as ILayerRendererDictionary
+        } as LayerRendererDictionary
 
         this._initDone = false
 
@@ -122,14 +114,19 @@ export class Dmd {
             // TODO : Remove later
             this._fpsBox = document.createElement('div')
             this._fpsBox.style.position = 'absolute'
-            this._fpsBox.style.right = '0'
-            this._fpsBox.style.top = '0'
+            this._fpsBox.style.right = '8px'
+            this._fpsBox.style.top = '8px'
             this._fpsBox.style.zIndex = '99999' // WTF is this a string : check if/where we do addition/substraction
-            this._fpsBox.style.color = 'red'
-            this._fpsBox.style.background = 'rgba(255,255,255,0.5)'
-            this._fpsBox.style.padding = '5px'
-            this._fpsBox.style.minWidth = '40px'
-            this._fpsBox.style.textAlign = 'center'
+            this._fpsBox.style.color = '#00ff66'
+            this._fpsBox.style.background = 'rgba(0, 0, 0, 0.8)'
+            this._fpsBox.style.padding = '6px 10px'
+            this._fpsBox.style.minWidth = '132px'
+            this._fpsBox.style.textAlign = 'left'
+            this._fpsBox.style.font = '12px/1.5 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace'
+            this._fpsBox.style.borderRadius = '4px'
+            this._fpsBox.style.whiteSpace = 'pre'
+            this._fpsBox.style.pointerEvents = 'none'
+            this._fpsBox.style.userSelect = 'none'
 
             document.body.appendChild(this._fpsBox)
 
@@ -237,15 +234,27 @@ export class Dmd {
                 const delta = (now - this._lastRenderTime)
                 this._lastRenderTime = now
 
-                // Calculate FPS
-                this._fps = Math.floor(Math.round((1000 / delta) * 1e2) / 1e2)
-
-                if (this._fps < this._minFPS) {
-                    this._minFPS = this._fps
+                // Smoothed FPS : rolling average of frame time over the last frames.
+                // Using ONE smoothed value for the live readout AND for min/max keeps
+                // them consistent (min <= FPS <= max always holds) and stops the number
+                // flickering frame-to-frame.
+                this._fpsSamples.push(delta)
+                if (this._fpsSamples.length > 60) {
+                    this._fpsSamples.shift()
                 }
+                const meanDelta = this._fpsSamples.reduce((sum, d) => sum + d, 0) / this._fpsSamples.length
+                this._fps = Math.round(1000 / meanDelta)
 
-                if (this._fps > this._maxFPS) {
-                    this._maxFPS = this._fps
+                // Track min/max on the same smoothed value, once the window has filled
+                // enough to represent steady-state (ignores the slow warmup frames).
+                if (this._fpsSamples.length >= 30) {
+                    if (this._fps < this._minFPS) {
+                        this._minFPS = this._fps
+                    }
+
+                    if (this._fps > this._maxFPS) {
+                        this._maxFPS = this._fps
+                    }
                 }
 
                 // Render FPS box if needed
@@ -262,7 +271,13 @@ export class Dmd {
      * Update FPS output div with current fps value
      */
     private __renderFPS() {
-        this._fpsBox.innerHTML = `${this._minFPS} / ${this._fps} / ${this._maxFPS}`
+        const pad = (n: number) => String(n).padStart(3, ' ')
+        const seeded = this._fpsSamples.length >= 30
+        const min = seeded ? pad(this._minFPS) : '  -'
+        const max = seeded ? pad(this._maxFPS) : '  -'
+        this._fpsBox!.textContent =
+            `FPS ${pad(this._fps)}\n` +
+            `min ${min}   max ${max}`
     }
 
     /**
@@ -349,13 +364,13 @@ export class Dmd {
 
     addCanvasLayer(
         id: string,
-        layerDimensions: ILayerDimensions,
+        layerDimensions: LayerDimensions,
         options: Options,
-        renderers?: ILayerRendererDictionary,
-        layerLoadedListener?: (layer: BaseLayer) => void,
-        layerUpdatedListener?: (layer: BaseLayer) => void,
+        renderers?: LayerRendererDictionary,
+        layerLoadedListener?: (layer: CanvasLayer) => void,
+        layerUpdatedListener?: (layer: CanvasLayer) => void,
     ): CanvasLayer {
-        return this._addLayer(
+        return this._addLayer<CanvasLayer>(
             LayerType.Canvas,
             id,
             layerDimensions,
@@ -363,21 +378,21 @@ export class Dmd {
             renderers,
             layerLoadedListener,
             layerUpdatedListener
-        ) as CanvasLayer
+        )
     }
 
     addVideoLayer(
         id: string,
-        layerDimensions: ILayerDimensions,
+        layerDimensions: LayerDimensions,
         options: Options,
-        renderers?: ILayerRendererDictionary,
-        layerLoadedListener?: (layer: BaseLayer) => void,
-        layerUpdatedListener?: (layer: BaseLayer) => void,
-        layerOnPlayListener?: (layer: BaseLayer) => void,
-        layerOnPauseListener?: (layer: BaseLayer) => void
+        renderers?: LayerRendererDictionary,
+        layerLoadedListener?: (layer: VideoLayer) => void,
+        layerUpdatedListener?: (layer: VideoLayer) => void,
+        layerOnPlayListener?: (layer: VideoLayer) => void,
+        layerOnPauseListener?: (layer: VideoLayer) => void
         // Why no _layerOnStopListener ?
     ): VideoLayer {
-        return this._addLayer(
+        return this._addLayer<VideoLayer>(
             LayerType.Video,
             id,
             layerDimensions,
@@ -387,21 +402,21 @@ export class Dmd {
             layerUpdatedListener,
             layerOnPlayListener,
             layerOnPauseListener
-        ) as VideoLayer
+        )
     }
 
     addAnimationLayer(
         id: string,
-        layerDimensions: ILayerDimensions,
+        layerDimensions: LayerDimensions,
         options: Options,
-        renderers?: ILayerRendererDictionary,
-        layerLoadedListener?: (layer: BaseLayer) => void,
-        layerUpdatedListener?: (layer: BaseLayer) => void,
-        layerOnPlayListener?: (layer: BaseLayer) => void,
-        layerOnPauseListener?: (layer: BaseLayer) => void,
-        layerOnStopListener?: (layer: BaseLayer) => void
+        renderers?: LayerRendererDictionary,
+        layerLoadedListener?: (layer: AnimationLayer) => void,
+        layerUpdatedListener?: (layer: AnimationLayer) => void,
+        layerOnPlayListener?: (layer: AnimationLayer) => void,
+        layerOnPauseListener?: (layer: AnimationLayer) => void,
+        layerOnStopListener?: (layer: AnimationLayer) => void
     ): AnimationLayer {
-        return this._addLayer(
+        return this._addLayer<AnimationLayer>(
             LayerType.Animation,
             id,
             layerDimensions,
@@ -412,18 +427,18 @@ export class Dmd {
             layerOnPlayListener,
             layerOnPauseListener,
             layerOnStopListener
-        ) as AnimationLayer
+        )
     }
 
     addSpritesLayer(
         id: string,
-        layerDimensions: ILayerDimensions,
+        layerDimensions: LayerDimensions,
         options: Options,
-        renderers?: ILayerRendererDictionary,
-        layerLoadedListener?: (layer: BaseLayer) => void,
-        layerUpdatedListener?: (layer: BaseLayer) => void,
+        renderers?: LayerRendererDictionary,
+        layerLoadedListener?: (layer: SpritesLayer) => void,
+        layerUpdatedListener?: (layer: SpritesLayer) => void,
     ): SpritesLayer {
-        return this._addLayer(
+        return this._addLayer<SpritesLayer>(
             LayerType.Sprites,
             id,
             layerDimensions,
@@ -431,19 +446,19 @@ export class Dmd {
             renderers,
             layerLoadedListener,
             layerUpdatedListener,
-        ) as SpritesLayer
+        )
     }
 
 
     addTextLayer(
         id: string,
-        layerDimensions: ILayerDimensions,
+        layerDimensions: LayerDimensions,
         options: Options,
-        renderers?: ILayerRendererDictionary,
-        layerLoadedListener?: (layer: BaseLayer) => void,
-        layerUpdatedListener?: (layer: BaseLayer) => void,
+        renderers?: LayerRendererDictionary,
+        layerLoadedListener?: (layer: TextLayer) => void,
+        layerUpdatedListener?: (layer: TextLayer) => void,
     ): TextLayer {
-        return this._addLayer(
+        return this._addLayer<TextLayer>(
             LayerType.Text,
             id,
             layerDimensions,
@@ -451,7 +466,7 @@ export class Dmd {
             renderers,
             layerLoadedListener,
             layerUpdatedListener,
-        ) as TextLayer
+        )
     }
 
     /**
@@ -532,7 +547,7 @@ export class Dmd {
      */
     reset() {
         //TODO delete all layer first
-        this._layers = {} as ILayerDictionnary
+        this._layers = {} as LayerDictionnary
         this._sortedLayers = []
     }
 
@@ -549,7 +564,7 @@ export class Dmd {
      * @param {string} name
      * @returns BaseLayer
      */
-    getLayer(name: string): BaseLayer {
+    getLayer(name: string): BaseLayer | null {
         if (typeof this._layers[name] !== 'undefined') {
             return this._layers[name]
         } else {
@@ -624,9 +639,9 @@ export class Dmd {
      * Create a new layer object and add it to the list of layers
      * @param {LayerType} type : mandatory
      * @param {string} id : mandatory
-     * @param {ILayerDimensions} _layerDimensions : optional
+     * @param {LayerDimensions} _layerDimensions : optional
      * @param {object} _options
-     * @param {ILayerRendererDictionary} _layerRenderers : optional
+     * @param {LayerRendererDictionary} _layerRenderers : optional
      * @param {function} _layerLoadedListener : optional
      * @param {function} _layerUpdatedListener : optional
      * @param {function} _layerOnPlayListener : optional
@@ -635,18 +650,18 @@ export class Dmd {
      * @see BaseLayer for available options
      * @return layer
      */
-    private _addLayer(
+    private _addLayer<T extends BaseLayer>(
         type: LayerType,
         id: string,
-        _layerDimensions: ILayerDimensions,
+        _layerDimensions: LayerDimensions,
         _options: Options,
-        _layerRenderers?: ILayerRendererDictionary,
-        _layerLoadedListener?: (layer: BaseLayer) => void,
-        _layerUpdatedListener?: (layer: BaseLayer) => void,
-        _layerOnPlayListener?: (layer: BaseLayer) => void,
-        _layerOnPauseListener?: (layer: BaseLayer) => void,
-        _layerOnStopListener?: (layer: BaseLayer) => void,
-    ) {
+        _layerRenderers?: LayerRendererDictionary,
+        _layerLoadedListener?: (layer: T) => void,
+        _layerUpdatedListener?: (layer: T) => void,
+        _layerOnPlayListener?: (layer: T) => void,
+        _layerOnPauseListener?: (layer: T) => void,
+        _layerOnStopListener?: (layer: T) => void,
+    ): T {
 
         if (typeof this._layers[id] !== 'undefined') {
             throw new Error(`Layer [${id}] already exists`);
@@ -688,23 +703,30 @@ export class Dmd {
         }
 
 
+        // Cast typed callbacks to (layer: BaseLayer) for the layer constructors
+        const onLoaded  = _layerLoadedListener  as ((layer: BaseLayer) => void) | undefined
+        const onUpdated = _layerUpdatedListener as ((layer: BaseLayer) => void) | undefined
+        const onPlay    = _layerOnPlayListener  as ((layer: BaseLayer) => void) | undefined
+        const onPause   = _layerOnPauseListener as ((layer: BaseLayer) => void) | undefined
+        const onStop    = _layerOnStopListener  as ((layer: BaseLayer) => void) | undefined
+
         let layer
 
         switch (type) {
             case LayerType.Canvas:
-                layer = new CanvasLayer(id, layerWidth, layerHeight, options, _layerRenderers, _layerLoadedListener, _layerUpdatedListener)
+                layer = new CanvasLayer(id, layerWidth, layerHeight, options, _layerRenderers, onLoaded, onUpdated)
                 break
             case LayerType.Video:
-                layer = new VideoLayer(id, layerWidth, layerHeight, options, _layerRenderers, _layerLoadedListener, _layerUpdatedListener, _layerOnPlayListener, _layerOnPauseListener)
+                layer = new VideoLayer(id, layerWidth, layerHeight, options, _layerRenderers, onLoaded, onUpdated, onPlay, onPause)
                 break
             case LayerType.Animation:
-                layer = new AnimationLayer(id, layerWidth, layerHeight, options, _layerRenderers, _layerLoadedListener, _layerUpdatedListener, _layerOnPlayListener, _layerOnPauseListener, _layerOnStopListener)
+                layer = new AnimationLayer(id, layerWidth, layerHeight, options, _layerRenderers, onLoaded, onUpdated, onPlay, onPause, onStop)
                 break
             case LayerType.Sprites:
-                layer = new SpritesLayer(id, layerWidth, layerHeight, options, _layerRenderers, _layerLoadedListener, _layerUpdatedListener)
+                layer = new SpritesLayer(id, layerWidth, layerHeight, options, _layerRenderers, onLoaded, onUpdated)
                 break
             case LayerType.Text:
-                layer = new TextLayer(id, layerWidth, layerHeight, options, _layerRenderers, _layerLoadedListener, _layerUpdatedListener)
+                layer = new TextLayer(id, layerWidth, layerHeight, options, _layerRenderers, onLoaded, onUpdated)
                 break
             default:
                 throw new TypeError(`Invalid layer type : ${type}`)
@@ -726,7 +748,7 @@ export class Dmd {
         // Sort by zIndex inc
         this.sortLayers()
 
-        return layer as BaseLayer
+        return layer as unknown as T
 
     }
 }

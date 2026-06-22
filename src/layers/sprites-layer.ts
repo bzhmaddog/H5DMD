@@ -1,5 +1,5 @@
 import {BaseLayer, LayerType} from "./base-layer"
-import {ILayerRendererDictionary, ISpriteAnimationItem, ISpriteSequenceItem} from "../interfaces"
+import {LayerRendererDictionary, SpriteAnimationItem, SpriteSequenceItem} from "../interfaces"
 import {Options, Sprite} from "../utils"
 
 interface ISpriteItem {
@@ -24,7 +24,7 @@ class SpritesLayer extends BaseLayer {
         width: number,
         height: number,
         options?: Options,
-        renderers?: ILayerRendererDictionary,
+        renderers?: LayerRendererDictionary,
         loadedListener?: (layer: SpritesLayer) => void,
         updatedListener?: (layer: SpritesLayer) => void
     ) {
@@ -83,7 +83,7 @@ class SpritesLayer extends BaseLayer {
         spriteSheet: ImageBitmap,
         hFrameOffset: number,
         vFrameOffset: number,
-        animations: ISpriteAnimationItem[],
+        animations: SpriteAnimationItem[],
         x: string,
         y: string
     ): Promise<Sprite> {
@@ -268,7 +268,7 @@ class SpritesLayer extends BaseLayer {
      * @param {array} queue 
      * @param {boolean} loop 
      */
-    enqueueSequence(id: string, queue: ISpriteSequenceItem[], loop: boolean) {
+    enqueueSequence(id: string, queue: SpriteSequenceItem[], loop: boolean) {
         if (typeof this._sprites[id] !== 'undefined') {
             this._sprites[id].sprite.enqueueSequence(queue, loop)
         } else {

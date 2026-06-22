@@ -1,6 +1,6 @@
 import {BaseLayer, LayerType} from "./base-layer"
 import {Options} from "../utils"
-import {ILayerRendererDictionary} from "../interfaces"
+import {LayerRendererDictionary} from "../interfaces"
 
 enum VideoState {
 	STOPPED,
@@ -24,7 +24,7 @@ class VideoLayer extends BaseLayer {
 		width: number,
 		height: number,
 		options?: Options,
-		renderers?: ILayerRendererDictionary,
+		renderers?: LayerRendererDictionary,
 		loadedListener?: (layer: VideoLayer) => void,
 		updatedListener?: (layer: VideoLayer) => void,
 		playListener?: (layer: VideoLayer) => void,
