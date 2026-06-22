@@ -1,20 +1,15 @@
-import {LayerRenderer} from "./layerRenderer"
-import {Options} from "../utils"
+import {LayerRenderer} from "./layer-renderer"
 
-class ChangeAlphaRenderer extends LayerRenderer {
+class RemoveAlphaRenderer extends LayerRenderer {
 
     /**
      * @param {number} width 
      * @param {number} height 
      */
     constructor(width: number, height: number) {
-        super("ChangeAlphaRenderer", width, height)
+        super("RemoveAlphaRenderer", width, height)
     }
 
-    /**
-     * Init renderer
-     * @returns Promise
-     */
     init(): Promise<void> {
 
         return new Promise(resolve => {
@@ -27,53 +22,35 @@ class ChangeAlphaRenderer extends LayerRenderer {
 
                     this._shaderModule = device.createShaderModule({
                         code: `
-                            struct UBO {
-                                opacity: f32
-                            }
-
                             struct Image {
                                 rgba: array<u32>
                             }
 
-                            fn f2u(f: f32) -> u32 {
-                                return u32(ceil(f));
-                            }
-
                             @group(0) @binding(0) var<storage,read> inputPixels: Image;
                             @group(0) @binding(1) var<storage,read_write> outputPixels: Image;
-                            @group(0) @binding(2) var<uniform> uniforms : UBO;
 
                             @compute
                             @workgroup_size(1)
                             fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
                                 let index : u32 = global_id.x + global_id.y * ${this._width}u;
-                                let pixelColor : u32 = inputPixels.rgba[index];
-                                let opacity : f32 = uniforms.opacity;
 
+                                var pixel : u32 = inputPixels.rgba[index];
                                 
-                                var a : u32 = (pixelColor >> 24u) & 255u;
-                                let b : u32 = (pixelColor >> 16u) & 255u;
-                                let g : u32 = (pixelColor >> 8u) & 255u;
-                                let r : u32 = (pixelColor & 255u);
-
-                                var aa = f2u(floor(f32(a) * opacity));
-
-                                // Hack : Todo find why floor not working (0 * anything) should give 0
-                                if (opacity == 0f) {
-                                    aa = 0u;
-                                }
-
-                                outputPixels.rgba[index] = (aa << 24u) | (b << 16u) | (g << 8u) | r;
+                                //let a : u32 = (pixel >> 24u) & 255u;
+                                let b : u32 = (pixel >> 16u) & 255u;
+                                let g : u32 = (pixel >> 8u) & 255u;
+                                let r : u32 = (pixel & 255u);
+               
+                                outputPixels.rgba[index] = 255u << 24u | b << 16u | g << 8u | r;
                             }
                         `
                     })
 
-                    console.log('ChangeAlphaRenderer:init()')
-
+                    console.log('RemoveAlphaRenderer:init()')
 
                     this._shaderModule.getCompilationInfo()?.then(i => {
                         if (i.messages.length > 0 ) {
-                            console.warn("ChangeAlphaRenderer:compilationInfo() ", i.messages)
+                            console.warn("RemoveAlphaRenderer:compilationInfo() ", i.messages)
                         }
                     })
 
@@ -87,18 +64,10 @@ class ChangeAlphaRenderer extends LayerRenderer {
 
     /**
      * Apply filter to provided data then return altered data
-     * @param {ImageData} frameData
-     * @param {Options} _options
+     * @param {ImageData} frameData 
      * @returns {Promise<ImageData>}
      */
-    private _doRendering(frameData: ImageData, _options?: Options): Promise<ImageData> {
-
-        const options = new Options({opacity: 1}).merge(_options)
-
-        const UBOBuffer = this._device.createBuffer({
-            size: 4,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-        })
+    private _doRendering(frameData: ImageData): Promise<ImageData> {
 
         const gpuInputBuffer = this._device.createBuffer({
             mappedAtCreation: true,
@@ -117,7 +86,7 @@ class ChangeAlphaRenderer extends LayerRenderer {
         })
     
         const bindGroupLayout = this._device.createBindGroupLayout({
-            entries : [
+            entries: [
                 {
                     binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
@@ -130,13 +99,6 @@ class ChangeAlphaRenderer extends LayerRenderer {
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
                         type: "storage"
-                    }
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: {
-                      type: "uniform",
                     }
                 }
             ]
@@ -156,12 +118,6 @@ class ChangeAlphaRenderer extends LayerRenderer {
                     resource: {
                         buffer: gpuTempBuffer
                     }
-                },
-                {
-                    binding: 2, 
-                    resource: {
-                      buffer: UBOBuffer
-                    }
                 }
             ]
         })
@@ -176,18 +132,11 @@ class ChangeAlphaRenderer extends LayerRenderer {
             }
         })
 
-
         return new Promise( resolve => {
-
+          
             // Put original image data in the input buffer (257x78)
             new Uint8Array(gpuInputBuffer.getMappedRange()).set(new Uint8Array(frameData.data))
             gpuInputBuffer.unmap()
-
-            // Write values to uniform buffer object
-            const uniformData = [options.get('opacity')]
-            const uniformTypedArray = new Float32Array(uniformData)
-
-            this._device.queue.writeBuffer(UBOBuffer, 0, uniformTypedArray.buffer)
 
             const commandEncoder = this._device.createCommandEncoder()
             const passEncoder = commandEncoder.beginComputePass()
@@ -215,6 +164,7 @@ class ChangeAlphaRenderer extends LayerRenderer {
             })
         })
 	}
+
 }
 
-export { ChangeAlphaRenderer }
+export { RemoveAlphaRenderer }

@@ -1,4 +1,4 @@
-import {BaseLayer, LayerType} from "./baseLayer"
+import {BaseLayer, LayerType} from "./base-layer"
 import {ILayerRendererDictionary} from "../interfaces"
 import {Options} from "../utils"
 
