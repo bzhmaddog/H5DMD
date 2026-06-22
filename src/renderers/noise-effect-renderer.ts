@@ -1,5 +1,5 @@
 import {OffscreenBuffer} from "../utils"
-import {LayerRenderer} from "./layerRenderer"
+import {LayerRenderer} from "./layer-renderer"
 
 class NoiseEffectRenderer extends LayerRenderer {
 

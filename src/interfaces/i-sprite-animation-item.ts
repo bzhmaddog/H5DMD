@@ -1,4 +1,4 @@
-import {ISpriteAnimation} from "./iSpriteAnimation";
+import {ISpriteAnimation} from "./i-sprite-animation";
 
 export interface ISpriteAnimationItem {
     key: string,

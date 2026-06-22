@@ -1,4 +1,4 @@
-import {BaseLayer, LayerType} from './baseLayer'
+import {BaseLayer, LayerType} from './base-layer'
 import {OffscreenBuffer, Options, Utils} from '../utils'
 import {Colors} from '../enums'
 import {ILayerRendererDictionary} from '../interfaces'

@@ -32,7 +32,7 @@ export class Dmd {
     /**
      * H5DMD library version (kept in sync with package.json)
      */
-    static readonly version: string = '1.0.7'
+    static readonly version: string = '1.1.0'
 
     private _outputCanvas: HTMLCanvasElement
     private _outputContext: CanvasRenderingContext2D

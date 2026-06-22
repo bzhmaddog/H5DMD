@@ -1,4 +1,4 @@
-import {BaseLayer, LayerType} from "./baseLayer"
+import {BaseLayer, LayerType} from "./base-layer"
 import {ILayerRendererDictionary, ISpriteAnimationItem, ISpriteSequenceItem} from "../interfaces"
 import {Options, Sprite} from "../utils"
 

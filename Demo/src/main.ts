@@ -17,6 +17,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const imagesPath = document.baseURI.replace('index.html', '') + 'images';
 
+    // Display the H5DMD library version
+    const versionElement = document.getElementById('version_value');
+    if (versionElement) {
+        versionElement.textContent = Dmd.version;
+    }
+
     // Check if webgpu is supported
     if ("gpu" in navigator) {
 

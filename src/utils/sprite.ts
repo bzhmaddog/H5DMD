@@ -1,5 +1,5 @@
 import {OffscreenBuffer} from "./offscreen-buffer"
-import {ISpriteAnimation} from "../interfaces/iSpriteAnimation";
+import {ISpriteAnimation} from "../interfaces/i-sprite-animation";
 import {ISpriteSequenceItem} from "../interfaces";
 
 interface IAnimationQueueItem {

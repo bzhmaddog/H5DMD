@@ -1,4 +1,4 @@
-import {LayerRenderer} from "./layerRenderer"
+import {LayerRenderer} from "./layer-renderer"
 
 class DummyRenderer extends LayerRenderer {
 

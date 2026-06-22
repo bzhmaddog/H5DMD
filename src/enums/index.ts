@@ -1,2 +1,2 @@
 export * from './colors';
-export * from './dotShape';
+export * from './dot-shape';
