@@ -18,6 +18,7 @@
     "eslint": "^8.57.0",
     "jsdom": "^29.1.1",
     "tslib": "^2.6.2",
+    "typedoc": "^0.25.13",
     "typescript": "^5.4.2",
     "vitest": "^4.1.9",
     "vitest-canvas-mock": "^1.1.4"
