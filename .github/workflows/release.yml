@@ -46,5 +46,4 @@ jobs:
       # Publishes dist/ (per the "files" field). --provenance attaches a signed
       # build attestation; npm CLI uploads it via the id-token permission above.
       - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      
