@@ -103,7 +103,7 @@ class VideoLayer extends BaseLayer {
 
 	private _play() {
 		// If the layer is not visible do not start playing the video to save resources
-		if (!this.isVisible) {
+		if (!this.isVisible()) {
 			console.error(`Layer[${this.id}] is not visible`)
 			return
 		}

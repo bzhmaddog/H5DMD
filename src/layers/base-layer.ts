@@ -73,6 +73,8 @@ abstract class BaseLayer {
 
         Promise.all<void>(rendererPromises).then(() => {
             console.log(`Layer[${id}] : Renderers init done`)
+        }).catch(err => {
+            console.error(`Layer[${id}] : Renderer init failed`, err)
         })
 
         if (this._options.get('renderers').length > 0) {

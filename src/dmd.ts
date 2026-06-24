@@ -142,11 +142,8 @@ export class Dmd {
      * @returns Promise
      */
     init(): Promise<void> {
-        return new Promise(resolve => {
-            this._renderer.init().then(() => {
-                this._initDone = true
-                resolve()
-            })
+        return this._renderer.init().then(() => {
+            this._initDone = true
         })
     }
 

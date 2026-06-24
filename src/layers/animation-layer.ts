@@ -31,7 +31,7 @@ class AnimationLayer extends BaseLayer {
 
         const layerOptions = new Options({loop: false, autoplay: false}).merge(options)
 
-        super(id, LayerType.Video, width, height, layerOptions, renderers, loadedListener, updatedListener)
+        super(id, LayerType.Animation, width, height, layerOptions, renderers, loadedListener, updatedListener)
 
         this._onPlayListener = playListener
         this._onPauseListener = pauseListener

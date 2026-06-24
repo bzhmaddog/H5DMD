@@ -138,15 +138,18 @@ class TextLayer extends BaseLayer {
             // Adjust size of font so that the text fit the screen
             // TODO : Fix that to handle text that are not aligned 
             if (options.get('adjustWidth')) {
+                // Smallest font we are willing to shrink to; also guarantees the
+                // loop terminates even when the text can never fully fit.
+                const minFontSize = 1
                 let textOk = false
 
                 while (!textOk) {
                     this._textBuffer.context.font = options.get('fontStyle') + " " + fontSize + fontUnit + ' ' + options.get('fontFamily')
                     m = this._textBuffer.context.measureText(this._text)
 
-                    if (m.width > this.width - 5) {
-                        const fs = options.get('fontSize')
-                        options.set('fontSize', fs - 1)
+                    if (m.width > this.width - 5 && fontSize > minFontSize) {
+                        // Shrink the value actually used to build the font string.
+                        fontSize -= 1
                     } else {
                         textOk = true
                     }
