@@ -21,7 +21,7 @@ jobs:
 
       # Build Vite demo
       - name: Build demo
-        working-directory: ./demo
+        working-directory: ./Demo
         run: |
           npm ci
           npm run build
@@ -31,7 +31,7 @@ jobs:
         run: |
           mkdir -p publish/docs
           cp -r docs/* publish/docs/
-          cp -r demo/dist/* publish/
+          cp -r Demo/dist/* publish/
 
       - uses: peaceiris/actions-gh-pages@v3
         with:
