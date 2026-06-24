@@ -24,51 +24,105 @@
 
         #version {
             color: white;
+            font: 13px sans-serif;
+            margin: 6px 0 10px;
+        }
+
+        #layer-controls {
+            max-width: 1280px;
+            font: 13px sans-serif;
+        }
+
+        #tab-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2px;
+            border-bottom: 2px solid #6cf;
+        }
+
+        #tab-bar button {
+            background: #1a1a1a;
+            color: #bbb;
+            border: 1px solid #333;
+            border-bottom: none;
+            padding: 6px 10px;
+            cursor: pointer;
+            font: 12px sans-serif;
+            border-radius: 4px 4px 0 0;
+        }
+
+        #tab-bar button.active {
+            background: #6cf;
+            color: #000;
+            font-weight: bold;
+        }
+
+        .tab-panel {
+            display: none;
+            padding: 12px;
+            border: 1px solid #333;
+            border-top: none;
+            background: #111;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        .ctl-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .ctl-row label {
+            min-width: 70px;
+        }
+
+        .tab-panel button {
+            cursor: pointer;
+            background: #222;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 4px 10px;
+        }
+
+        .tab-panel button:hover {
+            background: #333;
+        }
+
+        .ctl-tag {
+            color: #fa0;
+            font: bold 11px monospace;
+            margin-left: 6px;
+        }
+
+        .ctl-note {
+            color: #888;
+            font-size: 12px;
+        }
+
+        input[type='text'] {
+            background: #222;
+            color: #fff;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 4px 6px;
         }
     </style>
 </head>
 <body>
 <canvas id="output" width="1280" height="390"></canvas>
-<br/>
 <div id="version">H5DMD version: <span id="version_value">?</span></div>
-<div id="checkboxes">
-    <div>
-        <input id="background_checkbox" type="checkbox" data-layer="bg" checked/>
-        <label for="background_checkbox">Background</label>
-    </div>
-    <div>
-        <input id="sprite_checkbox" type="checkbox" data-layer="sprite" checked/>
-        <label for="sprite_checkbox">Sprite</label>
-    </div>
-    <div>
-        <input id="animation_checkbox" type="checkbox" data-layer="animation" checked/>
-        <label for="animation_checkbox">Background animation</label>
-    </div>
-    <div>
-        <input id="video_checkbox" type="checkbox" data-layer="video"/>
-        <label for="video_checkbox">Transparent video</label>
-    </div>
-    <div>
-        <input id="vstext_checkbox" type="checkbox" data-layer="text2" checked/>
-        <label for="vstext_checkbox">VS text inner</label>
-    </div>
-    <div>
-        <input id="vstext_checkbox2" type="checkbox" data-layer="text3" checked/>
-        <label for="vstext_checkbox2">VS text outer</label>
-    </div>
-    <div>
-        <input id="scotttext_checkbox" type="checkbox" data-layer="text1" checked/>
-        <label for="scotttext_checkbox">Scott pilgrim text</label>
-    </div>
-    <div>
-        <input id="matthewtext_checkbox" type="checkbox" data-layer="text4" checked/>
-        <label for="matthewtext_checkbox">Matthew Patel text</label>
-    </div>
-    <div>
-        <input id="matthewimg_checkbox" type="checkbox" data-layer="matthew" checked/>
-        <label for="matthewimg_checkbox">Matthew Patel Image</label>
-    </div>
+
+<div id="layer-controls">
+    <div id="tab-bar"></div>
+    <div id="tab-panels"></div>
 </div>
+
 <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

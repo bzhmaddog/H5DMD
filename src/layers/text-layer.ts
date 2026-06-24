@@ -336,6 +336,49 @@ class TextLayer extends BaseLayer {
         }
     }
 
+    /**
+     * Current layer text
+     */
+    get text(): string {
+        return this._text
+    }
+
+    /**
+     * Set the text fill color and redraw the current text.
+     * @param {string} color CSS color string (e.g. '#FF0000' or a Colors value)
+     */
+    setTextColor(color: string) {        if (typeof color !== 'string') {
+            throw new TypeError("color is not a string")
+        }
+
+        this._options.set('color', color)
+        this._drawText().then(() => {
+            this._layerUpdated()
+        })
+    }
+
+    /**
+     * Enable or disable automatic font shrinking so the text fits the layer width, then redraw.
+     * @param {boolean} enabled
+     */
+    setAdjustWidth(enabled: boolean) {
+        if (typeof enabled !== 'boolean') {
+            throw new TypeError("enabled is not a boolean")
+        }
+
+        this._options.set('adjustWidth', enabled)
+        this._drawText().then(() => {
+            this._layerUpdated()
+        })
+    }
+
+    /**
+     * Whether automatic font shrinking to fit the layer width is enabled.
+     */
+    get adjustWidth(): boolean {
+        return this._options.get('adjustWidth')
+    }
+
     setVisibility(isVisible: boolean): void {
         super.setVisibility(isVisible)
     }

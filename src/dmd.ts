@@ -285,7 +285,7 @@ export class Dmd {
     }
 
     private sortLayers() {
-        this._sortedLayers = this._sortedLayers.sort((a, b) => (a.zIndex > b.zIndex) ? 1 : -1)
+        this._sortedLayers = this._sortedLayers.sort((a, b) => a.zIndex - b.zIndex)
     }
 
 
@@ -335,7 +335,7 @@ export class Dmd {
             const cb = function () {
 
                 const delta = window.performance.now() - start
-                const b = Easing.easeOutSine(delta, startBrightness, 1, duration)
+                const b = Easing.easeOutSine(delta, startBrightness, 1 - startBrightness, duration)
 
                 renderer.setBrightness(b)
 

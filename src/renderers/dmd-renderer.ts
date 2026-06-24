@@ -73,7 +73,7 @@ class DmdRenderer extends Renderer {
                 this._bgColor = parseInt("FF" + this._int2Hex(bgBrightness) + this._int2Hex(bgBrightness) + this._int2Hex(bgBrightness), 16)
         }
 
-        if (typeof bgBrightness === 'number') {
+        if (typeof brightness === 'number') {
             this.setBrightness(brightness)
         }
 

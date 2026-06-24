@@ -31,17 +31,21 @@ Status legend: ⬜ not started · 🟦 in progress · ✅ done · 🧪 proof tes
 
 ## 🟠 High (incorrect behavior)
 
-- ⬜ **H1 — `fadeIn` easing uses wrong delta** · `src/dmd.ts`
-  Third easing arg should be `1 - startBrightness`, not `1`; overshoots.
-- ⬜ **H2 — `DmdRenderer` ignores `brightness` arg** · `src/renderers/dmd-renderer.ts`
-  Duplicated `typeof bgBrightness === 'number'` guard; second should test `brightness`.
-- ⬜ **H3 — `previousFrame` skips frame 0** · `src/layers/animation-layer.ts`
-  `if (prevFrame <= 0)` wraps on valid frame 0; should be `< 0`.
-- ⬜ **H4 — `pauseOnHide` typo (`pausepOnHide`)** · `src/layers/video-layer.ts`
-- ⬜ **H5 — Missing `duration` default for animations** · `src/layers/animation-layer.ts`
-  `_frameDuration` becomes `NaN` when `duration` is unset.
-- ⬜ **H6 — Unstable layer sort** · `src/dmd.ts`
-  Comparator returns `-1` for equal z-index; use `a.zIndex - b.zIndex`.
+- ✅ **H1 — `fadeIn` easing uses wrong delta** · `src/dmd.ts`
+  Fixed: change arg is now `1 - startBrightness` so the fade lands on full
+  brightness instead of overshooting (and finishing early).
+- ✅ **H2 — `DmdRenderer` ignores `brightness` arg** · `src/renderers/dmd-renderer.ts`
+  Fixed: the second guard now tests `typeof brightness === 'number'`.
+- ✅ **H3 — `previousFrame` skips frame 0** · `src/layers/animation-layer.ts`
+  Fixed: wrap condition is now `prevFrame < 0`.
+- ✅ **H4 — `pauseOnHide` typo (`pausepOnHide`)** · `src/layers/video-layer.ts`
+  Fixed: visibility guard now reads `pauseOnHide`.
+- ✅ **H5 — Missing `duration` default for animations** · `src/layers/animation-layer.ts`
+  Fixed: layer options default `duration: 1000`, so `_frameDuration` is finite.
+- ✅ **H6 — Unstable layer sort** · `src/dmd.ts`
+  Fixed: comparator is now `a.zIndex - b.zIndex` (returns 0 for ties).
+
+_Regression tests:_ `tests/bugs/high-priority.bug.spec.ts`
 
 ---
 

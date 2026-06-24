@@ -29,7 +29,7 @@ class AnimationLayer extends BaseLayer {
         stopListener?: (layer: AnimationLayer) => void
     ) {
 
-        const layerOptions = new Options({loop: false, autoplay: false}).merge(options)
+        const layerOptions = new Options({loop: false, autoplay: false, duration: 1000}).merge(options)
 
         super(id, LayerType.Animation, width, height, layerOptions, renderers, loadedListener, updatedListener)
 
@@ -223,7 +223,7 @@ class AnimationLayer extends BaseLayer {
     previousFrame() {
         let prevFrame = this._frameIndex - 1
 
-        if (prevFrame <= 0) {
+        if (prevFrame < 0) {
             prevFrame = this._images.length - 1
         }
 

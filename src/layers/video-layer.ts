@@ -172,7 +172,7 @@ class VideoLayer extends BaseLayer {
 
 		super.setVisibility(isVisible)
 
-		if (!isVisible && this._state === VideoState.PLAYING && (this._options.get('stopOnHide') || this._options.get('pausepOnHide'))) {
+		if (!isVisible && this._state === VideoState.PLAYING && (this._options.get('stopOnHide') || this._options.get('pauseOnHide'))) {
 
 			if (this._options.get('stopOnHide')) {
 				this._stop(true)
