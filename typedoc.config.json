@@ -9,5 +9,6 @@
     "./src/interfaces/*",
     "./src/utils/*"
   ],
-    "out": "docs"
+  "includeVersion": true,
+  "out": "docs"
 }
