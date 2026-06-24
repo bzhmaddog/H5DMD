@@ -50,4 +50,6 @@ jobs:
       - uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          external_repository: bzhmaddog/bzhmaddog.github.io
           publish_dir: ./publish
+          destination_dir: H5DMD    
