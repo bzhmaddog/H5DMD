@@ -1,0 +1,39 @@
+name: Publish
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Build TypeDoc
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run docs         # outputs to dist/docs or docs/
+
+      # Build Vite demo
+      - name: Build demo
+        working-directory: ./demo
+        run: |
+          npm ci
+          npm run build           # outputs to demo/dist/
+
+      # Combine into one folder
+      - name: Combine outputs
+        run: |
+          mkdir -p publish/docs
+          cp -r docs/* publish/docs/
+          cp -r demo/dist/* publish/
+
+      - uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./publish

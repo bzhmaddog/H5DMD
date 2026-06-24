@@ -10,5 +10,6 @@
     "./src/utils/*"
   ],
   "includeVersion": true,
-  "out": "docs"
+  "out": "docs",
+  "basePath": "/H5DMD/docs"
 }
