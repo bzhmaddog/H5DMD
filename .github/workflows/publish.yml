@@ -12,28 +12,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Build TypeDoc
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm ci
-      - run: npm run build:docs
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            Demo/package-lock.json
 
-      # Build Vite demo
+      # Build the library locally so dist/ exists, then register it with
+      # `npm link` (this is what the Demo consumes via the bare "h5dmd" import).
+      - name: Build library
+        run: |
+          npm ci
+          npm run build
+          npm link
+
+      # Generate the API documentation (TypeDoc -> docs/).
+      - name: Build documentation
+        run: npm run build:docs
+
+      # Build the Vite demo against the freshly built local library.
       - name: Build demo
         working-directory: ./Demo
         run: |
           npm ci
+          npm link h5dmd
           npm run build
 
-      # Combine into one folder
+      # Combine demo (site root) + docs (/docs) into one folder to publish.
       - name: Combine outputs
         run: |
           mkdir -p publish/docs
-          cp -r docs/* publish/docs/
           cp -r Demo/dist/* publish/
+          cp -r docs/* publish/docs/
 
-      - uses: peaceiris/actions-gh-pages@v3
+      - uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./publish
