@@ -33,7 +33,7 @@ launch the browser with autoplay enabled:
 
 # Live demo
 
-https://bzhmaddog.github.io/h5dmd/index.html
+https://bzhmaddog.github.io/H5DMD/index.html
 
 If it doesn't load check the developer console for errors
 
@@ -92,4 +92,4 @@ See [Demo/README.md](Demo/README.md) for more details.
 
 # Documentation
 
-[Follow this link](http://bzhmaddog.github.io/h5dmd/docs/index.html)
+[Follow this link](http://bzhmaddog.github.io/H5DMD/docs/index.html)
