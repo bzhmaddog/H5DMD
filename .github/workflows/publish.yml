@@ -1,4 +1,4 @@
-name: Publish
+name: Publish to GitHub Pages
 on:
   push:
     branches: [main]
@@ -17,14 +17,14 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - run: npm run docs         # outputs to dist/docs or docs/
+      - run: npm run build:docs
 
       # Build Vite demo
       - name: Build demo
         working-directory: ./demo
         run: |
           npm ci
-          npm run build           # outputs to demo/dist/
+          npm run build
 
       # Combine into one folder
       - name: Combine outputs
