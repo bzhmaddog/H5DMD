@@ -83,7 +83,10 @@ class DmdRenderer extends Renderer {
     }
 
     private _int2Hex(n: number): string {
-        let hex = n.toString(16)
+        // Clamp to a single byte (0–255) so the result is always exactly two hex
+        // digits; out-of-range values would otherwise corrupt the packed color.
+        const clamped = Math.max(0, Math.min(255, Math.round(n)))
+        let hex = clamped.toString(16)
 
         if (hex.length < 2) {
             hex = "0" + hex

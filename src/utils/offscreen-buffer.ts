@@ -14,7 +14,7 @@ class OffscreenBuffer {
 		this._canvas.width = width
 		this._canvas.height = height
 
-        let options = null
+        let options: CanvasRenderingContext2DSettings | undefined
 
 		if (willReadFrequently) {
 			//console.log("Buffer() : Settings willReadyFrequently to true")
@@ -22,7 +22,13 @@ class OffscreenBuffer {
 		}
 
 
-		this._context = this._canvas.getContext('2d', options)
+		const context = this._canvas.getContext('2d', options)
+
+		if (context === null) {
+			throw new Error('OffscreenBuffer: unable to acquire a 2D rendering context')
+		}
+
+		this._context = context
 	}
 
 	get context() {

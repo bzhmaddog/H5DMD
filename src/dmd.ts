@@ -26,6 +26,7 @@ export class Dmd {
     private _outputHeight: number
     private _frameBuffer: OffscreenBuffer
     private _fpsBox?: HTMLDivElement
+    private _showFPS: boolean
     private _zIndex: number
     private _renderer: DmdRenderer
     private _isRunning: boolean
@@ -109,28 +110,9 @@ export class Dmd {
         this._initDone = false
 
         // IF needed create and show fps div in hte top right corner of the screen
+        this._showFPS = showFPS
         if (showFPS) {
-            // Dom element to ouput fps value
-            // TODO : Remove later
-            this._fpsBox = document.createElement('div')
-            this._fpsBox.style.position = 'absolute'
-            this._fpsBox.style.right = '8px'
-            this._fpsBox.style.top = '8px'
-            this._fpsBox.style.zIndex = '99999' // WTF is this a string : check if/where we do addition/substraction
-            this._fpsBox.style.color = '#00ff66'
-            this._fpsBox.style.background = 'rgba(0, 0, 0, 0.8)'
-            this._fpsBox.style.padding = '6px 10px'
-            this._fpsBox.style.minWidth = '132px'
-            this._fpsBox.style.textAlign = 'left'
-            this._fpsBox.style.font = '12px/1.5 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace'
-            this._fpsBox.style.borderRadius = '4px'
-            this._fpsBox.style.whiteSpace = 'pre'
-            this._fpsBox.style.pointerEvents = 'none'
-            this._fpsBox.style.userSelect = 'none'
-
-            document.body.appendChild(this._fpsBox)
-
-            this._renderFPS = this.__renderFPS // Enable fps rendering on top of dmd
+            this._createFpsBox()
         }
 
         // Reset layers
@@ -157,6 +139,12 @@ export class Dmd {
 
         this._isRunning = true
         this._lastRenderTime = window.performance.now()
+
+        // (Re)create the FPS box if it was removed by a previous stop()
+        if (this._showFPS && !this._fpsBox) {
+            this._createFpsBox()
+        }
+
         this._renderNextFrame = this.requestNextFrame
         this._renderNextFrame()
     }
@@ -169,6 +157,9 @@ export class Dmd {
         this._renderNextFrame = function () {
             console.log("Dmd render stopped")
         }
+
+        // Remove the FPS box from the DOM so a discarded Dmd leaves nothing behind
+        this._removeFpsBox()
     }
 
     /**
@@ -227,6 +218,9 @@ export class Dmd {
                 // Render final Dmd image onto target canvas
                 this._outputContext.drawImage(bitmap, 0, 0)
 
+                // Release the bitmap now that it has been copied to the output canvas
+                bitmap.close()
+
                 const now = performance.now()
                 const delta = (now - this._lastRenderTime)
                 this._lastRenderTime = now
@@ -262,6 +256,45 @@ export class Dmd {
             })
 
         })
+    }
+
+    /**
+     * Create the on-screen FPS box and enable FPS rendering.
+     */
+    private _createFpsBox() {
+        // Dom element to ouput fps value
+        this._fpsBox = document.createElement('div')
+        this._fpsBox.style.position = 'absolute'
+        this._fpsBox.style.right = '8px'
+        this._fpsBox.style.top = '8px'
+        this._fpsBox.style.zIndex = '99999' // WTF is this a string : check if/where we do addition/substraction
+        this._fpsBox.style.color = '#00ff66'
+        this._fpsBox.style.background = 'rgba(0, 0, 0, 0.8)'
+        this._fpsBox.style.padding = '6px 10px'
+        this._fpsBox.style.minWidth = '132px'
+        this._fpsBox.style.textAlign = 'left'
+        this._fpsBox.style.font = '12px/1.5 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace'
+        this._fpsBox.style.borderRadius = '4px'
+        this._fpsBox.style.whiteSpace = 'pre'
+        this._fpsBox.style.pointerEvents = 'none'
+        this._fpsBox.style.userSelect = 'none'
+
+        document.body.appendChild(this._fpsBox)
+
+        this._renderFPS = this.__renderFPS // Enable fps rendering on top of dmd
+    }
+
+    /**
+     * Remove the on-screen FPS box from the DOM and disable FPS rendering.
+     */
+    private _removeFpsBox() {
+        if (this._fpsBox) {
+            this._fpsBox.remove()
+            this._fpsBox = undefined
+        }
+
+        this._renderFPS = function () {
+        } // Does nothing
     }
 
     /**
@@ -311,7 +344,7 @@ export class Dmd {
                     renderer.setBrightness(0)
                     resolve()
                 } else {
-                    setTimeout(cb, 1)
+                    requestAnimationFrame(cb)
                 }
             }
             cb()
@@ -343,7 +376,7 @@ export class Dmd {
                     renderer.setBrightness(1)
                     resolve()
                 } else {
-                    setTimeout(cb, 1)
+                    requestAnimationFrame(cb)
                 }
             }
             cb()
@@ -523,7 +556,7 @@ export class Dmd {
     addRenderer(id: string, renderer: LayerRenderer) {
 
         if (this._isRunning) {
-            throw new Error("Renderers must be added before calling Dmd.init()")
+            throw new Error("Renderers must be added before calling Dmd.run()")
         }
 
         // TODO check if renderer is a renderer class

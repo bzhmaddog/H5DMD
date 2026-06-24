@@ -51,12 +51,24 @@ _Regression tests:_ `tests/bugs/high-priority.bug.spec.ts`
 
 ## 🟡 Medium (robustness, resources, memory)
 
-- ⬜ **M1 — `OffscreenBuffer` ignores null context** · `src/utils/offscreen-buffer.ts`
-- ⬜ **M2 — `ImageBitmap` objects never `.close()`d** · `base-layer.ts`, `dmd.ts`
-- ⬜ **M3 — FPS box never removed from DOM** · `src/dmd.ts`
-- ⬜ **M4 — `_int2Hex` not clamped to 0–255** · `src/renderers/dmd-renderer.ts`
-- ⬜ **M5 — `fadeIn`/`fadeOut` use `setTimeout(cb, 1)`** · `src/dmd.ts`
-- ⬜ **M6 — `addRenderer` guard message misleading** · `src/dmd.ts`
+- ✅ **M1 — `OffscreenBuffer` ignores null context** · `src/utils/offscreen-buffer.ts`
+  Fixed: the constructor now throws if `getContext('2d')` returns `null` instead
+  of silently storing a null context.
+- ✅ **M2 — `ImageBitmap` objects never `.close()`d** · `base-layer.ts`, `dmd.ts`
+  Fixed: every per-frame `createImageBitmap` result is now `.close()`d right after
+  it is drawn into its buffer, freeing the bitmap each frame.
+- ✅ **M3 — FPS box never removed from DOM** · `src/dmd.ts`
+  Fixed: box creation is extracted to a helper; `stop()` removes it from the DOM
+  and `run()` recreates it when `showFPS` is enabled.
+- ✅ **M4 — `_int2Hex` not clamped to 0–255** · `src/renderers/dmd-renderer.ts`
+  Fixed: the value is rounded and clamped to 0–255 so the result is always exactly
+  two hex digits.
+- ✅ **M5 — `fadeIn`/`fadeOut` use `setTimeout(cb, 1)`** · `src/dmd.ts`
+  Fixed: both fades now schedule the next step with `requestAnimationFrame`.
+- ✅ **M6 — `addRenderer` guard message misleading** · `src/dmd.ts`
+  Fixed: the message now refers to `Dmd.run()` (the actual `_isRunning` trigger).
+
+_Regression tests:_ `tests/bugs/medium-priority.bug.spec.ts`
 
 ---
 

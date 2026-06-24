@@ -151,6 +151,8 @@ abstract class BaseLayer {
             createImageBitmap(frameImageData).then(bitmap => {
                 // Put final layer data in the output buffer
                 this._outputBuffer.context.drawImage(bitmap, 0, 0)
+                // Release the bitmap now that it has been copied into the buffer
+                bitmap.close()
                 // request next frame rendering
                 this._renderNextFrame()
             })
@@ -175,6 +177,7 @@ abstract class BaseLayer {
             this._outputBuffer.clear()
             createImageBitmap(frameImageData).then(bitmap => {
                 this._outputBuffer.context.drawImage(bitmap, 0, 0)
+                bitmap.close()
             })
         }
 
