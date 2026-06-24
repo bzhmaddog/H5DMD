@@ -5,14 +5,15 @@ import {DotShape} from "./enums"
 import {Layer, LayerDimensions, LayerRendererDictionary} from "./interfaces"
 
 
-interface LayerDictionnary {
+interface LayerDictionary {
     [index: string]: BaseLayer
 }
 
 export class Dmd {
 
     /**
-     * H5DMD library version (kept in sync with package.json)
+     * H5DMD library version. Single source of truth for the version string
+     * (must be bumped together with package.json on release).
      */
     static readonly version: string = '1.1.0'
 
@@ -20,12 +21,13 @@ export class Dmd {
     private _outputContext: CanvasRenderingContext2D
     private _xOffset: number
     private _yOffset: number
-    private _layers: LayerDictionnary
+    private _layers: LayerDictionary
     private _sortedLayers: Layer[]
     private _outputWidth: number
     private _outputHeight: number
     private _frameBuffer: OffscreenBuffer
     private _fpsBox?: HTMLDivElement
+    private _showFPS: boolean
     private _zIndex: number
     private _renderer: DmdRenderer
     private _isRunning: boolean
@@ -80,7 +82,7 @@ export class Dmd {
         this._outputHeight = Math.floor(this._outputCanvas.height / (dotSize + dotSpace))
         this._frameBuffer = new OffscreenBuffer(this._outputWidth, this._outputHeight, true)
         this._zIndex = 1
-        this._layers = {} as LayerDictionnary
+        this._layers = {} as LayerDictionary
         this._sortedLayers = []
         this._renderFPS = function () {
         } // Does nothing
@@ -108,29 +110,10 @@ export class Dmd {
 
         this._initDone = false
 
-        // IF needed create and show fps div in hte top right corner of the screen
+        // If needed create and show the fps div in the top right corner of the screen
+        this._showFPS = showFPS
         if (showFPS) {
-            // Dom element to ouput fps value
-            // TODO : Remove later
-            this._fpsBox = document.createElement('div')
-            this._fpsBox.style.position = 'absolute'
-            this._fpsBox.style.right = '8px'
-            this._fpsBox.style.top = '8px'
-            this._fpsBox.style.zIndex = '99999' // WTF is this a string : check if/where we do addition/substraction
-            this._fpsBox.style.color = '#00ff66'
-            this._fpsBox.style.background = 'rgba(0, 0, 0, 0.8)'
-            this._fpsBox.style.padding = '6px 10px'
-            this._fpsBox.style.minWidth = '132px'
-            this._fpsBox.style.textAlign = 'left'
-            this._fpsBox.style.font = '12px/1.5 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace'
-            this._fpsBox.style.borderRadius = '4px'
-            this._fpsBox.style.whiteSpace = 'pre'
-            this._fpsBox.style.pointerEvents = 'none'
-            this._fpsBox.style.userSelect = 'none'
-
-            document.body.appendChild(this._fpsBox)
-
-            this._renderFPS = this.__renderFPS // Enable fps rendering on top of dmd
+            this._createFpsBox()
         }
 
         // Reset layers
@@ -142,11 +125,8 @@ export class Dmd {
      * @returns Promise
      */
     init(): Promise<void> {
-        return new Promise(resolve => {
-            this._renderer.init().then(() => {
-                this._initDone = true
-                resolve()
-            })
+        return this._renderer.init().then(() => {
+            this._initDone = true
         })
     }
 
@@ -158,8 +138,19 @@ export class Dmd {
             throw new Error("call Dmd.init() first")
         }
 
+        // Already running: nothing to do (avoids starting a second render loop)
+        if (this._isRunning) {
+            return
+        }
+
         this._isRunning = true
         this._lastRenderTime = window.performance.now()
+
+        // (Re)create the FPS box if it was removed by a previous stop()
+        if (this._showFPS && !this._fpsBox) {
+            this._createFpsBox()
+        }
+
         this._renderNextFrame = this.requestNextFrame
         this._renderNextFrame()
     }
@@ -172,6 +163,9 @@ export class Dmd {
         this._renderNextFrame = function () {
             console.log("Dmd render stopped")
         }
+
+        // Remove the FPS box from the DOM so a discarded Dmd leaves nothing behind
+        this._removeFpsBox()
     }
 
     /**
@@ -182,38 +176,15 @@ export class Dmd {
         this._frameBuffer.context.fillStyle = this._backgroundColor
         this._frameBuffer.context.fillRect(0, 0, this._outputWidth, this._outputHeight)
 
-
-        //const before:number = performance.now()
-
         // Draw each visible layer on top of previous one to create the final screen
         this._sortedLayers.forEach(l => {
-            //if (this._layers.hasOwnProperty(l.id)) {
             const layer = this._layers[l.id]
 
             if (layer.isVisible() && layer.isLoaded()) {
-
-                //if (layer.layerType === LayerType.Text && layer.id === 'ball-value') {
-                //if (layer.layerType === LayerType.Text && layer.id === 'ball-text') {
-                //if (layer.layerType === LayerType.Text && layer.id === 'attract-credits') {
-                //if (layer.layerType === LayerType.Text) {
-                //console.log(l)
-                //this._frameBuffer.context.fillStyle = "#FF0000FF"
-                //this._frameBuffer.context.fillRect(l.left, l.top, layer.width, layer.height)
-                /*this._frameBuffer.context.strokeStyle = "#FF0000"
-                this._frameBuffer.context.beginPath()
-                this._frameBuffer.context.rect(l.left, l.top, layer.width, layer.height)
-                this._frameBuffer.context.stroke()*/
-                //}
                 // Draw layer content into a buffer
                 this._frameBuffer.context.drawImage(layer.canvas, l.left, l.top)
             }
-            //}
         })
-
-        //const after: number = performance.now() - before
-
-        //console.log('render time = ', after)
-
 
         // Get data from the merged layers content
         const frameImageData = this._frameBuffer.context.getImageData(0, 0, this._frameBuffer.width, this._frameBuffer.height)
@@ -229,6 +200,9 @@ export class Dmd {
 
                 // Render final Dmd image onto target canvas
                 this._outputContext.drawImage(bitmap, 0, 0)
+
+                // Release the bitmap now that it has been copied to the output canvas
+                bitmap.close()
 
                 const now = performance.now()
                 const delta = (now - this._lastRenderTime)
@@ -268,6 +242,45 @@ export class Dmd {
     }
 
     /**
+     * Create the on-screen FPS box and enable FPS rendering.
+     */
+    private _createFpsBox() {
+        // Dom element to output fps value
+        this._fpsBox = document.createElement('div')
+        this._fpsBox.style.position = 'absolute'
+        this._fpsBox.style.right = '8px'
+        this._fpsBox.style.top = '8px'
+        this._fpsBox.style.zIndex = '99999' // WTF is this a string : check if/where we do addition/substraction
+        this._fpsBox.style.color = '#00ff66'
+        this._fpsBox.style.background = 'rgba(0, 0, 0, 0.8)'
+        this._fpsBox.style.padding = '6px 10px'
+        this._fpsBox.style.minWidth = '132px'
+        this._fpsBox.style.textAlign = 'left'
+        this._fpsBox.style.font = '12px/1.5 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace'
+        this._fpsBox.style.borderRadius = '4px'
+        this._fpsBox.style.whiteSpace = 'pre'
+        this._fpsBox.style.pointerEvents = 'none'
+        this._fpsBox.style.userSelect = 'none'
+
+        document.body.appendChild(this._fpsBox)
+
+        this._renderFPS = this.__renderFPS // Enable fps rendering on top of dmd
+    }
+
+    /**
+     * Remove the on-screen FPS box from the DOM and disable FPS rendering.
+     */
+    private _removeFpsBox() {
+        if (this._fpsBox) {
+            this._fpsBox.remove()
+            this._fpsBox = undefined
+        }
+
+        this._renderFPS = function () {
+        } // Does nothing
+    }
+
+    /**
      * Update FPS output div with current fps value
      */
     private __renderFPS() {
@@ -288,12 +301,12 @@ export class Dmd {
     }
 
     private sortLayers() {
-        this._sortedLayers = this._sortedLayers.sort((a, b) => (a.zIndex > b.zIndex) ? 1 : -1)
+        this._sortedLayers = this._sortedLayers.sort((a, b) => a.zIndex - b.zIndex)
     }
 
 
     /**
-     * Fase dmd brightness out
+     * Fade dmd brightness out
      * @param {number} duration in ms
      * @returns {Promise<void>}
      */
@@ -314,7 +327,7 @@ export class Dmd {
                     renderer.setBrightness(0)
                     resolve()
                 } else {
-                    setTimeout(cb, 1)
+                    requestAnimationFrame(cb)
                 }
             }
             cb()
@@ -338,7 +351,7 @@ export class Dmd {
             const cb = function () {
 
                 const delta = window.performance.now() - start
-                const b = Easing.easeOutSine(delta, startBrightness, 1, duration)
+                const b = Easing.easeOutSine(delta, startBrightness, 1 - startBrightness, duration)
 
                 renderer.setBrightness(b)
 
@@ -346,7 +359,7 @@ export class Dmd {
                     renderer.setBrightness(1)
                     resolve()
                 } else {
-                    setTimeout(cb, 1)
+                    requestAnimationFrame(cb)
                 }
             }
             cb()
@@ -354,7 +367,7 @@ export class Dmd {
     }
 
     /**
-     * Set Dmd opacity betwewn 0 and 255
+     * Set Dmd opacity between 0 and 255
      * @param {number} b
      */
     setBrightness(b: number) {
@@ -526,7 +539,7 @@ export class Dmd {
     addRenderer(id: string, renderer: LayerRenderer) {
 
         if (this._isRunning) {
-            throw new Error("Renderers must be added before calling Dmd.init()")
+            throw new Error("Renderers must be added before calling Dmd.run()")
         }
 
         // TODO check if renderer is a renderer class
@@ -547,7 +560,7 @@ export class Dmd {
      */
     reset() {
         //TODO delete all layer first
-        this._layers = {} as LayerDictionnary
+        this._layers = {} as LayerDictionary
         this._sortedLayers = []
     }
 
@@ -580,7 +593,7 @@ export class Dmd {
     }
 
     /**
-     * Get the H5DMD library version
+     * Get the H5DMD library version (delegates to the static {@link Dmd.version}).
      */
     get version(): string {
         return Dmd.version

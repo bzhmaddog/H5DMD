@@ -73,6 +73,8 @@ abstract class BaseLayer {
 
         Promise.all<void>(rendererPromises).then(() => {
             console.log(`Layer[${id}] : Renderers init done`)
+        }).catch(err => {
+            console.error(`Layer[${id}] : Renderer init failed`, err)
         })
 
         if (this._options.get('renderers').length > 0) {
@@ -149,6 +151,8 @@ abstract class BaseLayer {
             createImageBitmap(frameImageData).then(bitmap => {
                 // Put final layer data in the output buffer
                 this._outputBuffer.context.drawImage(bitmap, 0, 0)
+                // Release the bitmap now that it has been copied into the buffer
+                bitmap.close()
                 // request next frame rendering
                 this._renderNextFrame()
             })
@@ -173,6 +177,7 @@ abstract class BaseLayer {
             this._outputBuffer.clear()
             createImageBitmap(frameImageData).then(bitmap => {
                 this._outputBuffer.context.drawImage(bitmap, 0, 0)
+                bitmap.close()
             })
         }
 
@@ -290,6 +295,29 @@ abstract class BaseLayer {
         const v = this._options.get('visible')
         this.setVisibility(!v)
         return !v
+    }
+
+    /**
+     * Set the layer opacity.
+     * @param {number} opacity value between 0 (transparent) and 1 (opaque)
+     */
+    setOpacity(opacity: number) {
+        const o = Math.max(0, Math.min(opacity, 1))
+        this._options.set('opacity', o)
+
+        // Layers that already run a continuous render loop (those with renderers)
+        // pick up the new opacity on their next frame. Otherwise render a single
+        // frame now so the change is applied immediately.
+        if (this.isVisible() && !this.haveRenderer()) {
+            this._renderFrame()
+        }
+    }
+
+    /**
+     * Current layer opacity (0 to 1)
+     */
+    get opacity(): number {
+        return this._options.get('opacity')
     }
 
 

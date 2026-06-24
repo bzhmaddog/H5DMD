@@ -227,5 +227,25 @@ describe('testing Options helper class', () => {
         expect(merged.get('key3')).toEqual(true)
     });
 
+    test('Constructing from an object copies array values instead of sharing the reference', () => {
+
+        const renderers = ['a']
+        const options = new Options({renderers})
+
+        renderers.push('b')
+
+        expect(options.get('renderers')).toEqual(['a'])
+    });
+
+    test('Merging with no argument does not share array references with the source', () => {
+
+        const source = new Options({renderers: ['a']})
+        const merged = source.merge()
+
+        ;(source.get('renderers') as string[]).push('b')
+
+        expect(merged.get('renderers')).toEqual(['a'])
+    });
+
 
 });

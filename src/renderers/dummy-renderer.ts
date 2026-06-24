@@ -19,9 +19,19 @@ class DummyRenderer extends LayerRenderer {
 
     init(): Promise<void> {
 
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
+
+            if (typeof navigator === 'undefined' || !navigator.gpu) {
+                reject(new Error(`${this.name}: WebGPU is not available in this environment (navigator.gpu is undefined)`))
+                return
+            }
 
             navigator.gpu.requestAdapter().then( adapter => {
+                if (!adapter) {
+                    reject(new Error(`${this.name}: no compatible GPU adapter found (requestAdapter() returned null)`))
+                    return
+                }
+
                 this._adapter = adapter
             
                 adapter.requestDevice().then( device => {
@@ -58,8 +68,8 @@ class DummyRenderer extends LayerRenderer {
 
                     this.renderFrame = this._doRendering
                     resolve()
-                })
-            })
+                }).catch(reject)
+            }).catch(reject)
        })
     
     }

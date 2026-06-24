@@ -7,7 +7,7 @@ interface IAnimationQueueItem {
     loop: number
 }
 
-interface IAnimationDictionnary {
+interface IAnimationDictionary {
     [index: string]: SpriteAnimation
 }
 
@@ -16,7 +16,7 @@ class Sprite {
     private _id: string
     private _buffer: OffscreenBuffer
     private _spriteSheet: ImageBitmap
-    private _animations: IAnimationDictionnary
+    private _animations: IAnimationDictionary
     private _animation: IAnimationQueueItem
     private _isAnimating: boolean
     private _loop: number
@@ -42,7 +42,7 @@ class Sprite {
         this._id = id
 
         this._buffer = new OffscreenBuffer(0, 0)
-        this._animations = {} as IAnimationDictionnary
+        this._animations = {} as IAnimationDictionary
         this._animation = null
         this._isAnimating = false
         this._loop = 1
@@ -84,7 +84,7 @@ class Sprite {
         const now = t
         const previousFrameIndex = this._frameIndex
 
-        if (this._startTime === null) {
+        if (this._startTime === undefined) {
             this._startTime = now
         }
 
@@ -105,7 +105,7 @@ class Sprite {
 
             // Start animation back to first frame
             this._frameIndex = 0
-            this._startTime = null
+            this._startTime = undefined
         }
 
 
@@ -146,7 +146,7 @@ class Sprite {
             }
 
             this._frameIndex = this._animation.params.nbFrames // To force rendering of frame 0
-            this._startTime = null
+            this._startTime = undefined
             this._frameDuration = this._animation.params.duration / this._animation.params.nbFrames
             this._isAnimating = true
             this._loop = 1

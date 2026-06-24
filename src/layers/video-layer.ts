@@ -49,7 +49,7 @@ class VideoLayer extends BaseLayer {
 			this._options.set('pauseOnHide', false)
 		}
 
-		// If layer is hidden at creation but autplay was set to true then hack variable
+		// If layer is hidden at creation but autoplay was set to true then hack variable
 		// to play the video when the layer is shown
 		if (this._options.get('autoplay') === true && this._options.get('visible') === false) {
 			this._internalAction = true
@@ -103,14 +103,14 @@ class VideoLayer extends BaseLayer {
 
 	private _play() {
 		// If the layer is not visible do not start playing the video to save resources
-		if (!this.isVisible) {
+		if (!this.isVisible()) {
 			console.error(`Layer[${this.id}] is not visible`)
 			return
 		}
 
 		// If video is already playing do nothing
 		if (this._state === VideoState.PLAYING) {
-			this._logWarning("Video is already beeing played")
+			this._logWarning("Video is already being played")
 			return
 		}
 
@@ -131,7 +131,7 @@ class VideoLayer extends BaseLayer {
 		}
 
 		if (this._state !== VideoState.PLAYING) {
-			this._logWarning("Video is not beeing played")
+			this._logWarning("Video is not being played")
 			return
 		}
 		
@@ -139,7 +139,7 @@ class VideoLayer extends BaseLayer {
 		this._state = VideoState.PAUSED
 		
 		this._video.pause()
-		this.__renderNextFrame = function(){"End of video rendering"}
+		this.__renderNextFrame = function(){}
 	}
 
 	private _stop(isInternal: boolean = false) {
@@ -149,7 +149,7 @@ class VideoLayer extends BaseLayer {
 		}
 
 		if (this._state !== VideoState.PLAYING) {
-			this._logWarning("Video was not beeing played")
+			this._logWarning("Video was not being played")
 		}
 
 		this._internalAction = isInternal
@@ -158,7 +158,7 @@ class VideoLayer extends BaseLayer {
 
 		this._video.pause()
 		this._video.currentTime = 0
-		this.__renderNextFrame = function(){"End of video rendering"}
+		this.__renderNextFrame = function(){}
 	}
 
 	/**
@@ -172,7 +172,7 @@ class VideoLayer extends BaseLayer {
 
 		super.setVisibility(isVisible)
 
-		if (!isVisible && this._state === VideoState.PLAYING && (this._options.get('stopOnHide') || this._options.get('pausepOnHide'))) {
+		if (!isVisible && this._state === VideoState.PLAYING && (this._options.get('stopOnHide') || this._options.get('pauseOnHide'))) {
 
 			if (this._options.get('stopOnHide')) {
 				this._stop(true)

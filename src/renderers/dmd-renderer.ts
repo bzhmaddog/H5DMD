@@ -73,7 +73,7 @@ class DmdRenderer extends Renderer {
                 this._bgColor = parseInt("FF" + this._int2Hex(bgBrightness) + this._int2Hex(bgBrightness) + this._int2Hex(bgBrightness), 16)
         }
 
-        if (typeof bgBrightness === 'number') {
+        if (typeof brightness === 'number') {
             this.setBrightness(brightness)
         }
 
@@ -83,7 +83,10 @@ class DmdRenderer extends Renderer {
     }
 
     private _int2Hex(n: number): string {
-        let hex = n.toString(16)
+        // Clamp to a single byte (0–255) so the result is always exactly two hex
+        // digits; out-of-range values would otherwise corrupt the packed color.
+        const clamped = Math.max(0, Math.min(255, Math.round(n)))
+        let hex = clamped.toString(16)
 
         if (hex.length < 2) {
             hex = "0" + hex
@@ -94,9 +97,19 @@ class DmdRenderer extends Renderer {
 
     init(): Promise<void> {
 
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
+
+            if (typeof navigator === 'undefined' || !navigator.gpu) {
+                reject(new Error(`${this.name}: WebGPU is not available in this environment (navigator.gpu is undefined)`))
+                return
+            }
 
             navigator.gpu.requestAdapter().then( adapter => {
+                if (!adapter) {
+                    reject(new Error(`${this.name}: no compatible GPU adapter found (requestAdapter() returned null)`))
+                    return
+                }
+
                 this._adapter = adapter
 
                 adapter.requestDevice().then( device => {
@@ -194,8 +207,8 @@ class DmdRenderer extends Renderer {
 
                     this.renderFrame = this._doRendering
                     resolve()
-                })
-            })
+                }).catch(reject)
+            }).catch(reject)
        })
     
     }

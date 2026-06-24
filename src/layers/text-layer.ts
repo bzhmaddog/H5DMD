@@ -138,15 +138,18 @@ class TextLayer extends BaseLayer {
             // Adjust size of font so that the text fit the screen
             // TODO : Fix that to handle text that are not aligned 
             if (options.get('adjustWidth')) {
+                // Smallest font we are willing to shrink to; also guarantees the
+                // loop terminates even when the text can never fully fit.
+                const minFontSize = 1
                 let textOk = false
 
                 while (!textOk) {
                     this._textBuffer.context.font = options.get('fontStyle') + " " + fontSize + fontUnit + ' ' + options.get('fontFamily')
                     m = this._textBuffer.context.measureText(this._text)
 
-                    if (m.width > this.width - 5) {
-                        const fs = options.get('fontSize')
-                        options.set('fontSize', fs - 1)
+                    if (m.width > this.width - 5 && fontSize > minFontSize) {
+                        // Shrink the value actually used to build the font string.
+                        fontSize -= 1
                     } else {
                         textOk = true
                     }
@@ -262,7 +265,7 @@ class TextLayer extends BaseLayer {
                     this._getRendererInstance('no-antialiasing').renderFrame(
                         frameImageData,
                         new Options({
-                            treshold: 255, // TODO find how param was set before
+                            threshold: 255, // TODO find how param was set before
                             baseColor: Utils.hexRGBToHexRGBA(this._options.get('color').replace('#', ''), 'FF')
                         })
                     ).then((aaData: ImageData) => {
@@ -298,7 +301,7 @@ class TextLayer extends BaseLayer {
                     this._getRendererInstance('no-antialiasing').renderFrame(
                         frameImageData,
                         new Options({
-                            treshold: 255, // TODO: Find how param was set before
+                            threshold: 255, // TODO: Find how param was set before
                             baseColor: Utils.hexRGBToHexRGBA(this._options.get('color').replace('#', ''), 'FF')
                         })
                     ).then((aaData: ImageData) => {
@@ -331,6 +334,49 @@ class TextLayer extends BaseLayer {
                 this._layerUpdated()
             })
         }
+    }
+
+    /**
+     * Current layer text
+     */
+    get text(): string {
+        return this._text
+    }
+
+    /**
+     * Set the text fill color and redraw the current text.
+     * @param {string} color CSS color string (e.g. '#FF0000' or a Colors value)
+     */
+    setTextColor(color: string) {        if (typeof color !== 'string') {
+            throw new TypeError("color is not a string")
+        }
+
+        this._options.set('color', color)
+        this._drawText().then(() => {
+            this._layerUpdated()
+        })
+    }
+
+    /**
+     * Enable or disable automatic font shrinking so the text fits the layer width, then redraw.
+     * @param {boolean} enabled
+     */
+    setAdjustWidth(enabled: boolean) {
+        if (typeof enabled !== 'boolean') {
+            throw new TypeError("enabled is not a boolean")
+        }
+
+        this._options.set('adjustWidth', enabled)
+        this._drawText().then(() => {
+            this._layerUpdated()
+        })
+    }
+
+    /**
+     * Whether automatic font shrinking to fit the layer width is enabled.
+     */
+    get adjustWidth(): boolean {
+        return this._options.get('adjustWidth')
     }
 
     setVisibility(isVisible: boolean): void {
