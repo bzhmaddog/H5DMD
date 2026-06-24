@@ -9,13 +9,13 @@ interface ISpriteItem {
     visible : boolean
 }
 
-interface ISpriteDictionnary {
+interface ISpriteDictionary {
     [index: string] : ISpriteItem 
 }
 
 class SpritesLayer extends BaseLayer {
 
-    private _sprites: ISpriteDictionnary
+    private _sprites: ISpriteDictionary
     private _runningSprites: number
     private __renderNextFrame: () => void
     
@@ -32,7 +32,7 @@ class SpritesLayer extends BaseLayer {
 
         super(id, LayerType.Sprites, width, height, layerOptions, renderers, loadedListener, updatedListener)
 
-        this._sprites = {} as ISpriteDictionnary
+        this._sprites = {} as ISpriteDictionary
         this._runningSprites = 0
         this.__renderNextFrame = function(){}
 

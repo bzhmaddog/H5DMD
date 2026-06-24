@@ -41,7 +41,7 @@ class RemoveAliasingRenderer extends LayerRenderer {
                     this._shaderModule = device.createShaderModule({
                         code: `
                             struct UBO {
-                                treshold : u32,
+                                threshold : u32,
                                 baseColor : u32
                             }
                             struct Image {
@@ -105,7 +105,7 @@ class RemoveAliasingRenderer extends LayerRenderer {
                                     }
 
 
-                                    if (innerColorFound && a >= uniforms.treshold && a < 255u) {
+                                    if (innerColorFound && a >= uniforms.threshold && a < 255u) {
                                         outputPixels.rgba[index] = (255u << 24u) | (b << 16u) | (g << 8u) | r;
                                     } else {
                                         outputPixels.rgba[index] = (0u << 24u) | (b << 16u) | (g << 8u) | r;
@@ -238,7 +238,7 @@ class RemoveAliasingRenderer extends LayerRenderer {
     private _doRendering(frameData: ImageData, _options?: Options): Promise<ImageData> {
 
         const options = new Options({
-            treshold: 0,
+            threshold: 0,
             baseColor: 'FFFFFFFF' // Check Impact
         }).merge(_options)
 
@@ -246,7 +246,7 @@ class RemoveAliasingRenderer extends LayerRenderer {
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
         // Write values to uniform buffer object
-        const uniformData = [options.get('treshold'), Utils.hexColorToInt(Utils.rgba2abgr(options.get('baseColor')))]
+        const uniformData = [options.get('threshold'), Utils.hexColorToInt(Utils.rgba2abgr(options.get('baseColor')))]
         const uniformTypedArray = new Int32Array(uniformData)
         this._device.queue.writeBuffer(this._uboBuffer, 0, uniformTypedArray.buffer)
 

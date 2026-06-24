@@ -34,19 +34,28 @@ class Options extends Map {
     private _merge(input: Options | OptionsObject, output: Options) {
         if (input instanceof Options) {
             for (const [k, v] of input.entries()) {
-                output.set(k, v)
+                output.set(k, this._cloneValue(v))
             }
         } else if (input instanceof Map) {
             const obj = Object.fromEntries(input)
 
             Object.keys(obj).forEach(key => {
-                output.set(key, obj[key])
+                output.set(key, this._cloneValue(obj[key]))
             })
         } else if (typeof input === 'object') {
             Object.keys(input).forEach(key => {
-                output.set(key, input[key])
+                output.set(key, this._cloneValue(input[key]))
             })
         }
+    }
+
+    /**
+     * Copy a value before storing it so merged Options never share a mutable
+     * reference (e.g. an array) with their source.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private _cloneValue(value: any) {
+        return Array.isArray(value) ? value.slice() : value
     }
 }
 

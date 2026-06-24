@@ -14,6 +14,7 @@
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.61.1",
     "@typescript-eslint/parser": "^8.61.1",
+    "@vitest/coverage-v8": "^4.1.9",
     "@webgpu/types": "^0.1.40",
     "eslint": "^8.57.0",
     "jsdom": "^29.1.1",
@@ -29,6 +30,7 @@
     "lint": "eslint . --ext .ts",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "build-documentation": "npx typedoc --options typedoc.config.json"
   }
 }

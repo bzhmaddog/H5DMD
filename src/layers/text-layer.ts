@@ -265,7 +265,7 @@ class TextLayer extends BaseLayer {
                     this._getRendererInstance('no-antialiasing').renderFrame(
                         frameImageData,
                         new Options({
-                            treshold: 255, // TODO find how param was set before
+                            threshold: 255, // TODO find how param was set before
                             baseColor: Utils.hexRGBToHexRGBA(this._options.get('color').replace('#', ''), 'FF')
                         })
                     ).then((aaData: ImageData) => {
@@ -301,7 +301,7 @@ class TextLayer extends BaseLayer {
                     this._getRendererInstance('no-antialiasing').renderFrame(
                         frameImageData,
                         new Options({
-                            treshold: 255, // TODO: Find how param was set before
+                            threshold: 255, // TODO: Find how param was set before
                             baseColor: Utils.hexRGBToHexRGBA(this._options.get('color').replace('#', ''), 'FF')
                         })
                     ).then((aaData: ImageData) => {

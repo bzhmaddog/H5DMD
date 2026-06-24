@@ -74,10 +74,29 @@ _Regression tests:_ `tests/bugs/medium-priority.bug.spec.ts`
 
 ## 🟢 Low (cleanliness / type hygiene)
 
-- ⬜ **L1 — Dead no-op string statements** · `src/layers/video-layer.ts`
-- ⬜ **L2 — `_isRunning` set but never checked** · `src/dmd.ts`
-- ⬜ **L3 — `_startTime` typed `number | undefined` but compared `=== null`** · `src/utils/sprite.ts`
-- ⬜ **L4 — Spelling (`Dictionnary`, `beeing`, `treshold`, ...)** · multiple
-- ⬜ **L5 — Magic `-1` offsets & large commented-out blocks** · `dmd.ts`, `text-layer.ts`
-- ⬜ **L6 — `Options.merge` is shallow (shared refs)** · `src/utils/options.ts`
-- ⬜ **L7 — `Dmd.version` duplicated (static + getter, manual sync)** · `src/dmd.ts`
+- ✅ **L1 — Dead no-op string statements** · `src/layers/video-layer.ts`
+  Fixed: the `function(){"End of video rendering"}` no-op bodies in `_pause`/`_stop`
+  are now empty functions.
+- ✅ **L2 — `_isRunning` set but never checked** · `src/dmd.ts`
+  Fixed: `run()` now returns early when `_isRunning` is already true, preventing a
+  second render loop.
+- ✅ **L3 — `_startTime` typed `number | undefined` but compared `=== null`** · `src/utils/sprite.ts`
+  Fixed: the sentinel is now `undefined` everywhere, matching the optional type.
+- ✅ **L4 — Spelling (`Dictionnary`, `beeing`, `treshold`, ...)** · multiple
+  Fixed: internal type names (`*Dictionnary` → `*Dictionary`), the two interface
+  file names, `treshold` → `threshold` (WGSL field + option key), and assorted
+  comment/log typos (`beeing`, `autplay`, `ouput`, `betwewn`, `Fase`).
+- ✅ **L5 — Magic `-1` offsets & large commented-out blocks** · `dmd.ts`, `text-layer.ts`
+  Fixed: removed the dead commented-out debug blocks in `renderDMD`.
+- ✅ **L6 — `Options.merge` is shallow (shared refs)** · `src/utils/options.ts`
+  Fixed: array values are now cloned on merge/copy so merged Options never share a
+  mutable reference with their source.
+- ✅ **L7 — `Dmd.version` duplicated (static + getter, manual sync)** · `src/dmd.ts`
+  Fixed: the literal lives only in the static `version`; the instance getter
+  delegates to it (single source of truth, documented).
+- ✅ **L8 — `getContext('2d')` overload not resolved (returns `RenderingContext`)** · `src/utils/offscreen-buffer.ts`
+  Fixed: `options` is now typed `CanvasRenderingContext2DSettings | undefined`
+  (was inferred `any` from `let options = null`), so the `'2d'` overload is
+  selected and the context narrows to `CanvasRenderingContext2D`.
+
+_Regression tests:_ `tests/bugs/low-priority.bug.spec.ts` (L2, L6)

@@ -1,30 +1,24 @@
 /**
- * REGRESSION TEST — formerly critical bug C1 (fixed)
+ * Unit test for TextLayer with `adjustWidth: true`.
  *
- * `TextLayer._drawText()` with `adjustWidth: true` used to loop forever when the
- * text was wider than the layer: the `while (!textOk)` loop rebuilt the font from
- * the LOCAL `fontSize` variable but only decremented `options.get('fontSize')`,
- * so the measured width never changed and the exit condition was never met.
+ * When the text is wider than the layer the auto-shrink loop must terminate and
+ * make real progress (the font size shrinks each iteration) instead of spinning
+ * forever on an unchanged measurement.
  *
- * The fix shrinks the actual `fontSize` used to build the font string and adds a
- * minimum-size floor so the loop always terminates — even when the text can
- * never fully fit.
- *
- * This test instruments `measureText` to ALWAYS report the text as too wide. A
- * correct implementation must still terminate (thanks to the floor) while making
- * visible progress (the font shrinks each iteration).
+ * `measureText` is instrumented to ALWAYS report the text as too wide, so a
+ * correct implementation must still terminate thanks to the minimum-size floor.
  */
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
 import {setupVitestCanvasMock} from 'vitest-canvas-mock'
 
-import {TextLayer} from '../../src/layers'
-import {ChangeAlphaRenderer, OutlineRenderer, RemoveAliasingRenderer} from '../../src/renderers'
-import {Options} from '../../src/utils'
+import {TextLayer} from '../src/layers'
+import {ChangeAlphaRenderer, OutlineRenderer, RemoveAliasingRenderer} from '../src/renderers'
+import {Options} from '../src/utils'
 
 // Generous ceiling: a converging loop for a single short string stays far below this.
 const SANITY_CEILING = 200
 
-describe('C1 — TextLayer.adjustWidth terminates and makes progress', () => {
+describe('TextLayer.adjustWidth terminates and makes progress', () => {
 
     const originalGetContext = HTMLCanvasElement.prototype.getContext
 
@@ -70,7 +64,7 @@ describe('C1 — TextLayer.adjustWidth terminates and makes progress', () => {
     })
 
     test('the loop terminates even when the text never fits', () => {
-        // If the bug were present this construction would hang forever.
+        // If the loop did not terminate this construction would hang forever.
         new TextLayer(
             'loop',
             64,
