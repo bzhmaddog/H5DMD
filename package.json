@@ -52,11 +52,11 @@
   "scripts": {
     "watch": "tsc --watch",
     "build": "tsc",
+    "build:docs": "npx typedoc --options typedoc.config.json",
     "prepublishOnly": "npm run build",
     "lint": "eslint . --ext .ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "build-documentation": "npx typedoc --options typedoc.config.json"
+    "test:coverage": "vitest run --coverage"
   }
 }
