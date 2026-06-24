@@ -39,10 +39,28 @@ If it doesn't load check the developer console for errors
 
 # Examples
 
-```
-[See main.ts](https://github.com/bzhmaddog/H5DMD/blob/master/Demo/src/main.ts)
+```ts
+import { Dmd, DotShape, Options } from "h5dmd";
 
+const canvas = document.getElementById("output") as HTMLCanvasElement;
+
+// outputCanvas, dotSize, dotSpace, xOffset, yOffset, dotShape,
+// backgroundBrightness, brightness, showFPS
+const dmd = new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true);
+
+await dmd.init(); // set up the renderers (WebGPU when available)
+dmd.run();        // start the render loop
+
+// Add a canvas layer and draw an image into it
+dmd.addCanvasLayer("bg", {}, {} as Options, {}, (layer) => {
+    fetch("background.png")
+        .then((response) => response.blob())
+        .then(createImageBitmap)
+        .then((bitmap) => layer.drawBitmap(bitmap));
+});
 ```
+
+For a complete example see [Demo/src/main.ts](https://github.com/bzhmaddog/H5DMD/blob/main/Demo/src/main.ts).
 
 # Install dependencies
 ```
@@ -64,7 +82,7 @@ npm run lint
 npm run test
 
 #Build documentation
-npm run build-documentation
+npm run build:docs
 ```
 
 # Running the demo locally
@@ -93,3 +111,22 @@ See [Demo/README.md](Demo/README.md) for more details.
 # Documentation
 
 [Follow this link](http://bzhmaddog.github.io/H5DMD/docs/index.html)
+
+# Releasing
+
+The version number lives in `package.json`, in `src/dmd.ts` (`Dmd.version`) and in the
+git release tag. Use `npm version` to bump all of them in one step — a `version`
+lifecycle script (`scripts/sync-version.mjs`) rewrites `Dmd.version` and stages it so it
+lands in the same commit as `package.json`:
+
+```
+# bump patch / minor / major (creates the commit and the vX.Y.Z tag)
+npm version patch
+
+# push the commit and the tag
+git push --follow-tags
+```
+
+Then publish a GitHub Release pointing at the new tag. That triggers the
+[Release workflow](.github/workflows/release.yml), which verifies that the tag,
+`package.json` and `Dmd.version` all match before publishing to npm.

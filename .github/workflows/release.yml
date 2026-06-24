@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write   # required for npm provenance (and Trusted Publishing)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # Fail early if the release tag (vX.Y.Z) doesn't match package.json,
+      # or if src/dmd.ts (Dmd.version) drifted out of sync.
+      - name: Verify version matches the release tag
+        run: |
+          PKG="$(node -p "require('./package.json').version")"
+          TAG="${GITHUB_REF_NAME#v}"
+          DMD="$(node -p "(require('fs').readFileSync('src/dmd.ts','utf8').match(/static readonly version(?:\s*:\s*string)? = '([^']*)'/)||[])[1] || ''")"
+          echo "package.json=$PKG  tag=$TAG  dmd.ts=$DMD"
+          if [ "$PKG" != "$TAG" ]; then
+            echo "::error::package.json version ($PKG) does not match release tag ($TAG)"
+            exit 1
+          fi
+          if [ "$DMD" != "$PKG" ]; then
+            echo "::error::src/dmd.ts Dmd.version ($DMD) does not match package.json ($PKG). Run 'npm version' to keep them in sync."
+            exit 1
+          fi
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+      # Publishes dist/ (per the "files" field). --provenance attaches a signed
+      # build attestation; npm CLI uploads it via the id-token permission above.
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
