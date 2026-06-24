@@ -24,6 +24,14 @@ export default defineConfig({
                 'src/renderers/remove-aliasing-renderer.ts',
                 'src/renderers/remove-alpha-renderer.ts',
             ],
+            // Fail the run if coverage drops below these floors (set a few points
+            // under the current ~90% to catch regressions without being flaky).
+            thresholds: {
+                statements: 88,
+                branches: 78,
+                functions: 87,
+                lines: 88,
+            },
         },
     },
 })

@@ -71,7 +71,7 @@ describe('AnimationLayer playback', () => {
     // Mark the layer as loaded without waiting on the constructor's setTimeout.
     const markLoaded = (layer: AnimationLayer) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(layer as any)._loaded = true
+        (layer as any)._loaded = true
     }
 
     test('setAnimationData computes the per-frame duration and draws frame 0', () => {

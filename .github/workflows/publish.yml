@@ -2,6 +2,14 @@ name: Publish to GitHub Pages
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'Demo/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'typedoc.config.json'
+      - '.github/workflows/publish.yml'
 
 permissions:
   contents: read
@@ -13,7 +21,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
   publish:
+    needs: test
     runs-on: ubuntu-latest
     environment:
       name: github-pages
