@@ -192,8 +192,10 @@ export function buildControlPanel(dmd: Dmd): void {
             }
 
             // Common — fade / opacity sync helpers (declared early so event handlers can reference them)
-            let fadeInBtn: HTMLButtonElement;
-            let fadeOutBtn: HTMLButtonElement;
+            const fadeInBtn = document.createElement('button');
+            fadeInBtn.textContent = 'Fade in';
+            const fadeOutBtn = document.createElement('button');
+            fadeOutBtn.textContent = 'Fade out';
             const opacityValue = document.createElement('span');
             opacityValue.textContent = layer.opacity.toFixed(2);
             const opacitySlider = document.createElement('input');
@@ -241,7 +243,7 @@ export function buildControlPanel(dmd: Dmd): void {
             // Common — fade in / fade out
             const layerEasing = easingSelect();
             const layerDuration = durationSlider(1000);
-            fadeInBtn = btn('Fade in', () => {
+            fadeInBtn.addEventListener('click', () => {
                 if (!layer.isVisible()) {
                     layer.setOpacity(0);
                     layer.setVisibility(true);
@@ -254,7 +256,7 @@ export function buildControlPanel(dmd: Dmd): void {
                     syncFadeButtons();
                 });
             });
-            fadeOutBtn = btn('Fade out', () => {
+            fadeOutBtn.addEventListener('click', () => {
                 fadeInBtn.disabled = true;
                 fadeOutBtn.disabled = true;
                 layer.fadeOut(layerDuration.getDuration(), layerEasing.getEasing()).then(() => {
