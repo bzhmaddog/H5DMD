@@ -40,7 +40,7 @@ If it doesn't load check the developer console for errors
 # Examples
 
 ```ts
-import { Dmd, DotShape, Options } from "h5dmd";
+import { Dmd, DotShape, Easing, Options } from "h5dmd";
 
 const canvas = document.getElementById("output") as HTMLCanvasElement;
 
@@ -58,6 +58,19 @@ dmd.addCanvasLayer("bg", {}, {} as Options, {}, (layer) => {
         .then(createImageBitmap)
         .then((bitmap) => layer.drawBitmap(bitmap));
 });
+
+// Fade a layer in/out (operates on layer opacity)
+const layer = dmd.getLayer("bg");
+await layer.fadeOut(1000);                       // fade out over 1s (default easing: easeOutSine)
+await layer.fadeIn(500, Easing.easeInSine);      // fade in with custom easing
+
+// Or use the Dmd convenience methods (handles visibility automatically)
+await dmd.fadeLayerOut("bg", 1000);
+await dmd.fadeLayerIn("bg", 500);
+
+// Fade the entire DMD brightness
+await dmd.fadeOut(1000);
+await dmd.fadeIn(1000);
 ```
 
 For a complete example see [Demo/src/main.ts](https://github.com/bzhmaddog/H5DMD/blob/main/Demo/src/main.ts).
