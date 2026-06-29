@@ -1,6 +1,8 @@
 import {
     Dmd,
     AnimationLayer,
+    Easing,
+    EasingFunction,
     SpritesLayer,
     VideoLayer,
     TextLayer
@@ -84,6 +86,46 @@ export function buildControlPanel(dmd: Dmd): void {
         return s;
     };
 
+    const easingOptions: { label: string; fn: EasingFunction }[] = [
+        { label: 'Ease out sine', fn: Easing.easeOutSine },
+        { label: 'Ease in sine',  fn: Easing.easeInSine },
+        { label: 'Ease out quad', fn: Easing.easeOutQuad },
+        { label: 'Linear',        fn: Easing.easeLinear },
+    ];
+
+    const easingSelect = () => {
+        const select = document.createElement('select');
+        select.style.background = '#222';
+        select.style.color = '#fff';
+        select.style.border = '1px solid #555';
+        select.style.borderRadius = '4px';
+        select.style.padding = '4px 6px';
+        easingOptions.forEach((opt, i) => {
+            const o = document.createElement('option');
+            o.value = String(i);
+            o.textContent = opt.label;
+            select.appendChild(o);
+        });
+        const getEasing = () => easingOptions[parseInt(select.value)].fn;
+        return { select, getEasing };
+    };
+
+    const durationSlider = (initial: number = 1000) => {
+        const value = document.createElement('span');
+        value.textContent = `${initial} ms`;
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = '0';
+        slider.max = '10000';
+        slider.step = '100';
+        slider.value = String(initial);
+        slider.addEventListener('input', () => {
+            value.textContent = `${slider.value} ms`;
+        });
+        const getDuration = () => parseInt(slider.value);
+        return { slider, value, getDuration };
+    };
+
     // Global (DMD) tab — brightness (H2) + fades (H1)
     addTab('Global (DMD)', (panel) => {
         const brightnessValue = document.createElement('span');
@@ -93,22 +135,41 @@ export function buildControlPanel(dmd: Dmd): void {
         brightnessSlider.max = '1';
         brightnessSlider.step = '0.01';
 
+        const syncFadeDmdButtons = () => {
+            dmdFadeOutBtn.disabled = dmd.brightness <= 0;
+            dmdFadeInBtn.disabled = dmd.brightness >= 1;
+        };
+
         const syncBrightness = () => {
             brightnessSlider.value = String(dmd.brightness);
             brightnessValue.textContent = dmd.brightness.toFixed(2);
+            syncFadeDmdButtons();
         };
         brightnessSlider.addEventListener('input', () => {
             const b = parseFloat(brightnessSlider.value);
             dmd.setBrightness(b);
             brightnessValue.textContent = b.toFixed(2);
+            syncFadeDmdButtons();
         });
 
         row(panel, labelEl('Brightness'), brightnessSlider, brightnessValue, tag('H2'));
-        row(panel,
-            btn('Fade out', () => dmd.fadeOut(1000).then(syncBrightness)),
-            btn('Fade in', () => dmd.fadeIn(1000).then(syncBrightness)),
-            tag('H1')
-        );
+
+        const dmdEasing = easingSelect();
+        const dmdDuration = durationSlider(1000);
+        const dmdFadeOutBtn = btn('Fade out', () => {
+            dmdFadeOutBtn.disabled = true;
+            dmdFadeInBtn.disabled = true;
+            dmd.fadeOut(dmdDuration.getDuration()).then(syncBrightness);
+        });
+        const dmdFadeInBtn = btn('Fade in', () => {
+            dmdFadeOutBtn.disabled = true;
+            dmdFadeInBtn.disabled = true;
+            dmd.fadeIn(dmdDuration.getDuration()).then(syncBrightness);
+        });
+
+        syncFadeDmdButtons();
+        row(panel, dmdFadeOutBtn, dmdFadeInBtn, labelEl('Easing'), dmdEasing.select, tag('H1'));
+        row(panel, labelEl('Duration'), dmdDuration.slider, dmdDuration.value);
 
         syncBrightness();
     });
@@ -130,6 +191,29 @@ export function buildControlPanel(dmd: Dmd): void {
                 return;
             }
 
+            // Common — fade / opacity sync helpers (declared early so event handlers can reference them)
+            let fadeInBtn: HTMLButtonElement;
+            let fadeOutBtn: HTMLButtonElement;
+            const opacityValue = document.createElement('span');
+            opacityValue.textContent = layer.opacity.toFixed(2);
+            const opacitySlider = document.createElement('input');
+            opacitySlider.type = 'range';
+            opacitySlider.min = '0';
+            opacitySlider.max = '1';
+            opacitySlider.step = '0.01';
+            opacitySlider.value = String(layer.opacity);
+
+            const syncFadeButtons = () => {
+                fadeInBtn.disabled = layer.opacity >= 1;
+                fadeOutBtn.disabled = layer.opacity <= 0;
+            };
+
+            const syncOpacity = () => {
+                opacitySlider.value = String(layer.opacity);
+                opacityValue.textContent = layer.opacity.toFixed(2);
+                visCheckbox.checked = layer.isVisible();
+            };
+
             // Common — visibility
             const visCheckbox = document.createElement('input');
             visCheckbox.type = 'checkbox';
@@ -139,26 +223,50 @@ export function buildControlPanel(dmd: Dmd): void {
                 if (visCheckbox.checked && desc.kind === 'sprites' && desc.spriteId) {
                     (layer as SpritesLayer).run(desc.spriteId);
                 }
+                syncFadeButtons();
             });
             const visLabel = document.createElement('label');
             visLabel.append(visCheckbox, ' Visible');
             row(panel, visLabel);
 
             // Common — opacity
-            const opacityValue = document.createElement('span');
-            opacityValue.textContent = layer.opacity.toFixed(2);
-            const opacitySlider = document.createElement('input');
-            opacitySlider.type = 'range';
-            opacitySlider.min = '0';
-            opacitySlider.max = '1';
-            opacitySlider.step = '0.01';
-            opacitySlider.value = String(layer.opacity);
             opacitySlider.addEventListener('input', () => {
                 const o = parseFloat(opacitySlider.value);
                 layer.setOpacity(o);
                 opacityValue.textContent = o.toFixed(2);
+                syncFadeButtons();
             });
             row(panel, labelEl('Opacity'), opacitySlider, opacityValue);
+
+            // Common — fade in / fade out
+            const layerEasing = easingSelect();
+            const layerDuration = durationSlider(1000);
+            fadeInBtn = btn('Fade in', () => {
+                if (!layer.isVisible()) {
+                    layer.setOpacity(0);
+                    layer.setVisibility(true);
+                    visCheckbox.checked = true;
+                }
+                fadeInBtn.disabled = true;
+                fadeOutBtn.disabled = true;
+                layer.fadeIn(layerDuration.getDuration(), layerEasing.getEasing()).then(() => {
+                    syncOpacity();
+                    syncFadeButtons();
+                });
+            });
+            fadeOutBtn = btn('Fade out', () => {
+                fadeInBtn.disabled = true;
+                fadeOutBtn.disabled = true;
+                layer.fadeOut(layerDuration.getDuration(), layerEasing.getEasing()).then(() => {
+                    layer.setVisibility(false);
+                    syncOpacity();
+                    syncFadeButtons();
+                });
+            });
+
+            syncFadeButtons();
+            row(panel, fadeInBtn, fadeOutBtn, labelEl('Easing'), layerEasing.select);
+            row(panel, labelEl('Duration'), layerDuration.slider, layerDuration.value);
 
             // Specific controls
             if (desc.kind === 'animation') {

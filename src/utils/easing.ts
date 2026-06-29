@@ -1,3 +1,5 @@
+type EasingFunction = (t: number, b: number, c: number, d: number) => number
+
 class Easing {
 
     static easeLinear (t: number, b: number, c: number, d: number) {
@@ -17,4 +19,4 @@ class Easing {
     }
 }
 
-export { Easing }
+export { Easing, type EasingFunction }

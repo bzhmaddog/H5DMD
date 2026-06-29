@@ -156,16 +156,22 @@ class DmdRenderer extends Renderer {
                                 // If component is above darkest color then apply brightness limiter
                                 if (r >= bgBrightness) {
                                     br = bgBrightness + f2i(f32(r - bgBrightness) * brightness);
+                                } else {
+                                    br = bgBrightness;
                                 }
 
                                 // If component is above darkest color then apply brightness limiter
                                 if (g >= bgBrightness) {
                                     bg = bgBrightness + f2i(f32(g - bgBrightness) * brightness);
+                                } else {
+                                    bg = bgBrightness;
                                 }
 
                                 // If component is above darkest color then apply brightness limiter
                                 if (b >= bgBrightness) {
                                     bb = bgBrightness + f2i(f32(b - bgBrightness) * brightness);
+                                } else {
+                                    bb = bgBrightness;
                                 }
 
                                 // Recreate pixel color but force alpha to 255

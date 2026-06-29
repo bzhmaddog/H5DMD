@@ -90,8 +90,13 @@
             padding: 4px 10px;
         }
 
-        .tab-panel button:hover {
+        .tab-panel button:hover:not(:disabled) {
             background: #333;
+        }
+
+        .tab-panel button:disabled {
+            cursor: default;
+            opacity: 0.35;
         }
 
         .ctl-tag {
