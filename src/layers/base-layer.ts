@@ -1,4 +1,4 @@
-import {OffscreenBuffer, Options} from "../utils"
+import {Easing, type EasingFunction, OffscreenBuffer, Options} from "../utils"
 import {ChangeAlphaRenderer, LayerRenderer} from "../renderers"
 import {LayerRendererDictionary} from "../interfaces";
 
@@ -318,6 +318,60 @@ abstract class BaseLayer {
      */
     get opacity(): number {
         return this._options.get('opacity')
+    }
+
+    /**
+     * Animate layer opacity from its current value to 1 (fully opaque).
+     * @param {number} duration fade duration in ms
+     * @param {EasingFunction} easing easing function (defaults to easeOutSine)
+     * @returns {Promise<void>} resolves when the fade completes
+     */
+    fadeIn(duration: number, easing: EasingFunction = Easing.easeOutSine): Promise<void> {
+        const start = window.performance.now()
+        const startOpacity = this.opacity
+
+        return new Promise(resolve => {
+            const step = () => {
+                const delta = window.performance.now() - start
+                const o = easing(delta, startOpacity, 1 - startOpacity, duration)
+                this.setOpacity(o)
+
+                if (this.opacity >= 1 || delta > duration) {
+                    this.setOpacity(1)
+                    resolve()
+                } else {
+                    requestAnimationFrame(step)
+                }
+            }
+            step()
+        })
+    }
+
+    /**
+     * Animate layer opacity from its current value to 0 (fully transparent).
+     * @param {number} duration fade duration in ms
+     * @param {EasingFunction} easing easing function (defaults to easeOutSine)
+     * @returns {Promise<void>} resolves when the fade completes
+     */
+    fadeOut(duration: number, easing: EasingFunction = Easing.easeOutSine): Promise<void> {
+        const start = window.performance.now()
+        const startOpacity = this.opacity
+
+        return new Promise(resolve => {
+            const step = () => {
+                const delta = window.performance.now() - start
+                const o = startOpacity - easing(delta, 0, startOpacity, duration)
+                this.setOpacity(o)
+
+                if (this.opacity <= 0 || delta > duration) {
+                    this.setOpacity(0)
+                    resolve()
+                } else {
+                    requestAnimationFrame(step)
+                }
+            }
+            step()
+        })
     }
 
 

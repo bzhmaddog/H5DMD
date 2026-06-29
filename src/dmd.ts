@@ -1,4 +1,4 @@
-import {Easing, OffscreenBuffer, Options} from './utils'
+import {Easing, OffscreenBuffer, Options, type EasingFunction} from './utils'
 import {DmdRenderer, LayerRenderer} from './renderers'
 import {AnimationLayer, BaseLayer, CanvasLayer, LayerType, SpritesLayer, TextLayer, VideoLayer} from './layers'
 import {DotShape} from "./enums"
@@ -515,6 +515,42 @@ export class Dmd {
         if (typeof this._layers[id] !== 'undefined') {
             this._layers[id].setVisibility(!!state)
         }
+    }
+
+    /**
+     * Fade a layer in (opacity 0 → 1). Makes the layer visible if it isn't already.
+     * @param {string} id layer id
+     * @param {number} duration fade duration in ms
+     * @param {EasingFunction} easing easing function (defaults to easeOutSine)
+     * @returns {Promise<void>}
+     */
+    fadeLayerIn(id: string, duration: number, easing?: EasingFunction): Promise<void> {
+        if (typeof this._layers[id] === 'undefined') {
+            return Promise.reject(new Error(`Layer [${id}] does not exist`))
+        }
+        const layer = this._layers[id]
+        if (!layer.isVisible()) {
+            layer.setOpacity(0)
+            layer.setVisibility(true)
+        }
+        return layer.fadeIn(duration, easing)
+    }
+
+    /**
+     * Fade a layer out (opacity → 0) then hide it.
+     * @param {string} id layer id
+     * @param {number} duration fade duration in ms
+     * @param {EasingFunction} easing easing function (defaults to easeOutSine)
+     * @returns {Promise<void>}
+     */
+    fadeLayerOut(id: string, duration: number, easing?: EasingFunction): Promise<void> {
+        if (typeof this._layers[id] === 'undefined') {
+            return Promise.reject(new Error(`Layer [${id}] does not exist`))
+        }
+        const layer = this._layers[id]
+        return layer.fadeOut(duration, easing).then(() => {
+            layer.setVisibility(false)
+        })
     }
 
     /**

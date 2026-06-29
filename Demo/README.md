@@ -65,9 +65,14 @@ Image, video, and sprite assets are served from [public/images](public/images).
 
 ### Interactive controls
 
-Each checkbox in [index.html](index.html) has a `data-layer` attribute matching a layer name.
-Clicking a checkbox calls `layer.setVisibility(...)` to show or hide that layer (and restarts the
-sprite animation when the `sprite` layer is re-enabled).
+A tabbed control panel below the canvas ([src/controls.ts](src/controls.ts)) provides per-layer
+controls:
+
+- **Global (DMD)** tab: brightness slider, fade in/out buttons with easing and duration selectors
+- **Per-layer** tabs: visibility checkbox, opacity slider, fade in/out buttons (disabled when
+  already at target opacity), easing selector, and duration slider
+- **Layer-specific** controls: play/pause/stop for animation and video layers, text input and
+  color picker for text layers, run/stop for sprite layers
 
 ## Project structure
 
