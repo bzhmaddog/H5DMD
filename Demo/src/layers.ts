@@ -22,13 +22,21 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
 
         const bgURI = `${imagesPath}/boss-mode-bg.png`;
 
-        fetch(bgURI)
-            .then(response => response.blob())
-            .then(blob => createImageBitmap(blob))
-            .then(bitmap => {
-                layer.drawBitmap(bitmap);
+        console.log(`Fetching background image from: ${bgURI}`);
+
+        fetch(
+            bgURI
+        )
+        .then(response => response.blob())
+        .then(blob => createImageBitmap(blob))
+        .then(bitmap => {
+
+            layer.setDrawFunction(({ drawBitmap }) => {
+                drawBitmap(bitmap);
             });
 
+            layer.draw(); // Draw the layer content once to initialize it            
+        });
     });
 
 

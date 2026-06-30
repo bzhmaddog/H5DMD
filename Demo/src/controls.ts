@@ -1,7 +1,15 @@
+import { EditorView, basicSetup } from 'codemirror'
+import { javascript } from '@codemirror/lang-javascript'
+import { oneDark } from '@codemirror/theme-one-dark'
+
+import { EditorState } from '@codemirror/state'
+import readOnlyRangesExtension from 'codemirror-readonly-ranges'
+
 import {
     Dmd,
     DotShape,
     AnimationLayer,
+    CanvasLayer,
     Easing,
     EasingFunction,
     SpritesLayer,
@@ -30,6 +38,29 @@ const layerDescriptors: LayerDescriptor[] = [
     {id: 'text3', label: 'Text: VS out', kind: 'text'},
     {id: 'text4', label: 'Text: Matthew', kind: 'text'}
 ];
+
+function getReadOnlyRanges(targetState: EditorState) {
+  const doc = targetState.doc
+  const secondLine = doc.line(2)
+  const lastLine = doc.line(doc.lines)
+
+  return [
+    { from: 0, to: secondLine.to + 1 },
+    { from: lastLine.from, to: lastLine.to }
+  ]
+}
+
+function getEditableContent(state: EditorState): string {
+  const doc = state.doc
+  if (doc.lines <= 3) return '' // nothing editable if only header/footer exist
+
+  const startLine = doc.line(3)        // first editable line (after 2 locked lines)
+  const endLine = doc.line(doc.lines - 1) // last editable line
+
+  return doc.sliceString(startLine.from, endLine.to)
+}
+
+
 
 /**
  * Build the tabbed per-layer control panel for the given Dmd instance.
@@ -259,7 +290,7 @@ export function buildControlPanel(dmd: Dmd): void {
 
     // One tab per layer — common controls (visibility, opacity) + specific ones
     layerDescriptors.forEach((desc) => {
-        addTab(desc.label, (panel) => {
+        addTab(`${desc.label} [${desc.kind}]`, (panel) => {
             const layer = dmd.getLayer(desc.id);
 
             if (desc.note) {
@@ -416,6 +447,60 @@ export function buildControlPanel(dmd: Dmd): void {
                 const adjustLabel = document.createElement('label');
                 adjustLabel.append(adjustCheckbox, ' Adjust width');
                 row(panel, adjustLabel);
+            } else if (desc.kind === 'canvas' && desc.id === 'bg') {
+                const canvas = layer as CanvasLayer;
+
+                const textArea = document.createElement('div');
+
+                // Same appearance as the original layer content but built with canvas operations
+                const editor =new EditorView({
+                    doc: "function({fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap}) { //🔒\n" +
+                    "  // const imagesPath = document.baseURI.replace('index.html', '') + 'images'; //🔒 \n" +
+                    "  fillColor('#0C98F4'); //Fill the whole canvas\n" +
+                    "  drawRect(0,17,426,96,'#FF0000'); //Draw a rectangle\n" +
+                    "  // drawLine(0, 126, 426, 126, '#00FF00'); //Draw a line\n" +
+                    "  // fillGradient(['#FF0000','#00FF00','#0000FF'], 'horizontal'); //Fill a gradient\n" +
+                    "  // drawGradientRect(10, 10, 50, 20, ['#FF0000','#0000FF']); //Gradient rect\n" +
+                    "  // fetch(`${imagesPath}/bg-2.png`)\n" +
+                    "  //  .then(response => response.blob())\n" +
+                    "  //  .then(blob => createImageBitmap(blob))\n" +
+                    "  //  .then(bitmap => {\n" +
+                    "  //    drawBitmap(bitmap); //Draw a bitmap\n" +
+                    "  //  });\n" +
+                    "} //🔒",
+                    extensions: [
+                        basicSetup,
+                        javascript({ typescript: true }),
+                        oneDark,
+                         readOnlyRangesExtension(getReadOnlyRanges)
+                    ],
+                    parent: textArea
+                })
+
+
+                textArea.style.width = '100%';
+
+                const applyDrawFunction = () => {
+                    const code = getEditableContent(editor.state);
+                    canvas.setDrawFunction(({fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap}) => {
+                        try {
+                            const fullCode = "const imagesPath = document.baseURI.replace('index.html', '') + 'images';\n" + code;
+                            const fn = new Function('fillColor', 'fillGradient', 'drawGradientRect', 'drawRect', 'drawLine', 'drawBitmap', fullCode);
+                            fn(fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap);
+                        } catch (e) {
+                            console.error('Draw function error:', e);
+                        }
+                    });
+                    canvas.draw();
+                };
+
+                //applyDrawFunction();
+
+                row(panel, textArea);
+                row(panel,
+                    btn('Draw', applyDrawFunction),
+                    btn('Clear', () => canvas.clear())
+                );
             }
         });
     });

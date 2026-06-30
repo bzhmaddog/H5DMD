@@ -13,9 +13,40 @@ interface IDimensions {
 }
 
 /**
+ * Drawing operations available inside a setDrawFunction callback.
+ */
+interface DrawContext {
+    /** Fill the entire layer with a color (supports alpha). */
+    fillColor(color: string): void
+    /** Draw a filled rectangle. */
+    drawRect(x: number, y: number, w: number, h: number, color: string): void
+    /** Draw a line. */
+    drawLine(x1: number, y1: number, x2: number, y2: number, color: string, lineWidth?: number): void
+    /** Fill with a linear gradient. */
+    fillGradient(colors: string[], direction?: 'horizontal' | 'vertical'): void
+    /** Draw a rectangle filled with a linear gradient. */
+    drawGradientRect(x: number, y: number, w: number, h: number, colors: string[], direction?: 'horizontal' | 'vertical'): void
+    /** Draw a bitmap with optional positioning/sizing options. */
+    drawBitmap(img: ImageBitmap, options?: Options): void
+    /** Access the raw 2D context for advanced operations. */
+    //readonly ctx: OffscreenCanvasRenderingContext2D
+    /** Layer width. */
+    readonly width: number
+    /** Layer height. */
+    readonly height: number
+}
+
+/**
+ * Draw function callback signature for setDrawFunction.
+ */
+type DrawFunction = (draw: DrawContext) => void
+
+/**
  * A layer which content is a canvas
  */
 class CanvasLayer extends BaseLayer {
+
+    private _drawFunction?: DrawFunction
 
     constructor(
         id: string,
@@ -174,6 +205,126 @@ class CanvasLayer extends BaseLayer {
         } as IDimensions
     }
 
+    /**
+     * Fill the entire layer with a color (supports alpha).
+     * The fill composites on top of existing content (actions are cumulative).
+     * @param {string} color CSS color string (e.g. '#FF0000', '#FFFFFF80', 'rgba(255,255,255,0.5)')
+     */
+    fillColor(color: string) {
+        this._contentBuffer.context.fillStyle = color
+        this._contentBuffer.context.fillRect(0, 0, this.width, this.height)
+        this._layerUpdated()
+    }
+
+    /**
+     * Clear the entire layer to transparent, removing all content.
+     */
+    clear() {
+        this._contentBuffer.context.clearRect(0, 0, this.width, this.height)
+        this._layerUpdated()
+    }
+
+    /**
+     * Draw a filled rectangle on top of existing content.
+     * @param {number} x Left position
+     * @param {number} y Top position
+     * @param {number} w Width
+     * @param {number} h Height
+     * @param {string} color CSS color string
+     */
+    drawRect(x: number, y: number, w: number, h: number, color: string) {
+        this._contentBuffer.context.fillStyle = color
+        this._contentBuffer.context.fillRect(x, y, w, h)
+        this._layerUpdated()
+    }
+
+    /**
+     * Draw a line on top of existing content.
+     * @param {number} x1 Start X
+     * @param {number} y1 Start Y
+     * @param {number} x2 End X
+     * @param {number} y2 End Y
+     * @param {string} color CSS color string
+     * @param {number} lineWidth Line width in pixels (default 1)
+     */
+    drawLine(x1: number, y1: number, x2: number, y2: number, color: string, lineWidth: number = 1) {
+        const ctx = this._contentBuffer.context
+        ctx.strokeStyle = color
+        ctx.lineWidth = lineWidth
+        ctx.beginPath()
+        ctx.moveTo(x1, y1)
+        ctx.lineTo(x2, y2)
+        ctx.stroke()
+        this._layerUpdated()
+    }
+
+    /**
+     * Fill the entire layer with a linear gradient on top of existing content.
+     * @param {string[]} colors Array of CSS color stops (at least 2)
+     * @param {'horizontal' | 'vertical'} direction Gradient direction (default 'horizontal')
+     */
+    fillGradient(colors: string[], direction: 'horizontal' | 'vertical' = 'horizontal') {
+        this.drawGradientRect(0, 0, this.width, this.height, colors, direction)
+    }
+
+    /**
+     * Draw a rectangle filled with a linear gradient on top of existing content.
+     * @param {number} x Left position
+     * @param {number} y Top position
+     * @param {number} w Width
+     * @param {number} h Height
+     * @param {string[]} colors Array of CSS color stops (at least 2)
+     * @param {'horizontal' | 'vertical'} direction Gradient direction (default 'horizontal')
+     */
+    drawGradientRect(x: number, y: number, w: number, h: number, colors: string[], direction: 'horizontal' | 'vertical' = 'horizontal') {
+        const ctx = this._contentBuffer.context
+        const gradient = direction === 'vertical'
+            ? ctx.createLinearGradient(x, y, x, y + h)
+            : ctx.createLinearGradient(x, y, x + w, y)
+
+        colors.forEach((c, i) => {
+            gradient.addColorStop(i / (colors.length - 1), c)
+        })
+
+        ctx.fillStyle = gradient
+        ctx.fillRect(x, y, w, h)
+        this._layerUpdated()
+    }
+
+    /**
+     * Register a draw function that will be called on every draw().
+     * The callback receives a DrawContext with the available operations.
+     * Call draw() whenever external state changes.
+     * Pass undefined to unregister.
+     * @param {DrawFunction | undefined} fn Draw callback or undefined to clear
+     */
+    setDrawFunction(fn: DrawFunction | undefined) {
+        this._drawFunction = fn
+    }
+
+    /**
+     * Clear the layer and re-execute the registered draw function.
+     * Call this whenever the external state driving the draw function changes.
+     */
+    draw() {
+        this._contentBuffer.context.clearRect(0, 0, this.width, this.height)
+        if (this._drawFunction) {
+            const drawCtx: DrawContext = {
+                fillColor: (color: string) => this.fillColor(color),
+                drawRect: (x: number, y: number, w: number, h: number, color: string) => this.drawRect(x, y, w, h, color),
+                drawLine: (x1: number, y1: number, x2: number, y2: number, color: string, lineWidth?: number) => this.drawLine(x1, y1, x2, y2, color, lineWidth),
+                fillGradient: (colors: string[], direction?: 'horizontal' | 'vertical') => this.fillGradient(colors, direction),
+                drawGradientRect: (x: number, y: number, w: number, h: number, colors: string[], direction?: 'horizontal' | 'vertical') => this.drawGradientRect(x, y, w, h, colors, direction),
+                drawBitmap: (img: ImageBitmap, options?: Options) => this.drawBitmap(img, options),
+                //ctx: this._contentBuffer.context,
+                width: this.width,
+                height: this.height
+            }
+            this._drawFunction(drawCtx)
+        }
+        this._layerUpdated()
+    }
+
 }
 
-export { CanvasLayer }
+export { CanvasLayer, type DrawFunction }
