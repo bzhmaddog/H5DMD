@@ -220,6 +220,7 @@ class DmdRenderer extends Renderer {
      * Build the WGSL compute shader source code.
      * Outputs one color per DMD dot (no pixel grid expansion).
      */
+    /* c8 ignore start — GPU pipeline code unreachable without a real device */
     private _buildComputeShaderCode(): string {
         return `
             struct UBO {
@@ -692,6 +693,7 @@ class DmdRenderer extends Renderer {
 
         return this._device.queue.onSubmittedWorkDone()
 	}
+    /* c8 ignore stop */
 
     /**
      * Change the dot shape at runtime. Enforces minimum dot size for the shape.
@@ -793,6 +795,7 @@ class DmdRenderer extends Renderer {
         return this._brightness
     }
 
+    /* c8 ignore next 3 — requires GPU init */
     get canvasContext(): GPUCanvasContext {
         return this._canvasContext
     }
