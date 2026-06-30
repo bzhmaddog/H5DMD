@@ -1,7 +1,10 @@
 /**
  * Unit tests for Dmd run/stop lifecycle and layer ordering:
  *   - run() is idempotent: a second call does not start a second render loop.
+ *   - run() throws if called before init().
+ *   - run() re-creates the FPS box after a stop().
  *   - stop() removes the FPS overlay from the DOM.
+ *   - stop() sets _renderNextFrame to a no-op logger.
  *   - addRenderer() rejects once the DMD is running, pointing at Dmd.run().
  *   - layers with equal z-index keep their insertion order (stable sort).
  */
@@ -90,5 +93,40 @@ describe('Dmd lifecycle and layer ordering', () => {
 
         expect(internal._sortedLayers.map((l: {id: string}) => l.id))
             .toEqual(['a', 'b', 'c', 'd', 'e'])
+    })
+
+    test('run() before init() throws', () => {
+        vi.stubGlobal('requestAnimationFrame', () => 0)
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, false)
+        expect(() => dmd.run()).toThrow('call Dmd.init() first')
+    })
+
+    test('run() re-creates the FPS box after stop()', async () => {
+        vi.stubGlobal('requestAnimationFrame', () => 0)
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, true)
+        await dmd.init()
+
+        dmd.run()
+        dmd.stop()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((dmd as any)._fpsBox).toBeUndefined()
+
+        dmd.run()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((dmd as any)._fpsBox).toBeDefined()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect(document.body.contains((dmd as any)._fpsBox)).toBe(true)
+    })
+
+    test('stop() sets _renderNextFrame to a no-op logger', () => {
+        vi.stubGlobal('requestAnimationFrame', () => 0)
+        const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, false)
+
+        dmd.stop()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(dmd as any)._renderNextFrame()
+
+        expect(logSpy).toHaveBeenCalledWith('Dmd render stopped')
     })
 })

@@ -1,7 +1,8 @@
 /**
  * Unit tests for the Dmd public API: layer add/get/remove, visibility (single and
  * group), custom renderer registration, reset, brightness and the read-only
- * accessors, plus the _addLayer alignment / zIndex bookkeeping.
+ * accessors, plus the _addLayer alignment / zIndex bookkeeping, and the dot
+ * shape/size/space runtime setters and their getters.
  */
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
 import {setupVitestCanvasMock} from 'vitest-canvas-mock'
@@ -175,6 +176,81 @@ describe('Dmd public API', () => {
         const dmd = makeDmd()
         vi.spyOn(console, 'log').mockImplementation(() => {})
         expect(() => dmd.debug()).not.toThrow()
+    })
+
+    test('setDotShape delegates to renderer and is readable via getter', () => {
+        const dmd = makeDmd()
+        dmd.setDotShape(DotShape.Circle)
+        expect(dmd.dotShape).toBe(DotShape.Circle)
+    })
+
+    test('setDotSize delegates to renderer and is readable via getter', () => {
+        const dmd = makeDmd()
+        dmd.setDotSize(5)
+        expect(dmd.dotSize).toBe(5)
+    })
+
+    test('setDotSpace delegates to renderer and is readable via getter', () => {
+        const dmd = makeDmd()
+        dmd.setDotSpace(3)
+        expect(dmd.dotSpace).toBe(3)
+    })
+
+    test('minDotSpace getter returns correct floor for shape', () => {
+        const dmd = makeDmd()
+        dmd.setDotShape(DotShape.Circle)
+        expect(dmd.minDotSpace).toBe(1)
+    })
+
+    test('visibleDotsX and visibleDotsY getters return positive numbers', () => {
+        const dmd = makeDmd()
+        expect(dmd.visibleDotsX).toBeGreaterThan(0)
+        expect(dmd.visibleDotsY).toBeGreaterThan(0)
+    })
+
+    test('hAlign left positions at hOffset', () => {
+        const dmd = makeDmd()
+        dmd.addCanvasLayer('a', {width: 10, height: 5, hAlign: 'left', hOffset: 3}, new Options())
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const entry = (dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'a')
+        expect(entry.left).toBe(3)
+    })
+
+    test('hAlign right positions at dmd width - layer width - 1', () => {
+        const dmd = makeDmd()
+        dmd.addCanvasLayer('a', {width: 10, height: 5, hAlign: 'right'}, new Options())
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const entry = (dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'a')
+        // dmd width = floor(128/3) = 42 → 42 - 10 - 1 = 31
+        expect(entry.left).toBe(31)
+    })
+
+    test('vAlign top positions at vOffset', () => {
+        const dmd = makeDmd()
+        dmd.addCanvasLayer('a', {width: 10, height: 5, vAlign: 'top', vOffset: 2}, new Options())
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const entry = (dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'a')
+        expect(entry.top).toBe(2)
+    })
+
+    test('vAlign bottom positions at dmd height - layer height - 1', () => {
+        const dmd = makeDmd()
+        dmd.addCanvasLayer('a', {width: 10, height: 5, vAlign: 'bottom'}, new Options())
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const entry = (dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'a')
+        // dmd height = floor(32/3) = 10 → 10 - 5 - 1 = 4
+        expect(entry.top).toBe(4)
+    })
+
+    test('invalid layer type throws TypeError', () => {
+        const dmd = makeDmd()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect(() => (dmd as any)._addLayer(999, 'bad', {}, new Options()))
+            .toThrow(/Invalid layer type/)
     })
 })
 
