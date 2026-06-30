@@ -18,8 +18,6 @@ export class Dmd {
     static readonly version: string = '1.1.1'
 
     private _outputCanvas: HTMLCanvasElement
-    private _xOffset: number
-    private _yOffset: number
     private _layers: LayerDictionary
     private _sortedLayers: Layer[]
     private _outputWidth: number
@@ -47,9 +45,7 @@ export class Dmd {
      * @param {HTMLCanvasElement} outputCanvas Dom Element where the Dmd will be drawed
      * @param {number} dotSize Horizontal width of the virtual pixels (ex: 1 dot will be 4 pixels wide)
      * @param {number} dotSpace number of 'black' pixels between each column (vertical lines between dots)
-     * @param {number} xOffset // TODO : horizontal shifting
-     * @param {number} yOffset  // TODO : vertical shifting
-     * @param {string} dotShape // TODO(GPU) : Shape of the dots (can be square or circle)
+     * @param {string} dotShape Shape of the dots (square, circle or diamond)
      * @param {number} backgroundBrightness brightness of the background (below the dots)
      * @param {number} brightness brightness of the dots
      * @param {boolean} showFPS show FPS count or not
@@ -58,8 +54,6 @@ export class Dmd {
         outputCanvas: HTMLCanvasElement,
         dotSize: number,
         dotSpace: number,
-        xOffset: number,
-        yOffset: number,
         dotShape: DotShape,
         backgroundBrightness: number,
         brightness: number,
@@ -68,8 +62,6 @@ export class Dmd {
 
         this._outputCanvas = outputCanvas
 
-        this._xOffset = xOffset
-        this._yOffset = yOffset
         this._outputWidth = Math.floor(this._outputCanvas.width / (dotSize + dotSpace))
         this._outputHeight = Math.floor(this._outputCanvas.height / (dotSize + dotSpace))
         this._frameBuffer = new OffscreenBuffer(this._outputWidth, this._outputHeight, true)
@@ -173,7 +165,6 @@ export class Dmd {
             const layer = this._layers[l.id]
 
             if (layer.isVisible() && layer.isLoaded()) {
-                // Draw layer content into a buffer
                 this._frameBuffer.context.drawImage(layer.canvas, l.left, l.top)
             }
         })
@@ -618,6 +609,57 @@ export class Dmd {
      */
     get dotShape(): DotShape {
         return this._renderer.dotShape
+    }
+
+    /**
+     * Change the dot size at runtime. Content is rescaled to fill the canvas.
+     * @param {number} size
+     */
+    setDotSize(size: number) {
+        this._renderer.setDotSize(size)
+    }
+
+    /**
+     * Get current dot size
+     */
+    get dotSize(): number {
+        return this._renderer.dotSize
+    }
+
+    /**
+     * Change the dot spacing at runtime.
+     * @param {number} space
+     */
+    setDotSpace(space: number) {
+        this._renderer.setDotSpace(space)
+    }
+
+    /**
+     * Get current dot spacing
+     */
+    get dotSpace(): number {
+        return this._renderer.dotSpace
+    }
+
+    /**
+     * Get minimum dot spacing for the current shape
+     */
+    get minDotSpace(): number {
+        return this._renderer.minDotSpace
+    }
+
+    /**
+     * Get the number of visible dots horizontally at the current dot size.
+     */
+    get visibleDotsX(): number {
+        return this._renderer.visibleDotsX
+    }
+
+    /**
+     * Get the number of visible dots vertically at the current dot size.
+     */
+    get visibleDotsY(): number {
+        return this._renderer.visibleDotsY
     }
 
     /**

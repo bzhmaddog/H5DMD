@@ -35,7 +35,7 @@ describe('Dmd fades', () => {
     test('fadeIn eases by (1 - startBrightness), not 1', async () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
 
-        const dmd = new Dmd(makeCanvas(), 2, 1, 1, 1, DotShape.Square, 14, 1, false)
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, false)
 
         const startBrightness = 0.4
         // Replace the GPU renderer with a lightweight fake exposing brightness.
@@ -55,7 +55,7 @@ describe('Dmd fades', () => {
     })
 
     test('fades schedule with requestAnimationFrame, not setTimeout', () => {
-        const dmd = new Dmd(makeCanvas(), 2, 1, 1, 1, DotShape.Square, 14, 1, false)
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, false)
 
         // Fake renderer so the fade actually steps (brightness stays > 0).
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

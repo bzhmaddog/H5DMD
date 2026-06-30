@@ -36,7 +36,7 @@ describe('Dmd lifecycle and layer ordering', () => {
         const raf = vi.fn(() => 0)
         vi.stubGlobal('requestAnimationFrame', raf)
 
-        const dmd = new Dmd(makeCanvas(), 2, 1, 1, 1, DotShape.Square, 14, 1, false)
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, false)
         await dmd.init()
 
         dmd.run()
@@ -48,7 +48,7 @@ describe('Dmd lifecycle and layer ordering', () => {
     test('stop() removes the FPS box from the DOM', () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
 
-        const dmd = new Dmd(makeCanvas(), 2, 1, 1, 1, DotShape.Square, 14, 1, true)
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, true)
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const box = (dmd as any)._fpsBox as HTMLElement
@@ -62,7 +62,7 @@ describe('Dmd lifecycle and layer ordering', () => {
     test('addRenderer() while running rejects, pointing at Dmd.run()', () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
 
-        const dmd = new Dmd(makeCanvas(), 2, 1, 1, 1, DotShape.Square, 14, 1, false)
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, false)
 
         // Simulate a running Dmd.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,7 +75,7 @@ describe('Dmd lifecycle and layer ordering', () => {
     test('equal z-index layers keep their insertion order (stable sort)', () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
 
-        const dmd = new Dmd(makeCanvas(), 2, 1, 1, 1, DotShape.Square, 14, 1, false)
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, false)
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const internal = dmd as any

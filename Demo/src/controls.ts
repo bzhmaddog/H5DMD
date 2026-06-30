@@ -166,6 +166,10 @@ export function buildControlPanel(dmd: Dmd): void {
             { label: 'Square', value: DotShape.Square },
             { label: 'Circle', value: DotShape.Circle },
             { label: 'Diamond', value: DotShape.Diamond },
+            { label: 'Rounded Square', value: DotShape.RoundedSquare },
+            { label: 'Hexagon', value: DotShape.Hexagon },
+            { label: 'Octagon', value: DotShape.Octagon },
+            { label: 'Star', value: DotShape.Star },
         ];
         shapes.forEach((s) => {
             const o = document.createElement('option');
@@ -174,8 +178,62 @@ export function buildControlPanel(dmd: Dmd): void {
             if (s.value === dmd.dotShape) o.selected = true;
             shapeSelect.appendChild(o);
         });
+
+        // Dot size slider
+        const dotSizeValue = document.createElement('span');
+        const dotSizeSlider = document.createElement('input');
+        dotSizeSlider.type = 'range';
+        dotSizeSlider.min = '1';
+        dotSizeSlider.max = '20';
+        dotSizeSlider.step = '1';
+        dotSizeSlider.value = String(dmd.dotSize);
+        dotSizeValue.textContent = String(dmd.dotSize);
+
+        // Live DMD resolution display
+        const dmdSizeDisplay = document.createElement('span');
+        dmdSizeDisplay.style.color = '#6cf';
+        const syncDmdSize = () => {
+            dmdSizeDisplay.textContent = `${dmd.visibleDotsX} × ${dmd.visibleDotsY}`;
+        };
+        syncDmdSize();
+
+        dotSizeSlider.addEventListener('input', () => {
+            dmd.setDotSize(parseInt(dotSizeSlider.value));
+            // Sync back in case clamped
+            dotSizeSlider.value = String(dmd.dotSize);
+            dotSizeValue.textContent = String(dmd.dotSize);
+            syncDmdSize();
+        });
+        row(panel, labelEl('Dot Size'), dotSizeSlider, dotSizeValue);
+
+        // Dot spacing slider
+        const dotSpaceValue = document.createElement('span');
+        const dotSpaceSlider = document.createElement('input');
+        dotSpaceSlider.type = 'range';
+        dotSpaceSlider.min = String(dmd.minDotSpace);
+        dotSpaceSlider.max = '10';
+        dotSpaceSlider.step = '1';
+        dotSpaceSlider.value = String(dmd.dotSpace);
+        dotSpaceValue.textContent = String(dmd.dotSpace);
+        dotSpaceSlider.addEventListener('input', () => {
+            dmd.setDotSpace(parseInt(dotSpaceSlider.value));
+            dotSpaceValue.textContent = String(dmd.dotSpace);
+            syncDmdSize();
+        });
+        row(panel, labelEl('Dot Space'), dotSpaceSlider, dotSpaceValue);
+
+        row(panel, labelEl('DMD Size'), dmdSizeDisplay);
+
         shapeSelect.addEventListener('change', () => {
             dmd.setDotShape(parseInt(shapeSelect.value) as DotShape);
+            // Sync dot size slider after shape change (min size may have been enforced)
+            dotSizeSlider.value = String(dmd.dotSize);
+            dotSizeValue.textContent = String(dmd.dotSize);
+            // Sync dot space slider after shape change (min space may have been enforced)
+            dotSpaceSlider.min = String(dmd.minDotSpace);
+            dotSpaceSlider.value = String(dmd.dotSpace);
+            dotSpaceValue.textContent = String(dmd.dotSpace);
+            syncDmdSize();
         });
         row(panel, labelEl('Dot Shape'), shapeSelect);
 
@@ -187,8 +245,8 @@ export function buildControlPanel(dmd: Dmd): void {
             dmd.fadeOut(dmdDuration.getDuration()).then(syncBrightness);
         });
         const dmdFadeInBtn = btn('Fade in', () => {
-            dmdFadeOutBtn.disabled = true;
             dmdFadeInBtn.disabled = true;
+            dmdFadeOutBtn.disabled = true;
             dmd.fadeIn(dmdDuration.getDuration()).then(syncBrightness);
         });
 

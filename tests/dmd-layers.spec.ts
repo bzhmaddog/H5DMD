@@ -42,7 +42,7 @@ describe('Dmd public API', () => {
         const canvas = document.createElement('canvas')
         canvas.width = 128
         canvas.height = 32
-        return new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, false)
+        return new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, false)
     }
 
     test('addCanvasLayer registers a retrievable layer', () => {
@@ -202,7 +202,7 @@ describe('Dmd render loop', () => {
         const canvas = document.createElement('canvas')
         canvas.width = 128
         canvas.height = 32
-        return new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, showFPS)
+        return new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, showFPS)
     }
 
     test('renderDMD composites visible loaded layers and calls renderFrame', async () => {
@@ -211,6 +211,7 @@ describe('Dmd render loop', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(layer as any)._loaded = true // visible by default
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const renderSpy = vi.spyOn((dmd as any)._renderer, 'renderFrame')
             .mockResolvedValue(undefined)
 

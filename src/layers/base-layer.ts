@@ -110,7 +110,7 @@ abstract class BaseLayer {
         // clone renderers array
         this._renderQueue = [...this._defaultRenderQueue]
 
-        // If opacity is below 1 add opacity renderer
+        // If opacity is below 1 add opacity renderer as the last in the queue
         if (this._options.get('opacity') < 1) {
             this._renderQueue.push({
                 id : 'opacity',

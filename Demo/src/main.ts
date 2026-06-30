@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if ("gpu" in navigator) {
 
         const output = document.getElementById('output') as HTMLCanvasElement;
-        const dmd = new Dmd(output, 2, 1, 1, 1, DotShape.Square, 14, 1, true);
+        const dmd = new Dmd(output, 2, 1, DotShape.Square, 14, 1, true);
 
         // Init Dmd then
         dmd.init().then(() => {

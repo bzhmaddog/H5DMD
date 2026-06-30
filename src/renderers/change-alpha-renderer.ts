@@ -222,6 +222,11 @@ class ChangeAlphaRenderer extends LayerRenderer {
 
         this._device.queue.submit([commandEncoder.finish()])
 
+        // Guard against calling mapAsync while a previous map is still pending
+        if (this._outputBuffer.mapState !== 'unmapped') {
+            return Promise.resolve(frameData)
+        }
+
         return new Promise( resolve => {
 
             // Render Dmd output
