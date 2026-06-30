@@ -141,10 +141,9 @@ describe('Dmd public API', () => {
         expect(dmd.brightness).toBe(1)
     })
 
-    test('exposes canvas, context, dimensions and version', () => {
+    test('exposes canvas, dimensions and version', () => {
         const dmd = makeDmd()
         expect(dmd.canvas).toBeInstanceOf(HTMLCanvasElement)
-        expect(dmd.context).toBeTruthy()
         expect(dmd.screenWidth).toBe(128)
         expect(dmd.screenHeight).toBe(32)
         expect(dmd.width).toBe(42)  // floor(128 / (2 + 1))
@@ -206,24 +205,23 @@ describe('Dmd render loop', () => {
         return new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, showFPS)
     }
 
-    test('renderDMD composites visible loaded layers onto the output canvas', async () => {
+    test('renderDMD composites visible loaded layers and calls renderFrame', async () => {
         const dmd = makeDmd()
         const layer = dmd.addCanvasLayer('bg', {}, new Options())
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(layer as any)._loaded = true // visible by default
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const outSpy = vi.spyOn((dmd as any)._outputContext, 'drawImage')
+        const renderSpy = vi.spyOn((dmd as any)._renderer, 'renderFrame')
+            .mockResolvedValue(undefined)
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(dmd as any).renderDMD()
 
-        // Flush the renderFrame → createImageBitmap microtask chain.
-        await Promise.resolve()
+        // Flush the renderFrame microtask chain.
         await Promise.resolve()
         await Promise.resolve()
 
-        expect(outSpy).toHaveBeenCalled()
+        expect(renderSpy).toHaveBeenCalled()
     })
 
     test('the FPS overlay renders the current/min/max readout', () => {

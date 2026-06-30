@@ -1,6 +1,6 @@
 # DmdRenderer — Rendering Pipeline
 
-## Per-Frame Flow (Double-Buffered)
+## Per-Frame Flow (Zero Readback — Render-to-Texture)
 
 ```mermaid
 sequenceDiagram
@@ -8,36 +8,24 @@ sequenceDiagram
     participant CPU as CPU (JS)
     participant Queue as GPU Queue
     participant Compute as Compute Shader
-    participant BufA as Output Buffer A
-    participant BufB as Output Buffer B
-
-    Note over BufA,BufB: Buffers alternate each frame (A → B → A → …)
+    participant Tex as Render Texture
+    participant Canvas as Canvas Surface
 
     App->>CPU: renderFrame(frameData)
     CPU->>Queue: writeBuffer(inputBuffer, pixels)
     CPU->>Queue: writeBuffer(uboBuffer, brightness)
-    CPU->>Queue: submit(computePass + copyToBuffer A)
-    Queue->>Compute: dispatch workgroups
-    Compute->>BufA: copyBufferToBuffer
-    CPU->>BufA: mapAsync(READ)
-    BufA-->>CPU: mapped
-    CPU->>CPU: new ImageData(getMappedRange())
-    CPU->>BufA: unmap()
-    CPU-->>App: resolve(ImageData)
 
-    Note over App: Next frame uses Buffer B
+    Note over Queue,Canvas: Single command buffer: compute + copy + render
 
-    App->>CPU: renderFrame(frameData)
-    CPU->>Queue: writeBuffer(inputBuffer, pixels)
-    CPU->>Queue: writeBuffer(uboBuffer, brightness)
-    CPU->>Queue: submit(computePass + copyToBuffer B)
+    CPU->>Queue: submit(commands)
     Queue->>Compute: dispatch workgroups
-    Compute->>BufB: copyBufferToBuffer
-    CPU->>BufB: mapAsync(READ)
-    BufB-->>CPU: mapped
-    CPU->>CPU: new ImageData(getMappedRange())
-    CPU->>BufB: unmap()
-    CPU-->>App: resolve(ImageData)
+    Compute->>Compute: tempBuffer ← DMD pixels
+    Queue->>Tex: copyBufferToTexture(tempBuffer → renderTexture)
+    Queue->>Canvas: render pass (fullscreen triangle)
+    Canvas-->>Canvas: present to compositor
+
+    Queue-->>CPU: onSubmittedWorkDone()
+    CPU-->>App: resolve()
 ```
 
 ## Compute Shader Logic
@@ -62,22 +50,40 @@ flowchart TD
 graph LR
     subgraph GPU Buffers
         UBO[UBO Buffer<br>4 bytes — brightness f32]
-        IN[Input Buffer<br>dmdW × dmdH × 4 bytes]
+        IN[Input Buffer<br>dmdW × dmdH × 4 bytes<br>STORAGE + COPY_DST]
         TEMP[Temp Buffer<br>screenW × screenH × 4 bytes<br>STORAGE + COPY_SRC]
-        OUT_A[Output Buffer A<br>screenW × screenH × 4 bytes<br>COPY_DST + MAP_READ]
-        OUT_B[Output Buffer B<br>screenW × screenH × 4 bytes<br>COPY_DST + MAP_READ]
     end
 
-    subgraph Bind Group
+    subgraph Textures
+        RT[Render Texture<br>screenW × screenH<br>rgba8unorm<br>COPY_DST + TEXTURE_BINDING]
+        CT[Canvas Texture<br>getCurrentTexture‹›<br>preferred format<br>RENDER_ATTACHMENT]
+    end
+
+    subgraph Compute Bind Group
         B0[binding 0 — read-only storage]
         B1[binding 1 — read-write storage]
         B2[binding 2 — uniform]
+    end
+
+    subgraph Render Bind Group
+        R0[binding 0 — sampler nearest]
+        R1[binding 1 — texture view]
     end
 
     IN --> B0
     TEMP --> B1
     UBO --> B2
 
-    TEMP -->|copyBufferToBuffer| OUT_A
-    TEMP -->|copyBufferToBuffer| OUT_B
+    TEMP -->|copyBufferToTexture| RT
+    RT --> R1
+    R1 -->|fullscreen triangle| CT
+```
+
+## Pipeline Stages (single command encoder per frame)
+
+```mermaid
+flowchart LR
+    A[Compute Pass<br>64-thread workgroups] --> B[copyBufferToTexture<br>tempBuffer → renderTexture]
+    B --> C[Render Pass<br>fullscreen triangle<br>samples renderTexture]
+    C --> D[Present<br>canvas compositor]
 ```

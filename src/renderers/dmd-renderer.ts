@@ -4,12 +4,10 @@ import {DotShape} from "../enums";
 class DmdRenderer extends Renderer {
 
     private _dmdWidth: number
-    private _dmdHeight: number
     private _screenWidth: number
     private _screenHeight: number
 	private _dotSpace: number
 	private _pixelSize: number
-	private _dotShape: DotShape
     private _dmdBufferByteLength: number
     private _screenBufferByteLength: number
     private _bgBrightness: number
@@ -19,16 +17,23 @@ class DmdRenderer extends Renderer {
     private _totalPixels: number
     private _workgroupCount: number
 
+    private _canvas: HTMLCanvasElement
+    private _canvasContext: GPUCanvasContext
+    private _canvasFormat: GPUTextureFormat
+
     private _uboBuffer: GPUBuffer
     private _inputBuffer: GPUBuffer
     private _tempBuffer: GPUBuffer
-    private _outputBuffers: GPUBuffer[]
-    private _currentBufferIndex: number
     private _bindGroup: GPUBindGroup
     private _computePipeline: GPUComputePipeline
     private _uniformTypedArray: Float32Array
 
-    renderFrame: (frameData: ImageData) => Promise<ImageData>
+    private _renderTexture: GPUTexture
+    private _renderPipeline: GPURenderPipeline
+    private _renderBindGroup: GPUBindGroup
+    private _sampler: GPUSampler
+
+    renderFrame: (frameData: ImageData) => Promise<void>
 
 
     /**
@@ -42,6 +47,7 @@ class DmdRenderer extends Renderer {
      * @param {*} dotShape 
      * @param {number} bgBrightness 
      * @param {number} brightness
+     * @param {HTMLCanvasElement} canvas
      */
     constructor(
         dmdWidth: number,
@@ -52,19 +58,19 @@ class DmdRenderer extends Renderer {
         dotSpace: number,
         dotShape: DotShape,
         bgBrightness: number,
-        brightness: number
+        brightness: number,
+        canvas: HTMLCanvasElement
     ) {
         super("DmdRenderer")
 
         this._dmdWidth = dmdWidth
-        this._dmdHeight = dmdHeight
         this._screenWidth = screenWidth
 		this._screenHeight = screenHeight
         this._pixelSize = pixelSize
         this._dotSpace = dotSpace
-        this._dotShape = dotShape
         this._dmdBufferByteLength = dmdWidth*dmdHeight * 4
         this._screenBufferByteLength = screenWidth * screenHeight * 4
+        this._canvas = canvas
         this.renderFrame = this._doNothing
 
 
@@ -231,15 +237,12 @@ class DmdRenderer extends Renderer {
     }
 
     /**
-     * Do nothing (place holder until init is done to prevent having to have a if() in #doRendering)
+     * Do nothing (placeholder until init is done)
      * @param {ImageData} frameData
-     * @returns 
      */
-     private _doNothing(frameData: ImageData): Promise<ImageData> {
+     private _doNothing(_frameData: ImageData): Promise<void> {
         console.log("Init not done cannot apply filter")
-        return new Promise(resolve =>{
-            resolve(frameData)
-        })
+        return Promise.resolve()
     }
 
     /**
@@ -247,6 +250,8 @@ class DmdRenderer extends Renderer {
      * Done once after init to avoid per-frame allocations (memory leak / GC churn).
      */
     private _createResources() {
+
+        // --- Compute pipeline resources ---
 
         this._uboBuffer = this._device.createBuffer({
             size: 4,
@@ -263,19 +268,7 @@ class DmdRenderer extends Renderer {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
         })
 
-        this._outputBuffers = [
-            this._device.createBuffer({
-                size: this._screenBufferByteLength,
-                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-            }),
-            this._device.createBuffer({
-                size: this._screenBufferByteLength,
-                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-            })
-        ]
-        this._currentBufferIndex = 0
-
-        const bindGroupLayout = this._device.createBindGroupLayout({
+        const computeBindGroupLayout = this._device.createBindGroupLayout({
             entries: [
                 {
                     binding: 0,
@@ -302,7 +295,7 @@ class DmdRenderer extends Renderer {
         })
 
         this._bindGroup = this._device.createBindGroup({
-            layout: bindGroupLayout,
+            layout: computeBindGroupLayout,
             entries: [
                 {
                     binding: 0,
@@ -327,65 +320,170 @@ class DmdRenderer extends Renderer {
 
         this._computePipeline = this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
-                bindGroupLayouts: [bindGroupLayout]
+                bindGroupLayouts: [computeBindGroupLayout]
             }),
             compute: {
                 module: this._shaderModule,
                 entryPoint: "main"
             }
         })
+
+        // --- Render-to-texture resources (P4/P5: zero readback) ---
+
+        // Configure the WebGPU canvas context
+        this._canvasFormat = navigator.gpu.getPreferredCanvasFormat()
+        this._canvasContext = this._canvas.getContext('webgpu') as GPUCanvasContext
+        this._canvasContext.configure({
+            device: this._device,
+            format: this._canvasFormat,
+            alphaMode: 'opaque'
+        })
+
+        // Intermediate texture: compute buffer → texture copy target, sampled in render pass
+        this._renderTexture = this._device.createTexture({
+            size: { width: this._screenWidth, height: this._screenHeight },
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+        })
+
+        this._sampler = this._device.createSampler({
+            magFilter: 'nearest',
+            minFilter: 'nearest'
+        })
+
+        // Fullscreen triangle render pipeline
+        const renderShaderModule = this._device.createShaderModule({
+            code: `
+                struct VertexOutput {
+                    @builtin(position) position: vec4f,
+                    @location(0) uv: vec2f,
+                }
+
+                @vertex
+                fn vs(@builtin(vertex_index) vertexIndex: u32) -> VertexOutput {
+                    // Fullscreen triangle covering clip space
+                    var pos = array<vec2f, 3>(
+                        vec2f(-1.0, -1.0),
+                        vec2f( 3.0, -1.0),
+                        vec2f(-1.0,  3.0)
+                    );
+
+                    var output: VertexOutput;
+                    output.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+                    // Clip space → UV (0..1), flip Y for texture coordinates
+                    output.uv = pos[vertexIndex] * 0.5 + 0.5;
+                    output.uv.y = 1.0 - output.uv.y;
+                    return output;
+                }
+
+                @group(0) @binding(0) var texSampler: sampler;
+                @group(0) @binding(1) var tex: texture_2d<f32>;
+
+                @fragment
+                fn fs(@location(0) uv: vec2f) -> @location(0) vec4f {
+                    return textureSample(tex, texSampler, uv);
+                }
+            `
+        })
+
+        const renderBindGroupLayout = this._device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: { type: 'filtering' }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: { sampleType: 'float' }
+                }
+            ]
+        })
+
+        this._renderBindGroup = this._device.createBindGroup({
+            layout: renderBindGroupLayout,
+            entries: [
+                { binding: 0, resource: this._sampler },
+                { binding: 1, resource: this._renderTexture.createView() }
+            ]
+        })
+
+        this._renderPipeline = this._device.createRenderPipeline({
+            layout: this._device.createPipelineLayout({
+                bindGroupLayouts: [renderBindGroupLayout]
+            }),
+            vertex: {
+                module: renderShaderModule,
+                entryPoint: 'vs'
+            },
+            fragment: {
+                module: renderShaderModule,
+                entryPoint: 'fs',
+                targets: [{ format: this._canvasFormat }]
+            },
+            primitive: {
+                topology: 'triangle-list'
+            }
+        })
     }
 
     /**
-     * Render a Dmd frame.
-     * Reuses the GPU resources created in init() : only the per-frame data
-     * (pixels + uniforms) is uploaded each call.
-     * Uses double-buffered output: maps buffer N while GPU writes to buffer N+1,
-     * allowing CPU/GPU overlap within the readback architecture.
-     * @param {ImageData} frameData 
-     * @returns {ImageData}
+     * Render a DMD frame directly to the WebGPU canvas (zero readback).
+     * 1. Uploads pixel data and runs the compute shader.
+     * 2. Copies the compute output buffer to an intermediate texture.
+     * 3. Draws a fullscreen triangle sampling that texture onto the canvas.
+     * @param {ImageData} frameData
      */
-    private _doRendering(frameData: ImageData): Promise<ImageData> {
-
-        // Pick the current output buffer and flip for next frame
-        const outputBuffer = this._outputBuffers[this._currentBufferIndex]
-        this._currentBufferIndex = 1 - this._currentBufferIndex
+    private _doRendering(frameData: ImageData): Promise<void> {
 
         // Upload frame pixels into the persistent input buffer
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
-        // Write values to uniform buffer object
+        // Write brightness uniform
         this._uniformTypedArray[0] = this._brightness
         this._device.queue.writeBuffer(this._uboBuffer, 0, this._uniformTypedArray.buffer)
 
         const commandEncoder = this._device.createCommandEncoder()
-        const passEncoder = commandEncoder.beginComputePass()
-        passEncoder.setPipeline(this._computePipeline)
-        passEncoder.setBindGroup(0, this._bindGroup)
-        passEncoder.dispatchWorkgroups(this._workgroupCount)
-        passEncoder.end()
 
-        commandEncoder.copyBufferToBuffer(this._tempBuffer, 0, outputBuffer, 0, this._screenBufferByteLength)
+        // --- Compute pass ---
+        const computePass = commandEncoder.beginComputePass()
+        computePass.setPipeline(this._computePipeline)
+        computePass.setBindGroup(0, this._bindGroup)
+        computePass.dispatchWorkgroups(this._workgroupCount)
+        computePass.end()
+
+        // --- Copy buffer → texture ---
+        commandEncoder.copyBufferToTexture(
+            {
+                buffer: this._tempBuffer,
+                bytesPerRow: this._screenWidth * 4,
+                rowsPerImage: this._screenHeight
+            },
+            { texture: this._renderTexture },
+            { width: this._screenWidth, height: this._screenHeight }
+        )
+
+        // --- Render pass: fullscreen triangle to canvas ---
+        const renderPass = commandEncoder.beginRenderPass({
+            colorAttachments: [{
+                view: this._canvasContext.getCurrentTexture().createView(),
+                loadOp: 'clear' as GPULoadOp,
+                storeOp: 'store' as GPUStoreOp,
+                clearValue: { r: 0, g: 0, b: 0, a: 1 }
+            }]
+        })
+        renderPass.setPipeline(this._renderPipeline)
+        renderPass.setBindGroup(0, this._renderBindGroup)
+        renderPass.draw(3)
+        renderPass.end()
 
         this._device.queue.submit([commandEncoder.finish()])
 
-        return new Promise(resolve => {
-            // Render Dmd output
-            outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
-
-                // Grab data from output buffer (copy out before unmapping)
-                const pixelsBuffer = new Uint8Array(outputBuffer.getMappedRange())
-
-                // Generate Image data usable by a canvas
-                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), this._screenWidth, this._screenHeight)
-
-                // Release the mapping so the buffer can be reused next frame
-                outputBuffer.unmap()
-
-                // return to caller
-                resolve(imageData)
-            })
-        })
+        // Presentation is handled by the GPU — resolve immediately.
+        // The browser will present the frame at the next compositor
+        // opportunity without any CPU readback.
+        return this._device.queue.onSubmittedWorkDone()
 	}
 
     /**
@@ -399,6 +497,10 @@ class DmdRenderer extends Renderer {
 
     get brightness() {
         return this._brightness
+    }
+
+    get canvasContext(): GPUCanvasContext {
+        return this._canvasContext
     }
 
 }

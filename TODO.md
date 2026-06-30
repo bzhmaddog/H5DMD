@@ -118,17 +118,19 @@ _Regression tests:_ `tests/bugs/low-priority.bug.spec.ts` (L2, L6)
   each frame (`_currentBufferIndex` flips 0↔1), allowing the GPU to write to one
   buffer while the CPU reads from the other.
 
-### Phase 3: Render-to-Texture (zero readback) ⬜
-- ⬜ **P4 — WebGPU canvas context** · `src/dmd.ts`, `src/renderers/dmd-renderer.ts`
-  Configure output canvas with `getContext('webgpu')` instead of `'2d'`.
-  Requires the Dmd class to pass the canvas differently to the renderer.
-- ⬜ **P5 — Fullscreen render pass** · `src/renderers/dmd-renderer.ts`
-  Add a vertex + fragment shader that draws the compute output buffer as a
-  fullscreen textured quad. Present via `getCurrentTexture()`.
-  Eliminates: `mapAsync`, `Uint8ClampedArray` copy, `ImageData`, `drawImage`.
-- ⬜ **P6 — Remove readback path** · `src/renderers/dmd-renderer.ts`
-  Once P4+P5 are stable, remove the `_outputBuffer` MAP_READ buffer and the
-  `mapAsync` code path entirely.
+### Phase 3: Render-to-Texture (zero readback) ✅
+- ✅ **P4 — WebGPU canvas context** · `src/dmd.ts`, `src/renderers/dmd-renderer.ts`
+  Fixed: DmdRenderer now receives the output canvas, configures it with
+  `getContext('webgpu')` during init. Dmd class no longer creates a 2D context.
+- ✅ **P5 — Fullscreen render pass** · `src/renderers/dmd-renderer.ts`
+  Fixed: added vertex + fragment shaders for a fullscreen triangle that samples
+  the compute output (copied to an intermediate `rgba8unorm` texture) and
+  presents via `getCurrentTexture()`. Eliminates `mapAsync`, `Uint8ClampedArray`
+  copy, `ImageData`, and `createImageBitmap`/`drawImage`.
+- ✅ **P6 — Remove readback path** · `src/renderers/dmd-renderer.ts`
+  Fixed: removed `_outputBuffers`, `_currentBufferIndex`, `mapAsync` code path.
+  `renderFrame` now returns `Promise<void>` and resolves via
+  `device.queue.onSubmittedWorkDone()`.
 
 ### Phase 4: Future / Polish ⬜
 - ⬜ **P7 — Timestamp queries** · `src/renderers/dmd-renderer.ts`
