@@ -136,7 +136,7 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
         new Options({
             text: "Scott Pilgrim",
             left: 0,
-            top: 0,
+            top: 1,
             fontSize: 80,
             adjustWidth: true
             //debug : true

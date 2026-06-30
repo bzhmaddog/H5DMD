@@ -112,11 +112,10 @@ _Regression tests:_ `tests/bugs/low-priority.bug.spec.ts` (L2, L6)
   Fixed: `_uniformTypedArray` is allocated once in the constructor; `_doRendering`
   now writes `[0]` each frame instead of allocating a new `Float32Array`.
 
-### Phase 2: Double-Buffered Output ✅
+### Phase 2: Double-Buffered Output ✅ (superseded by Phase 3)
 - ✅ **P3 — Alternate output buffers** · `src/renderers/dmd-renderer.ts`
-  Fixed: two MAP_READ buffers are created; `_doRendering` alternates between them
-  each frame (`_currentBufferIndex` flips 0↔1), allowing the GPU to write to one
-  buffer while the CPU reads from the other.
+  Implemented then removed: Phase 3 eliminates the readback path entirely,
+  making double-buffered MAP_READ buffers unnecessary.
 
 ### Phase 3: Render-to-Texture (zero readback) ✅
 - ✅ **P4 — WebGPU canvas context** · `src/dmd.ts`, `src/renderers/dmd-renderer.ts`
@@ -132,14 +131,18 @@ _Regression tests:_ `tests/bugs/low-priority.bug.spec.ts` (L2, L6)
   `renderFrame` now returns `Promise<void>` and resolves via
   `device.queue.onSubmittedWorkDone()`.
 
-### Phase 4: Future / Polish ⬜
-- ⬜ **P7 — Timestamp queries** · `src/renderers/dmd-renderer.ts`
-  Add `timestamp-query` feature + `GPUQuerySet` to measure actual GPU execution
-  time per frame for profiling.
-- ⬜ **P8 — Texture sampling for dot spacing** · `src/renderers/dmd-renderer.ts`
-  Evaluate replacing the inner write loop with a texture sample approach —
-  compute shader writes to a texture, render pass samples with nearest filtering
-  and a dot-mask texture/pattern.
-- ⬜ **P9 — Render bundles** · `src/renderers/dmd-renderer.ts`
-  Pre-record the fullscreen quad draw call in a render bundle to reduce per-frame
-  CPU overhead.
+### Phase 4: Future / Polish ✅
+- ✅ **P7 — Timestamp queries** · `src/renderers/dmd-renderer.ts`
+  Fixed: requests `timestamp-query` feature if available. Writes begin/end
+  timestamps around the compute pass, resolves + reads back asynchronously.
+  Exposes `gpuFrameTime` getter (ms). Gracefully skipped when unsupported.
+- ✅ **P8 — Dot shape support** · `src/renderers/dmd-renderer.ts`, `src/enums/dot-shape.ts`
+  Fixed: added `Diamond` to `DotShape` enum. Shader now includes a compile-time
+  `isInsideDot(row, col, size)` function generated per shape (SDF-based for
+  Circle and Diamond, always-true for Square). Pixels outside the shape are
+  written as opaque black, giving shaped dots. Extensible: new shapes only
+  require a new enum value + SDF case in `_generateShapeFn()`.
+- ✅ **P9 — Render bundles** · `src/renderers/dmd-renderer.ts`
+  Fixed: the fullscreen triangle draw call is pre-recorded in a
+  `GPURenderBundle` during `_createResources()`. `_doRendering` executes the
+  bundle via `executeBundles()` instead of recording commands per frame.

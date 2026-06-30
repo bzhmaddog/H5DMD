@@ -91,7 +91,7 @@ export class Dmd {
 
         console.log(`Creating a ${this._outputWidth}x${this._outputHeight} DMD on a ${this._outputCanvas.width}x${this._outputCanvas.height} canvas`)
 
-        this._renderer = new DmdRenderer(this._outputWidth, this._outputHeight, this._outputCanvas.width, this._outputCanvas.height, dotSize, dotSpace, dotShape || DotShape.Circle, backgroundBrightness, brightness, this._outputCanvas)
+        this._renderer = new DmdRenderer(this._outputWidth, this._outputHeight, this._outputCanvas.width, this._outputCanvas.height, dotSize, dotSpace, dotShape ?? DotShape.Square, backgroundBrightness, brightness, this._outputCanvas)
 
         // Add renderers needed for layers rendering
         this._layerRenderers = {
@@ -603,6 +603,21 @@ export class Dmd {
      */
     get brightness() {
         return this._renderer.brightness
+    }
+
+    /**
+     * Change the dot shape at runtime.
+     * @param {DotShape} shape
+     */
+    setDotShape(shape: DotShape) {
+        this._renderer.setDotShape(shape)
+    }
+
+    /**
+     * Get current dot shape
+     */
+    get dotShape(): DotShape {
+        return this._renderer.dotShape
     }
 
     /**

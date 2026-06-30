@@ -1,5 +1,6 @@
 import {
     Dmd,
+    DotShape,
     AnimationLayer,
     Easing,
     EasingFunction,
@@ -153,6 +154,30 @@ export function buildControlPanel(dmd: Dmd): void {
         });
 
         row(panel, labelEl('Brightness'), brightnessSlider, brightnessValue, tag('H2'));
+
+        // Dot shape selector
+        const shapeSelect = document.createElement('select');
+        shapeSelect.style.background = '#222';
+        shapeSelect.style.color = '#fff';
+        shapeSelect.style.border = '1px solid #555';
+        shapeSelect.style.borderRadius = '4px';
+        shapeSelect.style.padding = '4px 6px';
+        const shapes: { label: string; value: DotShape }[] = [
+            { label: 'Square', value: DotShape.Square },
+            { label: 'Circle', value: DotShape.Circle },
+            { label: 'Diamond', value: DotShape.Diamond },
+        ];
+        shapes.forEach((s) => {
+            const o = document.createElement('option');
+            o.value = String(s.value);
+            o.textContent = s.label;
+            if (s.value === dmd.dotShape) o.selected = true;
+            shapeSelect.appendChild(o);
+        });
+        shapeSelect.addEventListener('change', () => {
+            dmd.setDotShape(parseInt(shapeSelect.value) as DotShape);
+        });
+        row(panel, labelEl('Dot Shape'), shapeSelect);
 
         const dmdEasing = easingSelect();
         const dmdDuration = durationSlider(1000);

@@ -8,6 +8,7 @@ class DmdRenderer extends Renderer {
     private _screenHeight: number
 	private _dotSpace: number
 	private _pixelSize: number
+	private _dotShape: DotShape
     private _dmdBufferByteLength: number
     private _screenBufferByteLength: number
     private _bgBrightness: number
@@ -31,7 +32,14 @@ class DmdRenderer extends Renderer {
     private _renderTexture: GPUTexture
     private _renderPipeline: GPURenderPipeline
     private _renderBindGroup: GPUBindGroup
+    private _renderBundle: GPURenderBundle
     private _sampler: GPUSampler
+
+    private _hasTimestampQuery: boolean
+    private _querySet: GPUQuerySet
+    private _queryResolveBuffer: GPUBuffer
+    private _queryResultBuffer: GPUBuffer
+    private _lastGpuFrameTime: number
 
     renderFrame: (frameData: ImageData) => Promise<void>
 
@@ -68,6 +76,7 @@ class DmdRenderer extends Renderer {
 		this._screenHeight = screenHeight
         this._pixelSize = pixelSize
         this._dotSpace = dotSpace
+        this._dotShape = dotShape
         this._dmdBufferByteLength = dmdWidth*dmdHeight * 4
         this._screenBufferByteLength = screenWidth * screenHeight * 4
         this._canvas = canvas
@@ -80,6 +89,8 @@ class DmdRenderer extends Renderer {
         this._uniformTypedArray = new Float32Array(1)
         this._totalPixels = dmdWidth * dmdHeight
         this._workgroupCount = Math.ceil(this._totalPixels / 64)
+        this._hasTimestampQuery = false
+        this._lastGpuFrameTime = 0
 
         if (typeof bgBrightness === 'number') {
                 this._bgBrightness = bgBrightness
@@ -108,6 +119,41 @@ class DmdRenderer extends Renderer {
         return hex
     }
 
+    /**
+     * Generate the WGSL `isInsideDot` function for the current dot shape.
+     * Called once at shader compilation time — the shape is baked into the shader.
+     */
+    private _generateShapeFn(): string {
+        switch (this._dotShape) {
+            case DotShape.Circle:
+                return `
+                            fn isInsideDot(row: u32, col: u32, size: u32) -> bool {
+                                let center = f32(size - 1u) * 0.5;
+                                let dx = f32(col) - center;
+                                let dy = f32(row) - center;
+                                let radius = center + 0.5;
+                                return (dx * dx + dy * dy) <= radius * radius;
+                            }
+                `
+            case DotShape.Diamond:
+                return `
+                            fn isInsideDot(row: u32, col: u32, size: u32) -> bool {
+                                let center = f32(size - 1u) * 0.5;
+                                let dx = abs(f32(col) - center);
+                                let dy = abs(f32(row) - center);
+                                return (dx + dy) <= center + 0.5;
+                            }
+                `
+            case DotShape.Square:
+            default:
+                return `
+                            fn isInsideDot(row: u32, col: u32, size: u32) -> bool {
+                                return true;
+                            }
+                `
+        }
+    }
+
     init(): Promise<void> {
 
         return new Promise((resolve, reject) => {
@@ -125,97 +171,18 @@ class DmdRenderer extends Renderer {
 
                 this._adapter = adapter
 
-                adapter.requestDevice().then( device => {
+                // Request timestamp-query feature if supported for GPU profiling
+                const features: GPUFeatureName[] = []
+                if (adapter.features.has('timestamp-query')) {
+                    features.push('timestamp-query')
+                }
+
+                adapter.requestDevice({ requiredFeatures: features }).then( device => {
                     this._device = device
+                    this._hasTimestampQuery = device.features.has('timestamp-query')
 
                     this._shaderModule = device.createShaderModule({
-                        code: `
-                            struct UBO {
-                                brightness: f32
-                            }
-
-                            struct Image {
-                                rgba: array<u32>
-                            }
-
-                            fn f2i(f: f32) -> u32 {
-                                return u32(ceil(f));
-                            }
-
-                            fn u2f(u: u32) -> f32 {
-                                return f32(u);
-                            }
-
-                            @group(0) @binding(0) var<storage,read> inputPixels: Image;
-                            @group(0) @binding(1) var<storage,read_write> outputPixels: Image;
-                            @group(0) @binding(2) var<uniform> uniforms : UBO;
-
-                            @compute
-                            @workgroup_size(64)
-                            fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
-                                let index : u32 = global_id.x;
-                                if (index >= ${this._totalPixels}u) {
-                                    return;
-                                }
-
-                                let pixel_x : u32 = index % ${this._dmdWidth}u;
-                                let pixel_y : u32 = index / ${this._dmdWidth}u;
-
-                                var bgBrightness : u32 = ${this._bgBrightness}u;
-                                var pixel : u32 = inputPixels.rgba[index];
-                                var brightness : f32 = uniforms.brightness;
-                                var br = 0u;
-                                var bg = 0u;
-                                var bb = 0u;
-                                
-                                let a : u32 = (pixel >> 24u) & 255u;
-                                let b : u32 = (pixel >> 16u) & 255u;
-                                let g : u32 = (pixel >> 8u) & 255u;
-                                let r : u32 = (pixel & 255u);
-
-                                // If component is above darkest color then apply brightness limiter
-                                if (r >= bgBrightness) {
-                                    br = bgBrightness + f2i(f32(r - bgBrightness) * brightness);
-                                } else {
-                                    br = bgBrightness;
-                                }
-
-                                // If component is above darkest color then apply brightness limiter
-                                if (g >= bgBrightness) {
-                                    bg = bgBrightness + f2i(f32(g - bgBrightness) * brightness);
-                                } else {
-                                    bg = bgBrightness;
-                                }
-
-                                // If component is above darkest color then apply brightness limiter
-                                if (b >= bgBrightness) {
-                                    bb = bgBrightness + f2i(f32(b - bgBrightness) * brightness);
-                                } else {
-                                    bb = bgBrightness;
-                                }
-
-                                // Recreate pixel color but force alpha to 255
-                                pixel = (255u << 24u) | (bb << 16u) | (bg << 8u) | br;
-
-                                var hsp : f32 =  sqrt(.299f * u2f(r) * u2f(r) + .587f * u2f(g) * u2f(g) + .114 * u2f(b) * u2f(b));
-                
-                                // Pixels that are too dark will be hacked to give the 'off' dot look of the DMD
-                                if (hsp - 8f < ${this._bgHSP}f) {
-                                    pixel = ${this._bgColor}u;
-                                }
-                
-                                // First byte index of the output dot
-                                var resizedPixelIndex : u32 = (pixel_x * ${this._pixelSize}u)  + (pixel_x * ${this._dotSpace}u) + (pixel_y * ${this._screenWidth}u * (${this._pixelSize}u + ${this._dotSpace}u));
-                
-                                for ( var row: u32 = 0u ; row < ${this._pixelSize}u; row = row + 1u ) {
-                                    for ( var col: u32 = 0u ; col < ${this._pixelSize}u; col = col + 1u ) {
-                                        outputPixels.rgba[resizedPixelIndex] = pixel;
-                                        resizedPixelIndex = resizedPixelIndex + 1u;
-                                    }
-                                    resizedPixelIndex = resizedPixelIndex + ${this._screenWidth}u - ${this._pixelSize}u;
-                                }
-                            }
-                        `
+                        code: this._buildComputeShaderCode()
                     })
 
                     console.log("GPURenderer:init()")
@@ -234,6 +201,98 @@ class DmdRenderer extends Renderer {
             }).catch(reject)
        })
     
+    }
+
+    /**
+     * Build the WGSL compute shader source code.
+     * All constants (dimensions, shape, colors) are baked in as literals.
+     */
+    private _buildComputeShaderCode(): string {
+        return `
+            struct UBO {
+                brightness: f32
+            }
+
+            struct Image {
+                rgba: array<u32>
+            }
+
+            fn f2i(f: f32) -> u32 {
+                return u32(ceil(f));
+            }
+
+            fn u2f(u: u32) -> f32 {
+                return f32(u);
+            }
+            ${this._generateShapeFn()}
+            @group(0) @binding(0) var<storage,read> inputPixels: Image;
+            @group(0) @binding(1) var<storage,read_write> outputPixels: Image;
+            @group(0) @binding(2) var<uniform> uniforms : UBO;
+
+            @compute
+            @workgroup_size(64)
+            fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
+                let index : u32 = global_id.x;
+                if (index >= ${this._totalPixels}u) {
+                    return;
+                }
+
+                let pixel_x : u32 = index % ${this._dmdWidth}u;
+                let pixel_y : u32 = index / ${this._dmdWidth}u;
+
+                var bgBrightness : u32 = ${this._bgBrightness}u;
+                var pixel : u32 = inputPixels.rgba[index];
+                var brightness : f32 = uniforms.brightness;
+                var br = 0u;
+                var bg = 0u;
+                var bb = 0u;
+
+                let a : u32 = (pixel >> 24u) & 255u;
+                let b : u32 = (pixel >> 16u) & 255u;
+                let g : u32 = (pixel >> 8u) & 255u;
+                let r : u32 = (pixel & 255u);
+
+                if (r >= bgBrightness) {
+                    br = bgBrightness + f2i(f32(r - bgBrightness) * brightness);
+                } else {
+                    br = bgBrightness;
+                }
+
+                if (g >= bgBrightness) {
+                    bg = bgBrightness + f2i(f32(g - bgBrightness) * brightness);
+                } else {
+                    bg = bgBrightness;
+                }
+
+                if (b >= bgBrightness) {
+                    bb = bgBrightness + f2i(f32(b - bgBrightness) * brightness);
+                } else {
+                    bb = bgBrightness;
+                }
+
+                pixel = (255u << 24u) | (bb << 16u) | (bg << 8u) | br;
+
+                var hsp : f32 = sqrt(.299f * u2f(r) * u2f(r) + .587f * u2f(g) * u2f(g) + .114 * u2f(b) * u2f(b));
+
+                if (hsp - 8f < ${this._bgHSP}f) {
+                    pixel = ${this._bgColor}u;
+                }
+
+                var resizedPixelIndex : u32 = (pixel_x * ${this._pixelSize}u) + (pixel_x * ${this._dotSpace}u) + (pixel_y * ${this._screenWidth}u * (${this._pixelSize}u + ${this._dotSpace}u));
+
+                for ( var row: u32 = 0u ; row < ${this._pixelSize}u; row = row + 1u ) {
+                    for ( var col: u32 = 0u ; col < ${this._pixelSize}u; col = col + 1u ) {
+                        if (isInsideDot(row, col, ${this._pixelSize}u)) {
+                            outputPixels.rgba[resizedPixelIndex] = pixel;
+                        } else {
+                            outputPixels.rgba[resizedPixelIndex] = 4278190080u;
+                        }
+                        resizedPixelIndex = resizedPixelIndex + 1u;
+                    }
+                    resizedPixelIndex = resizedPixelIndex + ${this._screenWidth}u - ${this._pixelSize}u;
+                }
+            }
+        `
     }
 
     /**
@@ -426,13 +485,39 @@ class DmdRenderer extends Renderer {
                 topology: 'triangle-list'
             }
         })
+
+        // --- P9: Pre-record the render pass as a render bundle ---
+        const bundleEncoder = this._device.createRenderBundleEncoder({
+            colorFormats: [this._canvasFormat]
+        })
+        bundleEncoder.setPipeline(this._renderPipeline)
+        bundleEncoder.setBindGroup(0, this._renderBindGroup)
+        bundleEncoder.draw(3)
+        this._renderBundle = bundleEncoder.finish()
+
+        // --- P7: Timestamp query resources (optional, only if GPU supports it) ---
+        if (this._hasTimestampQuery) {
+            this._querySet = this._device.createQuerySet({
+                type: 'timestamp',
+                count: 2
+            })
+            this._queryResolveBuffer = this._device.createBuffer({
+                size: 16, // 2 × BigUint64
+                usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC
+            })
+            this._queryResultBuffer = this._device.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+            })
+        }
     }
 
     /**
      * Render a DMD frame directly to the WebGPU canvas (zero readback).
      * 1. Uploads pixel data and runs the compute shader.
      * 2. Copies the compute output buffer to an intermediate texture.
-     * 3. Draws a fullscreen triangle sampling that texture onto the canvas.
+     * 3. Executes a pre-recorded render bundle to present the texture.
+     * Optionally writes GPU timestamps for profiling.
      * @param {ImageData} frameData
      */
     private _doRendering(frameData: ImageData): Promise<void> {
@@ -446,8 +531,16 @@ class DmdRenderer extends Renderer {
 
         const commandEncoder = this._device.createCommandEncoder()
 
-        // --- Compute pass ---
-        const computePass = commandEncoder.beginComputePass()
+        // --- Compute pass (with optional timestamps) ---
+        const computePassDescriptor: GPUComputePassDescriptor = {}
+        if (this._hasTimestampQuery) {
+            computePassDescriptor.timestampWrites = {
+                querySet: this._querySet,
+                beginningOfPassWriteIndex: 0,
+                endOfPassWriteIndex: 1
+            }
+        }
+        const computePass = commandEncoder.beginComputePass(computePassDescriptor)
         computePass.setPipeline(this._computePipeline)
         computePass.setBindGroup(0, this._bindGroup)
         computePass.dispatchWorkgroups(this._workgroupCount)
@@ -464,7 +557,7 @@ class DmdRenderer extends Renderer {
             { width: this._screenWidth, height: this._screenHeight }
         )
 
-        // --- Render pass: fullscreen triangle to canvas ---
+        // --- Render pass: execute pre-recorded bundle ---
         const renderPass = commandEncoder.beginRenderPass({
             colorAttachments: [{
                 view: this._canvasContext.getCurrentTexture().createView(),
@@ -473,18 +566,58 @@ class DmdRenderer extends Renderer {
                 clearValue: { r: 0, g: 0, b: 0, a: 1 }
             }]
         })
-        renderPass.setPipeline(this._renderPipeline)
-        renderPass.setBindGroup(0, this._renderBindGroup)
-        renderPass.draw(3)
+        renderPass.executeBundles([this._renderBundle])
         renderPass.end()
+
+        // --- Resolve timestamp queries ---
+        if (this._hasTimestampQuery) {
+            commandEncoder.resolveQuerySet(this._querySet, 0, 2, this._queryResolveBuffer, 0)
+            commandEncoder.copyBufferToBuffer(this._queryResolveBuffer, 0, this._queryResultBuffer, 0, 16)
+        }
 
         this._device.queue.submit([commandEncoder.finish()])
 
-        // Presentation is handled by the GPU — resolve immediately.
-        // The browser will present the frame at the next compositor
-        // opportunity without any CPU readback.
+        // Read back GPU timestamps (non-blocking, updates _lastGpuFrameTime)
+        if (this._hasTimestampQuery && this._queryResultBuffer.mapState === 'unmapped') {
+            this._queryResultBuffer.mapAsync(GPUMapMode.READ).then(() => {
+                const times = new BigUint64Array(this._queryResultBuffer.getMappedRange())
+                this._lastGpuFrameTime = Number(times[1] - times[0]) / 1_000_000 // ns → ms
+                this._queryResultBuffer.unmap()
+            }).catch(() => { /* mapping failed — skip this sample */ })
+        }
+
         return this._device.queue.onSubmittedWorkDone()
 	}
+
+    /**
+     * Change the dot shape at runtime. Recompiles the compute shader and
+     * recreates the compute pipeline (lightweight GPU operation).
+     * @param {DotShape} shape
+     */
+    setDotShape(shape: DotShape) {
+        if (shape === this._dotShape) return
+        this._dotShape = shape
+
+        this._shaderModule = this._device.createShaderModule({
+            code: this._buildComputeShaderCode()
+        })
+
+        // Recreate compute pipeline with the new shader (reuses existing layout)
+        const layout = this._computePipeline.getBindGroupLayout(0)
+        this._computePipeline = this._device.createComputePipeline({
+            layout: this._device.createPipelineLayout({
+                bindGroupLayouts: [layout]
+            }),
+            compute: {
+                module: this._shaderModule,
+                entryPoint: "main"
+            }
+        })
+    }
+
+    get dotShape(): DotShape {
+        return this._dotShape
+    }
 
     /**
 	 * Set brightness of the dots between 0 and 1 (does not affect the background color)
@@ -501,6 +634,14 @@ class DmdRenderer extends Renderer {
 
     get canvasContext(): GPUCanvasContext {
         return this._canvasContext
+    }
+
+    /**
+     * Last measured GPU compute pass execution time in milliseconds.
+     * Returns 0 if timestamp queries are not supported or no measurement is available yet.
+     */
+    get gpuFrameTime(): number {
+        return this._lastGpuFrameTime
     }
 
 }
