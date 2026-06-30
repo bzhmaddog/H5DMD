@@ -3,6 +3,7 @@ import {
     Dmd,
     SpriteSequenceItem,
     NoiseEffectRenderer,
+    ChromaKeyRenderer,
     Options,
     Utils
 } from "h5dmd";
@@ -11,7 +12,7 @@ import {
  * Add every demo layer (background, animation, video, images, text and sprites)
  * to the given Dmd instance.
  */
-export function setupLayers(dmd: Dmd, imagesPath: string): void {
+export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRenderer): void {
 
     const noises: string[] = [];
     for (let i = 0; i < 6; i++) {
@@ -84,16 +85,16 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
 
 
     dmd.addVideoLayer(
-        'video',
+        'video-transparent',
         {
-            width: 231,
+            width: 213,
             height: 130,
             top: 0,
-            left: 0
+            left: 110
         },
         new Options({
             autoplay: true,
-            width: 426,
+            width: 213,
             height: 130,
             loop: true,
             stopOnHide: true,
@@ -105,10 +106,39 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
             const video = document.createElement('video');
 
             video.addEventListener('loadeddata', function () {
-                layer.setVideo(video); // autoplay = true so no need to call play here
+                layer.setVideo(video);
             });
 
             video.src = `${imagesPath}/transparent-video.webm`;
+        });
+
+    dmd.addVideoLayer(
+        'video-chromakey',
+        {
+            width: 213,
+            height: 130,
+            top: 0,
+            left: 110
+        },
+        new Options({
+            autoplay: true,
+            width: 213,
+            height: 130,
+            loop: true,
+            stopOnHide: true,
+            visible: false,
+            renderers: ['chroma']
+        }),
+        { 'chroma': chromaKey },
+        (layer) => {
+
+            const video = document.createElement('video');
+
+            video.addEventListener('loadeddata', function () {
+                layer.setVideo(video);
+            });
+
+            video.src = `${imagesPath}/sample.webm`;
         });
 
     dmd.addCanvasLayer(

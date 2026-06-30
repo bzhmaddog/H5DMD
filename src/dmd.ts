@@ -475,6 +475,19 @@ export class Dmd {
     }
 
     /**
+     * Move a layer to a new position in the rendering order.
+     * @param {string} id layer id to move
+     * @param {number} toIndex target index in the sorted array (0 = bottom)
+     */
+    moveLayer(id: string, toIndex: number) {
+        const fromIndex = this._sortedLayers.findIndex(l => l.id === id)
+        if (fromIndex === -1) return
+        const [moved] = this._sortedLayers.splice(fromIndex, 1)
+        this._sortedLayers.splice(toIndex, 0, moved)
+        this._sortedLayers.forEach((l, i) => { l.zIndex = i })
+    }
+
+    /**
      * Show/Hide specified layer
      * @param {string} id
      * @param {boolean} state

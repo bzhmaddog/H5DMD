@@ -30,7 +30,8 @@ interface LayerDescriptor {
 const layerDescriptors: LayerDescriptor[] = [
     {id: 'bg', label: 'Background', kind: 'canvas'},
     {id: 'animation', label: 'Animation', kind: 'animation'},
-    {id: 'video', label: 'Video', kind: 'video'},
+    {id: 'video-transparent', label: 'Video (transparent)', kind: 'video'},
+    {id: 'video-chromakey', label: 'Video (chroma key)', kind: 'video'},
     {id: 'matthew', label: 'Matthew img', kind: 'canvas'},
     {id: 'sprite', label: 'Sprite', kind: 'sprites', spriteId: 'scott'},
     {id: 'text1', label: 'Text: Scott', kind: 'text'},
@@ -70,7 +71,7 @@ export function buildControlPanel(dmd: Dmd): void {
 
     const tabBar = document.getElementById('tab-bar') as HTMLDivElement;
     const tabPanels = document.getElementById('tab-panels') as HTMLDivElement;
-    const tabs: { button: HTMLButtonElement; panel: HTMLDivElement }[] = [];
+    const tabs: { button: HTMLButtonElement; panel: HTMLDivElement; layerId?: string }[] = [];
 
     const activateTab = (index: number) => {
         tabs.forEach((t, i) => {
@@ -79,7 +80,7 @@ export function buildControlPanel(dmd: Dmd): void {
         });
     };
 
-    const addTab = (label: string, build: (panel: HTMLDivElement) => void) => {
+    const addTab = (label: string, build: (panel: HTMLDivElement) => void, layerId?: string) => {
         const button = document.createElement('button');
         button.textContent = label;
         const panel = document.createElement('div');
@@ -89,8 +90,84 @@ export function buildControlPanel(dmd: Dmd): void {
         button.addEventListener('click', () => activateTab(index));
         tabBar.appendChild(button);
         tabPanels.appendChild(panel);
-        tabs.push({button, panel});
+        tabs.push({button, panel, layerId});
+
+        // Make layer tabs draggable
+        if (layerId) {
+            button.draggable = true;
+            button.dataset.layerId = layerId;
+            button.addEventListener('dragstart', (e) => {
+                e.dataTransfer!.setData('text/plain', layerId);
+                button.classList.add('dragging');
+            });
+            button.addEventListener('dragend', () => {
+                button.classList.remove('dragging');
+            });
+            button.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                button.classList.add('drag-over');
+            });
+            button.addEventListener('dragleave', () => {
+                button.classList.remove('drag-over');
+            });
+            button.addEventListener('drop', (e) => {
+                e.preventDefault();
+                button.classList.remove('drag-over');
+                const draggedId = e.dataTransfer!.getData('text/plain');
+                if (draggedId === layerId) return;
+                // Insert after target if dropping on right half of button
+                const rect = button.getBoundingClientRect();
+                const afterTarget = e.clientX > rect.left + rect.width / 2;
+                reorderLayerTabs(draggedId, layerId, afterTarget);
+            });
+        }
     };
+
+    const reorderLayerTabs = (draggedId: string, targetId: string, afterTarget = false) => {
+        const layerTabs = tabs.filter(t => t.layerId);
+        const draggedIdx = layerTabs.findIndex(t => t.layerId === draggedId);
+        let targetIdx = layerTabs.findIndex(t => t.layerId === targetId);
+        if (draggedIdx === -1 || targetIdx === -1) return;
+
+        // Reorder the layer tabs in the main tabs array
+        const globalTabs = tabs.filter(t => !t.layerId);
+        const moved = layerTabs.splice(draggedIdx, 1)[0];
+        // Adjust target index after removal
+        if (draggedIdx < targetIdx) targetIdx--;
+        if (afterTarget) targetIdx++;
+        layerTabs.splice(targetIdx, 0, moved);
+
+        // Rebuild tabs array
+        tabs.length = 0;
+        tabs.push(...globalTabs, ...layerTabs);
+
+        // Rebuild DOM order for buttons and panels
+        tabs.forEach((t, i) => {
+            tabBar.appendChild(t.button);
+            tabPanels.appendChild(t.panel);
+            // Re-bind click to new index
+            t.button.onclick = () => activateTab(i);
+        });
+
+        // Update Dmd layer order
+        dmd.moveLayer(draggedId, targetIdx);
+
+        // Keep active tab visually active
+        const activeIdx = tabs.findIndex(t => t.panel.classList.contains('active'));
+        if (activeIdx >= 0) activateTab(activeIdx);
+    };
+
+    // Allow dropping on the tab bar itself (empty space after last tab = move to end)
+    tabBar.addEventListener('dragover', (e) => { e.preventDefault(); });
+    tabBar.addEventListener('drop', (e) => {
+        if ((e.target as HTMLElement) !== tabBar) return;
+        e.preventDefault();
+        const draggedId = e.dataTransfer!.getData('text/plain');
+        const layerTabs = tabs.filter(t => t.layerId);
+        const lastLayerId = layerTabs[layerTabs.length - 1]?.layerId;
+        if (!lastLayerId || draggedId === lastLayerId) return;
+        reorderLayerTabs(draggedId, lastLayerId, true);
+    });
 
     // Small DOM helpers
     const row = (panel: HTMLElement, ...nodes: (Node | string)[]) => {
@@ -502,7 +579,7 @@ export function buildControlPanel(dmd: Dmd): void {
                     btn('Clear', () => canvas.clear())
                 );
             }
-        });
+        }, desc.id);
     });
 
     activateTab(0);

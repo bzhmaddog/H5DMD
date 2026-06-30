@@ -1,20 +1,35 @@
 import {LayerRenderer} from "./layer-renderer"
 
-class RemoveAlphaRenderer extends LayerRenderer {
+class ChromaKeyRenderer extends LayerRenderer {
 
+    private _uboBuffer: GPUBuffer
     private _inputBuffer: GPUBuffer
     private _tempBuffer: GPUBuffer
     private _bindGroup: GPUBindGroup
     private _computePipeline: GPUComputePipeline
+    private _keyR: number
+    private _keyG: number
+    private _keyB: number
+    private _threshold: number
 
     /**
-     * @param {number} width 
-     * @param {number} height 
+     * @param {number} width
+     * @param {number} height
+     * @param {[number, number, number]} color RGB key color (0–255 each), default green [0, 255, 0]
+     * @param {number} threshold Euclidean distance threshold, default 50
      */
-    constructor(width: number, height: number) {
-        super("RemoveAlphaRenderer", width, height)
+    constructor(width: number, height: number, color: [number, number, number] = [0, 255, 0], threshold: number = 50) {
+        super("ChromaKeyRenderer", width, height)
+        this._keyR = color[0]
+        this._keyG = color[1]
+        this._keyB = color[2]
+        this._threshold = threshold
     }
 
+    /**
+     * Init renderer
+     * @returns Promise
+     */
     init(): Promise<void> {
 
         return new Promise((resolve, reject) => {
@@ -24,48 +39,65 @@ class RemoveAlphaRenderer extends LayerRenderer {
                 return
             }
 
-            navigator.gpu.requestAdapter().then( adapter => {
+            navigator.gpu.requestAdapter().then(adapter => {
                 if (!adapter) {
                     reject(new Error(`${this.name}: no compatible GPU adapter found (requestAdapter() returned null)`))
                     return
                 }
 
                 this._adapter = adapter
-            
-                adapter.requestDevice().then( device => {
+
+                adapter.requestDevice().then(device => {
                     this._device = device
 
                     this._shaderModule = device.createShaderModule({
                         code: `
+                            struct UBO {
+                                keyR: f32,
+                                keyG: f32,
+                                keyB: f32,
+                                tolerance: f32
+                            }
+
                             struct Image {
                                 rgba: array<u32>
                             }
 
                             @group(0) @binding(0) var<storage,read> inputPixels: Image;
                             @group(0) @binding(1) var<storage,read_write> outputPixels: Image;
+                            @group(0) @binding(2) var<uniform> uniforms : UBO;
 
                             @compute
                             @workgroup_size(1)
                             fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
                                 let index : u32 = global_id.x + global_id.y * ${this._width}u;
+                                let pixelColor : u32 = inputPixels.rgba[index];
 
-                                var pixel : u32 = inputPixels.rgba[index];
-                                
-                                //let a : u32 = (pixel >> 24u) & 255u;
-                                let b : u32 = (pixel >> 16u) & 255u;
-                                let g : u32 = (pixel >> 8u) & 255u;
-                                let r : u32 = (pixel & 255u);
-               
-                                outputPixels.rgba[index] = 255u << 24u | b << 16u | g << 8u | r;
+                                let a : u32 = (pixelColor >> 24u) & 255u;
+                                let b : u32 = (pixelColor >> 16u) & 255u;
+                                let g : u32 = (pixelColor >> 8u) & 255u;
+                                let r : u32 = (pixelColor & 255u);
+
+                                let dr = f32(r) - uniforms.keyR;
+                                let dg = f32(g) - uniforms.keyG;
+                                let db = f32(b) - uniforms.keyB;
+                                let dist = sqrt(dr * dr + dg * dg + db * db);
+
+                                var newA = a;
+                                if (dist <= uniforms.tolerance) {
+                                    newA = 0u;
+                                }
+
+                                outputPixels.rgba[index] = (newA << 24u) | (b << 16u) | (g << 8u) | r;
                             }
                         `
                     })
 
-                    console.log('RemoveAlphaRenderer:init()')
+                    console.log('ChromaKeyRenderer:init()')
 
                     this._shaderModule.getCompilationInfo()?.then(i => {
-                        if (i.messages.length > 0 ) {
-                            console.warn("RemoveAlphaRenderer:compilationInfo() ", i.messages)
+                        if (i.messages.length > 0) {
+                            console.warn("ChromaKeyRenderer:compilationInfo() ", i.messages)
                         }
                     })
 
@@ -75,15 +107,18 @@ class RemoveAlphaRenderer extends LayerRenderer {
                     resolve()
                 }).catch(reject)
             }).catch(reject)
-       })
-    
+        })
     }
 
     /**
      * Create and cache the GPU resources reused across frames.
-     * Done once after init to avoid per-frame allocations (memory leak / GC churn).
      */
     private _createResources() {
+
+        this._uboBuffer = this._device.createBuffer({
+            size: 16, // 4 floats × 4 bytes
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        })
 
         this._inputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
@@ -102,16 +137,17 @@ class RemoveAlphaRenderer extends LayerRenderer {
                 {
                     binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
-                    buffer: {
-                        type: "read-only-storage"
-                    }
+                    buffer: { type: "read-only-storage" }
                 },
                 {
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
-                    buffer: {
-                        type: "storage"
-                    }
+                    buffer: { type: "storage" }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "uniform" }
                 }
             ]
         })
@@ -119,18 +155,9 @@ class RemoveAlphaRenderer extends LayerRenderer {
         this._bindGroup = this._device.createBindGroup({
             layout: bindGroupLayout,
             entries: [
-                {
-                    binding: 0,
-                    resource: {
-                        buffer: this._inputBuffer
-                    }
-                },
-                {
-                    binding: 1,
-                    resource: {
-                        buffer: this._tempBuffer
-                    }
-                }
+                { binding: 0, resource: { buffer: this._inputBuffer } },
+                { binding: 1, resource: { buffer: this._tempBuffer } },
+                { binding: 2, resource: { buffer: this._uboBuffer } }
             ]
         })
 
@@ -146,16 +173,22 @@ class RemoveAlphaRenderer extends LayerRenderer {
     }
 
     /**
-     * Apply filter to provided data then return altered data.
-     * Reuses the GPU resources created in init() : only per-frame pixels
-     * are uploaded each call.
-     * @param {ImageData} frameData 
+     * Apply chroma key to provided data then return altered data.
+     * Pixels within the threshold distance from the key color become fully transparent.
+     * @param {ImageData} frameData
      * @returns {Promise<ImageData>}
      */
     private _doRendering(frameData: ImageData): Promise<ImageData> {
 
-        // Upload frame pixels into the persistent input buffer
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
+
+        const uniformTypedArray = new Float32Array([
+            this._keyR,
+            this._keyG,
+            this._keyB,
+            this._threshold
+        ])
+        this._device.queue.writeBuffer(this._uboBuffer, 0, uniformTypedArray.buffer)
 
         const commandEncoder = this._device.createCommandEncoder()
         const passEncoder = commandEncoder.beginComputePass()
@@ -166,8 +199,7 @@ class RemoveAlphaRenderer extends LayerRenderer {
         passEncoder.end()
 
         return this._submitAndReadback(this._tempBuffer, commandEncoder) || Promise.resolve(frameData)
-	}
-
+    }
 }
 
-export { RemoveAlphaRenderer }
+export { ChromaKeyRenderer }

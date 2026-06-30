@@ -1,6 +1,7 @@
 import {
     Dmd,
-    DotShape
+    DotShape,
+    ChromaKeyRenderer
 } from "h5dmd";
 import {setupLayers} from "./layers";
 import {buildControlPanel} from "./controls";
@@ -22,13 +23,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const output = document.getElementById('output') as HTMLCanvasElement;
         const dmd = new Dmd(output, 2, 1, DotShape.Square, 14, 1, true);
 
+        const chromaKey = new ChromaKeyRenderer(213, 130, [0, 0, 0], 9);
+
         // Init Dmd then
-        dmd.init().then(() => {
+        Promise.all([dmd.init(), chromaKey.init()]).then(() => {
             // Start rendering dmd
             dmd.run();
 
             // Add all demo layers, then build the control panel for them
-            setupLayers(dmd, imagesPath);
+            setupLayers(dmd, imagesPath, chromaKey);
             buildControlPanel(dmd);
 
         }); // Dmd.init()

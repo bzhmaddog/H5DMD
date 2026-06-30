@@ -57,6 +57,18 @@
             font-weight: bold;
         }
 
+        #tab-bar button[draggable="true"] {
+            cursor: grab;
+        }
+
+        #tab-bar button.dragging {
+            opacity: 0.4;
+        }
+
+        #tab-bar button.drag-over {
+            border-left: 3px solid #6cf;
+        }
+
         .tab-panel {
             display: none;
             padding: 12px;
