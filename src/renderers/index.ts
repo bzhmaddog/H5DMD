@@ -1,4 +1,5 @@
 export * from './change-alpha-renderer';
+export * from './chroma-key-renderer';
 export * from './dmd-renderer';
 export * from './layer-renderer';
 export * from './dummy-renderer';

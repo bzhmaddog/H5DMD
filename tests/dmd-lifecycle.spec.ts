@@ -1,7 +1,10 @@
 /**
  * Unit tests for Dmd run/stop lifecycle and layer ordering:
  *   - run() is idempotent: a second call does not start a second render loop.
+ *   - run() throws if called before init().
+ *   - run() re-creates the FPS box after a stop().
  *   - stop() removes the FPS overlay from the DOM.
+ *   - stop() sets _renderNextFrame to a no-op logger.
  *   - addRenderer() rejects once the DMD is running, pointing at Dmd.run().
  *   - layers with equal z-index keep their insertion order (stable sort).
  */
@@ -36,7 +39,7 @@ describe('Dmd lifecycle and layer ordering', () => {
         const raf = vi.fn(() => 0)
         vi.stubGlobal('requestAnimationFrame', raf)
 
-        const dmd = new Dmd(makeCanvas(), 2, 1, 1, 1, DotShape.Square, 14, 1, false)
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, false)
         await dmd.init()
 
         dmd.run()
@@ -48,7 +51,7 @@ describe('Dmd lifecycle and layer ordering', () => {
     test('stop() removes the FPS box from the DOM', () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
 
-        const dmd = new Dmd(makeCanvas(), 2, 1, 1, 1, DotShape.Square, 14, 1, true)
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, true)
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const box = (dmd as any)._fpsBox as HTMLElement
@@ -62,7 +65,7 @@ describe('Dmd lifecycle and layer ordering', () => {
     test('addRenderer() while running rejects, pointing at Dmd.run()', () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
 
-        const dmd = new Dmd(makeCanvas(), 2, 1, 1, 1, DotShape.Square, 14, 1, false)
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, false)
 
         // Simulate a running Dmd.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,7 +78,7 @@ describe('Dmd lifecycle and layer ordering', () => {
     test('equal z-index layers keep their insertion order (stable sort)', () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
 
-        const dmd = new Dmd(makeCanvas(), 2, 1, 1, 1, DotShape.Square, 14, 1, false)
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, false)
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const internal = dmd as any
@@ -90,5 +93,40 @@ describe('Dmd lifecycle and layer ordering', () => {
 
         expect(internal._sortedLayers.map((l: {id: string}) => l.id))
             .toEqual(['a', 'b', 'c', 'd', 'e'])
+    })
+
+    test('run() before init() throws', () => {
+        vi.stubGlobal('requestAnimationFrame', () => 0)
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, false)
+        expect(() => dmd.run()).toThrow('call Dmd.init() first')
+    })
+
+    test('run() re-creates the FPS box after stop()', async () => {
+        vi.stubGlobal('requestAnimationFrame', () => 0)
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, true)
+        await dmd.init()
+
+        dmd.run()
+        dmd.stop()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((dmd as any)._fpsBox).toBeUndefined()
+
+        dmd.run()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((dmd as any)._fpsBox).toBeDefined()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect(document.body.contains((dmd as any)._fpsBox)).toBe(true)
+    })
+
+    test('stop() sets _renderNextFrame to a no-op logger', () => {
+        vi.stubGlobal('requestAnimationFrame', () => 0)
+        const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, false)
+
+        dmd.stop()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(dmd as any)._renderNextFrame()
+
+        expect(logSpy).toHaveBeenCalledWith('Dmd render stopped')
     })
 })

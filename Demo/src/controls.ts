@@ -1,6 +1,15 @@
+import { EditorView, basicSetup } from 'codemirror'
+import { javascript } from '@codemirror/lang-javascript'
+import { oneDark } from '@codemirror/theme-one-dark'
+
+import { EditorState } from '@codemirror/state'
+import readOnlyRangesExtension from 'codemirror-readonly-ranges'
+
 import {
     Dmd,
+    DotShape,
     AnimationLayer,
+    CanvasLayer,
     Easing,
     EasingFunction,
     SpritesLayer,
@@ -21,7 +30,8 @@ interface LayerDescriptor {
 const layerDescriptors: LayerDescriptor[] = [
     {id: 'bg', label: 'Background', kind: 'canvas'},
     {id: 'animation', label: 'Animation', kind: 'animation'},
-    {id: 'video', label: 'Video', kind: 'video'},
+    {id: 'video-transparent', label: 'Video (transparent)', kind: 'video'},
+    {id: 'video-chromakey', label: 'Video (chroma key)', kind: 'video'},
     {id: 'matthew', label: 'Matthew img', kind: 'canvas'},
     {id: 'sprite', label: 'Sprite', kind: 'sprites', spriteId: 'scott'},
     {id: 'text1', label: 'Text: Scott', kind: 'text'},
@@ -29,6 +39,29 @@ const layerDescriptors: LayerDescriptor[] = [
     {id: 'text3', label: 'Text: VS out', kind: 'text'},
     {id: 'text4', label: 'Text: Matthew', kind: 'text'}
 ];
+
+function getReadOnlyRanges(targetState: EditorState) {
+  const doc = targetState.doc
+  const secondLine = doc.line(2)
+  const lastLine = doc.line(doc.lines)
+
+  return [
+    { from: 0, to: secondLine.to + 1 },
+    { from: lastLine.from, to: lastLine.to }
+  ]
+}
+
+function getEditableContent(state: EditorState): string {
+  const doc = state.doc
+  if (doc.lines <= 3) return '' // nothing editable if only header/footer exist
+
+  const startLine = doc.line(3)        // first editable line (after 2 locked lines)
+  const endLine = doc.line(doc.lines - 1) // last editable line
+
+  return doc.sliceString(startLine.from, endLine.to)
+}
+
+
 
 /**
  * Build the tabbed per-layer control panel for the given Dmd instance.
@@ -38,7 +71,7 @@ export function buildControlPanel(dmd: Dmd): void {
 
     const tabBar = document.getElementById('tab-bar') as HTMLDivElement;
     const tabPanels = document.getElementById('tab-panels') as HTMLDivElement;
-    const tabs: { button: HTMLButtonElement; panel: HTMLDivElement }[] = [];
+    const tabs: { button: HTMLButtonElement; panel: HTMLDivElement; layerId?: string }[] = [];
 
     const activateTab = (index: number) => {
         tabs.forEach((t, i) => {
@@ -47,7 +80,7 @@ export function buildControlPanel(dmd: Dmd): void {
         });
     };
 
-    const addTab = (label: string, build: (panel: HTMLDivElement) => void) => {
+    const addTab = (label: string, build: (panel: HTMLDivElement) => void, layerId?: string) => {
         const button = document.createElement('button');
         button.textContent = label;
         const panel = document.createElement('div');
@@ -57,8 +90,84 @@ export function buildControlPanel(dmd: Dmd): void {
         button.addEventListener('click', () => activateTab(index));
         tabBar.appendChild(button);
         tabPanels.appendChild(panel);
-        tabs.push({button, panel});
+        tabs.push({button, panel, layerId});
+
+        // Make layer tabs draggable
+        if (layerId) {
+            button.draggable = true;
+            button.dataset.layerId = layerId;
+            button.addEventListener('dragstart', (e) => {
+                e.dataTransfer!.setData('text/plain', layerId);
+                button.classList.add('dragging');
+            });
+            button.addEventListener('dragend', () => {
+                button.classList.remove('dragging');
+            });
+            button.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                button.classList.add('drag-over');
+            });
+            button.addEventListener('dragleave', () => {
+                button.classList.remove('drag-over');
+            });
+            button.addEventListener('drop', (e) => {
+                e.preventDefault();
+                button.classList.remove('drag-over');
+                const draggedId = e.dataTransfer!.getData('text/plain');
+                if (draggedId === layerId) return;
+                // Insert after target if dropping on right half of button
+                const rect = button.getBoundingClientRect();
+                const afterTarget = e.clientX > rect.left + rect.width / 2;
+                reorderLayerTabs(draggedId, layerId, afterTarget);
+            });
+        }
     };
+
+    const reorderLayerTabs = (draggedId: string, targetId: string, afterTarget = false) => {
+        const layerTabs = tabs.filter(t => t.layerId);
+        const draggedIdx = layerTabs.findIndex(t => t.layerId === draggedId);
+        let targetIdx = layerTabs.findIndex(t => t.layerId === targetId);
+        if (draggedIdx === -1 || targetIdx === -1) return;
+
+        // Reorder the layer tabs in the main tabs array
+        const globalTabs = tabs.filter(t => !t.layerId);
+        const moved = layerTabs.splice(draggedIdx, 1)[0];
+        // Adjust target index after removal
+        if (draggedIdx < targetIdx) targetIdx--;
+        if (afterTarget) targetIdx++;
+        layerTabs.splice(targetIdx, 0, moved);
+
+        // Rebuild tabs array
+        tabs.length = 0;
+        tabs.push(...globalTabs, ...layerTabs);
+
+        // Rebuild DOM order for buttons and panels
+        tabs.forEach((t, i) => {
+            tabBar.appendChild(t.button);
+            tabPanels.appendChild(t.panel);
+            // Re-bind click to new index
+            t.button.onclick = () => activateTab(i);
+        });
+
+        // Update Dmd layer order
+        dmd.moveLayer(draggedId, targetIdx);
+
+        // Keep active tab visually active
+        const activeIdx = tabs.findIndex(t => t.panel.classList.contains('active'));
+        if (activeIdx >= 0) activateTab(activeIdx);
+    };
+
+    // Allow dropping on the tab bar itself (empty space after last tab = move to end)
+    tabBar.addEventListener('dragover', (e) => { e.preventDefault(); });
+    tabBar.addEventListener('drop', (e) => {
+        if ((e.target as HTMLElement) !== tabBar) return;
+        e.preventDefault();
+        const draggedId = e.dataTransfer!.getData('text/plain');
+        const layerTabs = tabs.filter(t => t.layerId);
+        const lastLayerId = layerTabs[layerTabs.length - 1]?.layerId;
+        if (!lastLayerId || draggedId === lastLayerId) return;
+        reorderLayerTabs(draggedId, lastLayerId, true);
+    });
 
     // Small DOM helpers
     const row = (panel: HTMLElement, ...nodes: (Node | string)[]) => {
@@ -154,6 +263,88 @@ export function buildControlPanel(dmd: Dmd): void {
 
         row(panel, labelEl('Brightness'), brightnessSlider, brightnessValue, tag('H2'));
 
+        // Dot shape selector
+        const shapeSelect = document.createElement('select');
+        shapeSelect.style.background = '#222';
+        shapeSelect.style.color = '#fff';
+        shapeSelect.style.border = '1px solid #555';
+        shapeSelect.style.borderRadius = '4px';
+        shapeSelect.style.padding = '4px 6px';
+        const shapes: { label: string; value: DotShape }[] = [
+            { label: 'Square', value: DotShape.Square },
+            { label: 'Circle', value: DotShape.Circle },
+            { label: 'Diamond', value: DotShape.Diamond },
+            { label: 'Rounded Square', value: DotShape.RoundedSquare },
+            { label: 'Hexagon', value: DotShape.Hexagon },
+            { label: 'Octagon', value: DotShape.Octagon },
+            { label: 'Star', value: DotShape.Star },
+        ];
+        shapes.forEach((s) => {
+            const o = document.createElement('option');
+            o.value = String(s.value);
+            o.textContent = s.label;
+            if (s.value === dmd.dotShape) o.selected = true;
+            shapeSelect.appendChild(o);
+        });
+
+        // Dot size slider
+        const dotSizeValue = document.createElement('span');
+        const dotSizeSlider = document.createElement('input');
+        dotSizeSlider.type = 'range';
+        dotSizeSlider.min = '1';
+        dotSizeSlider.max = '20';
+        dotSizeSlider.step = '1';
+        dotSizeSlider.value = String(dmd.dotSize);
+        dotSizeValue.textContent = String(dmd.dotSize);
+
+        // Live DMD resolution display
+        const dmdSizeDisplay = document.createElement('span');
+        dmdSizeDisplay.style.color = '#6cf';
+        const syncDmdSize = () => {
+            dmdSizeDisplay.textContent = `${dmd.visibleDotsX} × ${dmd.visibleDotsY}`;
+        };
+        syncDmdSize();
+
+        dotSizeSlider.addEventListener('input', () => {
+            dmd.setDotSize(parseInt(dotSizeSlider.value));
+            // Sync back in case clamped
+            dotSizeSlider.value = String(dmd.dotSize);
+            dotSizeValue.textContent = String(dmd.dotSize);
+            syncDmdSize();
+        });
+        row(panel, labelEl('Dot Size'), dotSizeSlider, dotSizeValue);
+
+        // Dot spacing slider
+        const dotSpaceValue = document.createElement('span');
+        const dotSpaceSlider = document.createElement('input');
+        dotSpaceSlider.type = 'range';
+        dotSpaceSlider.min = String(dmd.minDotSpace);
+        dotSpaceSlider.max = '10';
+        dotSpaceSlider.step = '1';
+        dotSpaceSlider.value = String(dmd.dotSpace);
+        dotSpaceValue.textContent = String(dmd.dotSpace);
+        dotSpaceSlider.addEventListener('input', () => {
+            dmd.setDotSpace(parseInt(dotSpaceSlider.value));
+            dotSpaceValue.textContent = String(dmd.dotSpace);
+            syncDmdSize();
+        });
+        row(panel, labelEl('Dot Space'), dotSpaceSlider, dotSpaceValue);
+
+        row(panel, labelEl('DMD Size'), dmdSizeDisplay);
+
+        shapeSelect.addEventListener('change', () => {
+            dmd.setDotShape(parseInt(shapeSelect.value) as DotShape);
+            // Sync dot size slider after shape change (min size may have been enforced)
+            dotSizeSlider.value = String(dmd.dotSize);
+            dotSizeValue.textContent = String(dmd.dotSize);
+            // Sync dot space slider after shape change (min space may have been enforced)
+            dotSpaceSlider.min = String(dmd.minDotSpace);
+            dotSpaceSlider.value = String(dmd.dotSpace);
+            dotSpaceValue.textContent = String(dmd.dotSpace);
+            syncDmdSize();
+        });
+        row(panel, labelEl('Dot Shape'), shapeSelect);
+
         const dmdEasing = easingSelect();
         const dmdDuration = durationSlider(1000);
         const dmdFadeOutBtn = btn('Fade out', () => {
@@ -162,8 +353,8 @@ export function buildControlPanel(dmd: Dmd): void {
             dmd.fadeOut(dmdDuration.getDuration()).then(syncBrightness);
         });
         const dmdFadeInBtn = btn('Fade in', () => {
-            dmdFadeOutBtn.disabled = true;
             dmdFadeInBtn.disabled = true;
+            dmdFadeOutBtn.disabled = true;
             dmd.fadeIn(dmdDuration.getDuration()).then(syncBrightness);
         });
 
@@ -176,7 +367,7 @@ export function buildControlPanel(dmd: Dmd): void {
 
     // One tab per layer — common controls (visibility, opacity) + specific ones
     layerDescriptors.forEach((desc) => {
-        addTab(desc.label, (panel) => {
+        addTab(`${desc.label} [${desc.kind}]`, (panel) => {
             const layer = dmd.getLayer(desc.id);
 
             if (desc.note) {
@@ -333,8 +524,62 @@ export function buildControlPanel(dmd: Dmd): void {
                 const adjustLabel = document.createElement('label');
                 adjustLabel.append(adjustCheckbox, ' Adjust width');
                 row(panel, adjustLabel);
+            } else if (desc.kind === 'canvas' && desc.id === 'bg') {
+                const canvas = layer as CanvasLayer;
+
+                const textArea = document.createElement('div');
+
+                // Same appearance as the original layer content but built with canvas operations
+                const editor =new EditorView({
+                    doc: "function({fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap}) { //🔒\n" +
+                    "  // const imagesPath = document.baseURI.replace('index.html', '') + 'images'; //🔒 \n" +
+                    "  fillColor('#0C98F4'); //Fill the whole canvas\n" +
+                    "  drawRect(0,17,426,96,'#FF0000'); //Draw a rectangle\n" +
+                    "  // drawLine(0, 126, 426, 126, '#00FF00'); //Draw a line\n" +
+                    "  // fillGradient(['#FF0000','#00FF00','#0000FF'], 'horizontal'); //Fill a gradient\n" +
+                    "  // drawGradientRect(10, 10, 50, 20, ['#FF0000','#0000FF']); //Gradient rect\n" +
+                    "  // fetch(`${imagesPath}/bg-2.png`)\n" +
+                    "  //  .then(response => response.blob())\n" +
+                    "  //  .then(blob => createImageBitmap(blob))\n" +
+                    "  //  .then(bitmap => {\n" +
+                    "  //    drawBitmap(bitmap); //Draw a bitmap\n" +
+                    "  //  });\n" +
+                    "} //🔒",
+                    extensions: [
+                        basicSetup,
+                        javascript({ typescript: true }),
+                        oneDark,
+                         readOnlyRangesExtension(getReadOnlyRanges)
+                    ],
+                    parent: textArea
+                })
+
+
+                textArea.style.width = '100%';
+
+                const applyDrawFunction = () => {
+                    const code = getEditableContent(editor.state);
+                    canvas.setDrawFunction(({fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap}) => {
+                        try {
+                            const fullCode = "const imagesPath = document.baseURI.replace('index.html', '') + 'images';\n" + code;
+                            const fn = new Function('fillColor', 'fillGradient', 'drawGradientRect', 'drawRect', 'drawLine', 'drawBitmap', fullCode);
+                            fn(fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap);
+                        } catch (e) {
+                            console.error('Draw function error:', e);
+                        }
+                    });
+                    canvas.draw();
+                };
+
+                //applyDrawFunction();
+
+                row(panel, textArea);
+                row(panel,
+                    btn('Draw', applyDrawFunction),
+                    btn('Clear', () => canvas.clear())
+                );
             }
-        });
+        }, desc.id);
     });
 
     activateTab(0);

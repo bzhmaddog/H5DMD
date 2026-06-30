@@ -10,10 +10,14 @@
   },
   "devDependencies": {
     "@webgpu/types": "^0.1.70",
-    "vite-plugin-tsc-watch": "^3.1.2",
     "typescript": "^5.2.2",
-    "vite": "^8.0.16"
+    "vite": "^8.0.16",
+    "vite-plugin-tsc-watch": "^3.1.2"
   },
   "dependencies": {
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/theme-one-dark": "^6.1.3",
+    "codemirror": "^6.0.2",
+    "codemirror-readonly-ranges": "^0.1.0-alpha.2"
   }
 }

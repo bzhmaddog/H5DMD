@@ -17,7 +17,7 @@ export abstract class Renderer {
 
     abstract init(): Promise<void>
 
-    abstract renderFrame(frameData: ImageData, options?: Options): Promise<ImageData>
+    abstract renderFrame(frameData: ImageData, options?: Options): Promise<ImageData | void>
 
     get name(): string {
         return this._name

@@ -46,7 +46,7 @@ const canvas = document.getElementById("output") as HTMLCanvasElement;
 
 // outputCanvas, dotSize, dotSpace, xOffset, yOffset, dotShape,
 // backgroundBrightness, brightness, showFPS
-const dmd = new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true);
+const dmd = new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, true);
 
 await dmd.init(); // set up the renderers (WebGPU when available)
 dmd.run();        // start the render loop

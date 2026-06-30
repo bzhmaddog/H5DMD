@@ -18,9 +18,6 @@ export class Dmd {
     static readonly version: string = '1.1.1'
 
     private _outputCanvas: HTMLCanvasElement
-    private _outputContext: CanvasRenderingContext2D
-    private _xOffset: number
-    private _yOffset: number
     private _layers: LayerDictionary
     private _sortedLayers: Layer[]
     private _outputWidth: number
@@ -48,9 +45,7 @@ export class Dmd {
      * @param {HTMLCanvasElement} outputCanvas Dom Element where the Dmd will be drawed
      * @param {number} dotSize Horizontal width of the virtual pixels (ex: 1 dot will be 4 pixels wide)
      * @param {number} dotSpace number of 'black' pixels between each column (vertical lines between dots)
-     * @param {number} xOffset // TODO : horizontal shifting
-     * @param {number} yOffset  // TODO : vertical shifting
-     * @param {string} dotShape // TODO(GPU) : Shape of the dots (can be square or circle)
+     * @param {string} dotShape Shape of the dots (square, circle or diamond)
      * @param {number} backgroundBrightness brightness of the background (below the dots)
      * @param {number} brightness brightness of the dots
      * @param {boolean} showFPS show FPS count or not
@@ -59,8 +54,6 @@ export class Dmd {
         outputCanvas: HTMLCanvasElement,
         dotSize: number,
         dotSpace: number,
-        xOffset: number,
-        yOffset: number,
         dotShape: DotShape,
         backgroundBrightness: number,
         brightness: number,
@@ -69,15 +62,6 @@ export class Dmd {
 
         this._outputCanvas = outputCanvas
 
-        const outputContext = this._outputCanvas.getContext('2d')
-        if (!outputContext) {
-            throw new Error('H5DMD: could not get a 2D rendering context from the output canvas (is it already used with another context type?)')
-        }
-
-        this._outputContext = outputContext
-
-        this._xOffset = xOffset
-        this._yOffset = yOffset
         this._outputWidth = Math.floor(this._outputCanvas.width / (dotSize + dotSpace))
         this._outputHeight = Math.floor(this._outputCanvas.height / (dotSize + dotSpace))
         this._frameBuffer = new OffscreenBuffer(this._outputWidth, this._outputHeight, true)
@@ -99,7 +83,7 @@ export class Dmd {
 
         console.log(`Creating a ${this._outputWidth}x${this._outputHeight} DMD on a ${this._outputCanvas.width}x${this._outputCanvas.height} canvas`)
 
-        this._renderer = new DmdRenderer(this._outputWidth, this._outputHeight, this._outputCanvas.width, this._outputCanvas.height, dotSize, dotSpace, dotShape || DotShape.Circle, backgroundBrightness, brightness)
+        this._renderer = new DmdRenderer(this._outputWidth, this._outputHeight, this._outputCanvas.width, this._outputCanvas.height, dotSize, dotSpace, dotShape ?? DotShape.Square, backgroundBrightness, brightness, this._outputCanvas)
 
         // Add renderers needed for layers rendering
         this._layerRenderers = {
@@ -181,7 +165,6 @@ export class Dmd {
             const layer = this._layers[l.id]
 
             if (layer.isVisible() && layer.isLoaded()) {
-                // Draw layer content into a buffer
                 this._frameBuffer.context.drawImage(layer.canvas, l.left, l.top)
             }
         })
@@ -190,54 +173,39 @@ export class Dmd {
         const frameImageData = this._frameBuffer.context.getImageData(0, 0, this._frameBuffer.width, this._frameBuffer.height)
 
         // Generate Dmd frame
-        this._renderer.renderFrame(frameImageData).then((dmdImageData: ImageData) => {
+        this._renderer.renderFrame(frameImageData).then(() => {
 
-            createImageBitmap(dmdImageData).then(bitmap => {
+            const now = performance.now()
+            const delta = (now - this._lastRenderTime)
+            this._lastRenderTime = now
 
+            // Smoothed FPS : rolling average of frame time over the last frames.
+            // Using ONE smoothed value for the live readout AND for min/max keeps
+            // them consistent (min <= FPS <= max always holds) and stops the number
+            // flickering frame-to-frame.
+            this._fpsSamples.push(delta)
+            if (this._fpsSamples.length > 60) {
+                this._fpsSamples.shift()
+            }
+            const meanDelta = this._fpsSamples.reduce((sum, d) => sum + d, 0) / this._fpsSamples.length
+            this._fps = Math.round(1000 / meanDelta)
 
-                // Clear target canvas
-                this._outputContext.clearRect(0, 0, this._outputCanvas.width, this._outputCanvas.height)
-
-                // Render final Dmd image onto target canvas
-                this._outputContext.drawImage(bitmap, 0, 0)
-
-                // Release the bitmap now that it has been copied to the output canvas
-                bitmap.close()
-
-                const now = performance.now()
-                const delta = (now - this._lastRenderTime)
-                this._lastRenderTime = now
-
-                // Smoothed FPS : rolling average of frame time over the last frames.
-                // Using ONE smoothed value for the live readout AND for min/max keeps
-                // them consistent (min <= FPS <= max always holds) and stops the number
-                // flickering frame-to-frame.
-                this._fpsSamples.push(delta)
-                if (this._fpsSamples.length > 60) {
-                    this._fpsSamples.shift()
-                }
-                const meanDelta = this._fpsSamples.reduce((sum, d) => sum + d, 0) / this._fpsSamples.length
-                this._fps = Math.round(1000 / meanDelta)
-
-                // Track min/max on the same smoothed value, once the window has filled
-                // enough to represent steady-state (ignores the slow warmup frames).
-                if (this._fpsSamples.length >= 30) {
-                    if (this._fps < this._minFPS) {
-                        this._minFPS = this._fps
-                    }
-
-                    if (this._fps > this._maxFPS) {
-                        this._maxFPS = this._fps
-                    }
+            // Track min/max on the same smoothed value, once the window has filled
+            // enough to represent steady-state (ignores the slow warmup frames).
+            if (this._fpsSamples.length >= 30) {
+                if (this._fps < this._minFPS) {
+                    this._minFPS = this._fps
                 }
 
-                // Render FPS box if needed
-                this._renderFPS()
+                if (this._fps > this._maxFPS) {
+                    this._maxFPS = this._fps
+                }
+            }
 
+            // Render FPS box if needed
+            this._renderFPS()
 
-                this._renderNextFrame()
-            })
-
+            this._renderNextFrame()
         })
     }
 
@@ -507,6 +475,19 @@ export class Dmd {
     }
 
     /**
+     * Move a layer to a new position in the rendering order.
+     * @param {string} id layer id to move
+     * @param {number} toIndex target index in the sorted array (0 = bottom)
+     */
+    moveLayer(id: string, toIndex: number) {
+        const fromIndex = this._sortedLayers.findIndex(l => l.id === id)
+        if (fromIndex === -1) return
+        const [moved] = this._sortedLayers.splice(fromIndex, 1)
+        this._sortedLayers.splice(toIndex, 0, moved)
+        this._sortedLayers.forEach((l, i) => { l.zIndex = i })
+    }
+
+    /**
      * Show/Hide specified layer
      * @param {string} id
      * @param {boolean} state
@@ -629,6 +610,72 @@ export class Dmd {
     }
 
     /**
+     * Change the dot shape at runtime.
+     * @param {DotShape} shape
+     */
+    setDotShape(shape: DotShape) {
+        this._renderer.setDotShape(shape)
+    }
+
+    /**
+     * Get current dot shape
+     */
+    get dotShape(): DotShape {
+        return this._renderer.dotShape
+    }
+
+    /**
+     * Change the dot size at runtime. Content is rescaled to fill the canvas.
+     * @param {number} size
+     */
+    setDotSize(size: number) {
+        this._renderer.setDotSize(size)
+    }
+
+    /**
+     * Get current dot size
+     */
+    get dotSize(): number {
+        return this._renderer.dotSize
+    }
+
+    /**
+     * Change the dot spacing at runtime.
+     * @param {number} space
+     */
+    setDotSpace(space: number) {
+        this._renderer.setDotSpace(space)
+    }
+
+    /**
+     * Get current dot spacing
+     */
+    get dotSpace(): number {
+        return this._renderer.dotSpace
+    }
+
+    /**
+     * Get minimum dot spacing for the current shape
+     */
+    get minDotSpace(): number {
+        return this._renderer.minDotSpace
+    }
+
+    /**
+     * Get the number of visible dots horizontally at the current dot size.
+     */
+    get visibleDotsX(): number {
+        return this._renderer.visibleDotsX
+    }
+
+    /**
+     * Get the number of visible dots vertically at the current dot size.
+     */
+    get visibleDotsY(): number {
+        return this._renderer.visibleDotsY
+    }
+
+    /**
      * Get the H5DMD library version (delegates to the static {@link Dmd.version}).
      */
     get version(): string {
@@ -643,10 +690,10 @@ export class Dmd {
     }
 
     /**
-     * Get canvas context
+     * Get WebGPU canvas context (available after init)
      */
-    get context() {
-        return this._outputContext
+    get context(): GPUCanvasContext {
+        return this._renderer.canvasContext
     }
 
     /**

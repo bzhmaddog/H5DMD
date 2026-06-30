@@ -35,7 +35,7 @@ describe('testing entry file', () => {
 
 
     test('Class should be created', () => {
-        const dmd = new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
+        const dmd = new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, true)
         expect(dmd).toBeTruthy()
         expect(dmd).toBeInstanceOf(Dmd)
     });
@@ -43,7 +43,7 @@ describe('testing entry file', () => {
     test('Created Layer should exist and match class CanvasLayer', () => {
 
 
-        const dmd = new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
+        const dmd = new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, true)
 
         const layer = dmd.addCanvasLayer('test', {}, new Options(), {}, (l) => {
             expect(l).toBe(layer)
@@ -55,7 +55,7 @@ describe('testing entry file', () => {
     });
 
     test('Created Layer should exist and match class AnimationLayer', () => {
-        const dmd = new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
+        const dmd = new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, true)
         const layer = dmd.addAnimationLayer('test', {}, new Options(), {}, (l) => {
             expect(l).toBe(layer)
         }, () => {
@@ -66,7 +66,7 @@ describe('testing entry file', () => {
     });
 
     test('Created Layer should exist and match class SpritesLayer', () => {
-        const dmd = new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
+        const dmd = new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, true)
         const layer = dmd.addSpritesLayer('test', {}, new Options(), {}, (l) => {
             expect(l).toBe(layer)
         }, () => {
@@ -82,7 +82,7 @@ describe('testing entry file', () => {
     });
 
     test('Instance version getter should return the static version', () => {
-        const dmd = new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
+        const dmd = new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, true)
         expect(dmd.version).toBe(Dmd.version)
     });
 
@@ -92,7 +92,7 @@ describe('testing entry file', () => {
     });
 
     /*test('Created Layer should exist and match class TextLayer', () => {
-        const dmd = new Dmd(canvas, 2, 1, 1, 1, DotShape.Square, 14, 1, true)
+        const dmd = new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, true)
         const layer = dmd.addTextLayer('test', {}, new Options(), {}, (l) => {
             expect(l).toBe(layer)
         }, () => {})

@@ -12,7 +12,6 @@ class NoiseEffectRenderer extends LayerRenderer {
     private _noiseBuffer: GPUBuffer
     private _inputBuffer: GPUBuffer
     private _tempBuffer: GPUBuffer
-    private _outputBuffer: GPUBuffer
     private _bindGroup: GPUBindGroup
     private _computePipeline: GPUComputePipeline
 
@@ -171,10 +170,7 @@ class NoiseEffectRenderer extends LayerRenderer {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
         })
 
-        this._outputBuffer = this._device.createBuffer({
-            size: this._bufferByteLength,
-            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-        })
+        this._createOutputBuffers()
 
         const bindGroupLayout = this._device.createBindGroupLayout({
             entries: [
@@ -277,28 +273,7 @@ class NoiseEffectRenderer extends LayerRenderer {
         passEncoder.dispatchWorkgroups(this._width, this._height)
         passEncoder.end()
 
-        commandEncoder.copyBufferToBuffer(this._tempBuffer, 0, this._outputBuffer, 0, this._bufferByteLength)
-
-        this._device.queue.submit([commandEncoder.finish()])
-
-        return new Promise( resolve => {
-
-            // Render Dmd output
-            this._outputBuffer.mapAsync(GPUMapMode.READ).then( () => {
-
-                // Grab data from output buffer (copy out before unmapping)
-                const pixelsBuffer = new Uint8Array(this._outputBuffer.getMappedRange())
-
-                // Generate Image data usable by a canvas
-                const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), this._width, this._height)
-
-                // Release the mapping so the buffer can be reused next frame
-                this._outputBuffer.unmap()
-
-                // return to caller
-                resolve(imageData)
-            })
-        })
+        return this._submitAndReadback(this._tempBuffer, commandEncoder) || Promise.resolve(frameData)
 	}
 
     /**
