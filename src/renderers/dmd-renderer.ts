@@ -16,13 +16,17 @@ class DmdRenderer extends Renderer {
     private _bgColor: number
     private _brightness: number
     private _bgHSP: number
+    private _totalPixels: number
+    private _workgroupCount: number
 
     private _uboBuffer: GPUBuffer
     private _inputBuffer: GPUBuffer
     private _tempBuffer: GPUBuffer
-    private _outputBuffer: GPUBuffer
+    private _outputBuffers: GPUBuffer[]
+    private _currentBufferIndex: number
     private _bindGroup: GPUBindGroup
     private _computePipeline: GPUComputePipeline
+    private _uniformTypedArray: Float32Array
 
     renderFrame: (frameData: ImageData) => Promise<ImageData>
 
@@ -67,6 +71,9 @@ class DmdRenderer extends Renderer {
         this._bgBrightness = 14
         this._bgColor = 4279176975
         this._brightness = 1
+        this._uniformTypedArray = new Float32Array(1)
+        this._totalPixels = dmdWidth * dmdHeight
+        this._workgroupCount = Math.ceil(this._totalPixels / 64)
 
         if (typeof bgBrightness === 'number') {
                 this._bgBrightness = bgBrightness
@@ -138,10 +145,17 @@ class DmdRenderer extends Renderer {
                             @group(0) @binding(2) var<uniform> uniforms : UBO;
 
                             @compute
-                            @workgroup_size(1)
+                            @workgroup_size(64)
                             fn main (@builtin(global_invocation_id) global_id: vec3<u32>) {
+                                let index : u32 = global_id.x;
+                                if (index >= ${this._totalPixels}u) {
+                                    return;
+                                }
+
+                                let pixel_x : u32 = index % ${this._dmdWidth}u;
+                                let pixel_y : u32 = index / ${this._dmdWidth}u;
+
                                 var bgBrightness : u32 = ${this._bgBrightness}u;
-                                var index : u32 = global_id.x + global_id.y *  ${this._dmdWidth}u;
                                 var pixel : u32 = inputPixels.rgba[index];
                                 var brightness : f32 = uniforms.brightness;
                                 var br = 0u;
@@ -177,18 +191,15 @@ class DmdRenderer extends Renderer {
                                 // Recreate pixel color but force alpha to 255
                                 pixel = (255u << 24u) | (bb << 16u) | (bg << 8u) | br;
 
-                                var t : u32 = r + g + b;
                                 var hsp : f32 =  sqrt(.299f * u2f(r) * u2f(r) + .587f * u2f(g) * u2f(g) + .114 * u2f(b) * u2f(b));
                 
                                 // Pixels that are too dark will be hacked to give the 'off' dot look of the DMD
-                                //if (t < bgBrightness*3u) {
                                 if (hsp - 8f < ${this._bgHSP}f) {
                                     pixel = ${this._bgColor}u;
-                                    //pixel = 4294901760u;
                                 }
                 
                                 // First byte index of the output dot
-                                var resizedPixelIndex : u32 = (global_id.x * ${this._pixelSize}u)  + (global_id.x * ${this._dotSpace}u) + (global_id.y * ${this._screenWidth}u * (${this._pixelSize}u + ${this._dotSpace}u));
+                                var resizedPixelIndex : u32 = (pixel_x * ${this._pixelSize}u)  + (pixel_x * ${this._dotSpace}u) + (pixel_y * ${this._screenWidth}u * (${this._pixelSize}u + ${this._dotSpace}u));
                 
                                 for ( var row: u32 = 0u ; row < ${this._pixelSize}u; row = row + 1u ) {
                                     for ( var col: u32 = 0u ; col < ${this._pixelSize}u; col = col + 1u ) {
@@ -252,10 +263,17 @@ class DmdRenderer extends Renderer {
             usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
         })
 
-        this._outputBuffer = this._device.createBuffer({
-            size: this._screenBufferByteLength,
-            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-        })
+        this._outputBuffers = [
+            this._device.createBuffer({
+                size: this._screenBufferByteLength,
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+            }),
+            this._device.createBuffer({
+                size: this._screenBufferByteLength,
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+            })
+        ]
+        this._currentBufferIndex = 0
 
         const bindGroupLayout = this._device.createBindGroupLayout({
             entries: [
@@ -322,43 +340,47 @@ class DmdRenderer extends Renderer {
      * Render a Dmd frame.
      * Reuses the GPU resources created in init() : only the per-frame data
      * (pixels + uniforms) is uploaded each call.
-     * NOTE : renderFrame is called serially (one frame in flight at a time) so
-     * reusing the mappable output buffer is safe.
+     * Uses double-buffered output: maps buffer N while GPU writes to buffer N+1,
+     * allowing CPU/GPU overlap within the readback architecture.
      * @param {ImageData} frameData 
      * @returns {ImageData}
      */
     private _doRendering(frameData: ImageData): Promise<ImageData> {
 
+        // Pick the current output buffer and flip for next frame
+        const outputBuffer = this._outputBuffers[this._currentBufferIndex]
+        this._currentBufferIndex = 1 - this._currentBufferIndex
+
         // Upload frame pixels into the persistent input buffer
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
         // Write values to uniform buffer object
-        const uniformTypedArray = new Float32Array([this._brightness])
-        this._device.queue.writeBuffer(this._uboBuffer, 0, uniformTypedArray.buffer)
+        this._uniformTypedArray[0] = this._brightness
+        this._device.queue.writeBuffer(this._uboBuffer, 0, this._uniformTypedArray.buffer)
 
         const commandEncoder = this._device.createCommandEncoder()
         const passEncoder = commandEncoder.beginComputePass()
         passEncoder.setPipeline(this._computePipeline)
         passEncoder.setBindGroup(0, this._bindGroup)
-        passEncoder.dispatchWorkgroups(this._dmdWidth, this._dmdHeight)
+        passEncoder.dispatchWorkgroups(this._workgroupCount)
         passEncoder.end()
 
-        commandEncoder.copyBufferToBuffer(this._tempBuffer, 0, this._outputBuffer, 0, this._screenBufferByteLength)
+        commandEncoder.copyBufferToBuffer(this._tempBuffer, 0, outputBuffer, 0, this._screenBufferByteLength)
 
         this._device.queue.submit([commandEncoder.finish()])
 
         return new Promise(resolve => {
             // Render Dmd output
-            this._outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
+            outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
 
                 // Grab data from output buffer (copy out before unmapping)
-                const pixelsBuffer = new Uint8Array(this._outputBuffer.getMappedRange())
+                const pixelsBuffer = new Uint8Array(outputBuffer.getMappedRange())
 
                 // Generate Image data usable by a canvas
                 const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), this._screenWidth, this._screenHeight)
 
                 // Release the mapping so the buffer can be reused next frame
-                this._outputBuffer.unmap()
+                outputBuffer.unmap()
 
                 // return to caller
                 resolve(imageData)

@@ -100,3 +100,44 @@ _Regression tests:_ `tests/bugs/medium-priority.bug.spec.ts`
   selected and the context narrows to `CanvasRenderingContext2D`.
 
 _Regression tests:_ `tests/bugs/low-priority.bug.spec.ts` (L2, L6)
+
+---
+
+## ⚡ Performance — DmdRenderer Optimization
+
+### Phase 1: Quick Wins ✅
+- ✅ **P1 — Remove dead shader variable** · `src/renderers/dmd-renderer.ts`
+  Fixed: removed unused `var t : u32 = r + g + b` from the WGSL compute shader.
+- ✅ **P2 — Pre-allocate uniform Float32Array** · `src/renderers/dmd-renderer.ts`
+  Fixed: `_uniformTypedArray` is allocated once in the constructor; `_doRendering`
+  now writes `[0]` each frame instead of allocating a new `Float32Array`.
+
+### Phase 2: Double-Buffered Output ✅
+- ✅ **P3 — Alternate output buffers** · `src/renderers/dmd-renderer.ts`
+  Fixed: two MAP_READ buffers are created; `_doRendering` alternates between them
+  each frame (`_currentBufferIndex` flips 0↔1), allowing the GPU to write to one
+  buffer while the CPU reads from the other.
+
+### Phase 3: Render-to-Texture (zero readback) ⬜
+- ⬜ **P4 — WebGPU canvas context** · `src/dmd.ts`, `src/renderers/dmd-renderer.ts`
+  Configure output canvas with `getContext('webgpu')` instead of `'2d'`.
+  Requires the Dmd class to pass the canvas differently to the renderer.
+- ⬜ **P5 — Fullscreen render pass** · `src/renderers/dmd-renderer.ts`
+  Add a vertex + fragment shader that draws the compute output buffer as a
+  fullscreen textured quad. Present via `getCurrentTexture()`.
+  Eliminates: `mapAsync`, `Uint8ClampedArray` copy, `ImageData`, `drawImage`.
+- ⬜ **P6 — Remove readback path** · `src/renderers/dmd-renderer.ts`
+  Once P4+P5 are stable, remove the `_outputBuffer` MAP_READ buffer and the
+  `mapAsync` code path entirely.
+
+### Phase 4: Future / Polish ⬜
+- ⬜ **P7 — Timestamp queries** · `src/renderers/dmd-renderer.ts`
+  Add `timestamp-query` feature + `GPUQuerySet` to measure actual GPU execution
+  time per frame for profiling.
+- ⬜ **P8 — Texture sampling for dot spacing** · `src/renderers/dmd-renderer.ts`
+  Evaluate replacing the inner write loop with a texture sample approach —
+  compute shader writes to a texture, render pass samples with nearest filtering
+  and a dot-mask texture/pattern.
+- ⬜ **P9 — Render bundles** · `src/renderers/dmd-renderer.ts`
+  Pre-record the fullscreen quad draw call in a render bundle to reduce per-frame
+  CPU overhead.
