@@ -1,6 +1,6 @@
 {
   "name": "h5dmd",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "WebGPU-based virtual DMD (dot-matrix display) rendering library for the browser.",
   "keywords": [
     "dmd",
