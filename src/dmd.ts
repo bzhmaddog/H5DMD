@@ -42,7 +42,7 @@ export class Dmd {
 
     /**
      *
-     * @param {HTMLCanvasElement} outputCanvas Dom Element where the Dmd will be drawed
+     * @param {HTMLCanvasElement} outputCanvas DOM element where the Dmd will be rendered
      * @param {number} dotSize Horizontal width of the virtual pixels (ex: 1 dot will be 4 pixels wide)
      * @param {number} dotSpace number of 'black' pixels between each column (vertical lines between dots)
      * @param {string} dotShape Shape of the dots (square, circle or diamond)
@@ -218,7 +218,7 @@ export class Dmd {
         this._fpsBox.style.position = 'absolute'
         this._fpsBox.style.right = '8px'
         this._fpsBox.style.top = '8px'
-        this._fpsBox.style.zIndex = '99999' // WTF is this a string : check if/where we do addition/substraction
+        this._fpsBox.style.zIndex = '99999' // zIndex is typed as string; verify no numeric operations depend on it
         this._fpsBox.style.color = '#00ff66'
         this._fpsBox.style.background = 'rgba(0, 0, 0, 0.8)'
         this._fpsBox.style.padding = '6px 10px'

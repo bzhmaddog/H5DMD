@@ -35,8 +35,8 @@ class Sprite {
      *
      * @param id
      * @param spriteSheet
-     * @param {number} hFrameOffset Distance between each frame (horizontaly)
-     * @param {number} vFrameOffset Distance between each frame (vertically))
+     * @param {number} hFrameOffset Distance between each frame (horizontally)
+     * @param {number} vFrameOffset Distance between each frame (vertically)
      */
     constructor(id: string, spriteSheet: ImageBitmap, hFrameOffset: number, vFrameOffset: number) {
         this._id = id
@@ -93,7 +93,7 @@ class Sprite {
         // Calculate frame number given delta and duration
         this._frameIndex = Math.floor(delta / this._frameDuration)
 
-        // If loop is 
+        // If loop is complete
         if (this._frameIndex >= this._animation.params.nbFrames) {
             this._loop++
 
@@ -135,7 +135,7 @@ class Sprite {
 
                 if (this._queue.length > 1) {
                     this._animation = this._queue.shift()
-                    // Put this animation to the bottom of the queue is needed
+                    // Put this animation back at the bottom of the queue if needed
                     this._queue.push(this._animation)
                 } else {
                     this._animation = this._queue[0]

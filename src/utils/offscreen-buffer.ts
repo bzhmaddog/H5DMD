@@ -6,8 +6,8 @@ class OffscreenBuffer {
 	private _context: CanvasRenderingContext2D
 
 	/**
-	* @param width {integer} The width of the buffer
-	* @param height {integer} The height of the buffer
+	* @param width {number} The width of the buffer
+	* @param height {number} The height of the buffer
 	*/
 	constructor(width: number, height: number, willReadFrequently: boolean = true) {
 		this._canvas = document.createElement('canvas') // Offscreen canvas

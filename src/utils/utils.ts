@@ -24,7 +24,7 @@ class Utils {
 		if (alpha >= 0 && alpha <= 255) {
 			return str + alpha.toString(16)
 		} else {
-			throw new TypeError("alpha must be an int between 0 and 255 or a an hex string between 00 and FF")
+			throw new TypeError("alpha must be an int between 0 and 255 or a hex string between 00 and FF")
 		}
 	}*/
 

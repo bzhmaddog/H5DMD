@@ -84,7 +84,7 @@ class DmdRenderer extends Renderer {
      * @param {number} screenHeight 
      * @param {number} pixelSize
      * @param {number} dotSpace 
-     * @param {*} dotShape 
+     * @param {DotShape} dotShape 
      * @param {number} bgBrightness 
      * @param {number} brightness
      * @param {HTMLCanvasElement} canvas
@@ -784,11 +784,11 @@ class DmdRenderer extends Renderer {
 
     /**
 	 * Set brightness of the dots between 0 and 1 (does not affect the background color)
-     * @param {float} b 
+     * @param {number} b 
      */
     setBrightness(b: number) {
         const brightness = Math.max(0, Math.min(b, 1)) // normalize
-        this._brightness = Math.round(brightness * 1e3) / 1e3 // round to 1 digit after dot
+        this._brightness = Math.round(brightness * 1e3) / 1e3 // round to 3 decimal places
     }
 
     get brightness() {
