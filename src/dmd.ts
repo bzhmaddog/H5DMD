@@ -2,7 +2,7 @@ import {Easing, OffscreenBuffer, Options, type EasingFunction} from './utils'
 import {DmdRenderer, LayerRenderer} from './renderers'
 import {AnimationLayer, BaseLayer, CanvasLayer, LayerType, SpritesLayer, TextLayer, VideoLayer} from './layers'
 import {DotShape} from "./enums"
-import {Layer, LayerDimensions, LayerRendererDictionary} from "./interfaces"
+import {DmdOptions, Layer, LayerDimensions, LayerRendererDictionary} from "./interfaces"
 
 
 interface LayerDictionary {
@@ -41,7 +41,7 @@ export class Dmd {
     private _fpsSamples: number[]
 
     /**
-     *
+     * @deprecated Use the `DmdOptions` object constructor instead.
      * @param {HTMLCanvasElement} outputCanvas DOM element where the Dmd will be rendered
      * @param {number} dotSize Horizontal width of the virtual pixels (ex: 1 dot will be 4 pixels wide)
      * @param {number} dotSpace number of 'black' pixels between each column (vertical lines between dots)
@@ -50,19 +50,34 @@ export class Dmd {
      * @param {number} brightness brightness of the dots
      * @param {boolean} showFPS show FPS count or not
      */
+    constructor(outputCanvas: HTMLCanvasElement, dotSize: number, dotSpace: number, dotShape: DotShape, backgroundBrightness: number, brightness: number, showFPS: boolean)
+    constructor(options: DmdOptions)
     constructor(
-        outputCanvas: HTMLCanvasElement,
-        dotSize: number,
-        dotSpace: number,
-        dotShape: DotShape,
-        backgroundBrightness: number,
-        brightness: number,
-        showFPS: boolean
+        outputCanvasOrOptions: HTMLCanvasElement | DmdOptions,
+        dotSize?: number,
+        dotSpace?: number,
+        dotShape?: DotShape,
+        backgroundBrightness?: number,
+        brightness?: number,
+        showFPS?: boolean
     ) {
+        let outputCanvas: HTMLCanvasElement
+        if (outputCanvasOrOptions instanceof HTMLCanvasElement) {
+            outputCanvas = outputCanvasOrOptions
+        } else {
+            const opts = outputCanvasOrOptions
+            outputCanvas = opts.outputCanvas
+            dotSize = opts.dotSize
+            dotSpace = opts.dotSpace
+            dotShape = opts.dotShape
+            backgroundBrightness = opts.backgroundBrightness
+            brightness = opts.brightness
+            showFPS = opts.showFPS
+        }
 
         this._outputCanvas = outputCanvas
 
-        this._outputWidth = Math.floor(this._outputCanvas.width / (dotSize + dotSpace))
+        this._outputWidth = Math.floor(this._outputCanvas.width / (dotSize! + dotSpace!))
         this._outputHeight = Math.floor(this._outputCanvas.height / (dotSize + dotSpace))
         this._frameBuffer = new OffscreenBuffer(this._outputWidth, this._outputHeight, true)
         this._zIndex = 1
@@ -83,7 +98,40 @@ export class Dmd {
 
         console.log(`Creating a ${this._outputWidth}x${this._outputHeight} DMD on a ${this._outputCanvas.width}x${this._outputCanvas.height} canvas`)
 
-        this._renderer = new DmdRenderer(this._outputWidth, this._outputHeight, this._outputCanvas.width, this._outputCanvas.height, dotSize, dotSpace, dotShape ?? DotShape.Square, backgroundBrightness, brightness, this._outputCanvas)
+        this._renderer = new DmdRenderer(this._outputWidth, this._outputHeight, this._outputCanvas.width, this._outputCanvas.height, dotSize!, dotSpace!, dotShape ?? DotShape.Square, backgroundBrightness!, brightness!, this._outputCanvas)
+
+        if (!(outputCanvasOrOptions instanceof HTMLCanvasElement) && outputCanvasOrOptions.color !== undefined) {
+            const color = outputCanvasOrOptions.color
+            let r: number, g: number, b: number
+            if (typeof color === 'string') {
+                const hex = color.replace('#', '')
+                r = parseInt(hex.slice(0, 2), 16) / 255
+                g = parseInt(hex.slice(2, 4), 16) / 255
+                b = parseInt(hex.slice(4, 6), 16) / 255
+            } else {
+                ({ r, g, b } = color)
+            }
+            this._renderer.setMonochrome(true)
+            this._renderer.setMonochromeColor(r, g, b)
+        }
+
+        if (!(outputCanvasOrOptions instanceof HTMLCanvasElement) && outputCanvasOrOptions.monoLevels !== undefined) {
+            this._renderer.setMonoLevels(outputCanvasOrOptions.monoLevels)
+        }
+
+        if (!(outputCanvasOrOptions instanceof HTMLCanvasElement) && outputCanvasOrOptions.offDotColor !== undefined) {
+            const c = outputCanvasOrOptions.offDotColor
+            let r: number, g: number, b: number
+            if (typeof c === 'string') {
+                const hex = c.replace('#', '')
+                r = parseInt(hex.slice(0, 2), 16) / 255
+                g = parseInt(hex.slice(2, 4), 16) / 255
+                b = parseInt(hex.slice(4, 6), 16) / 255
+            } else {
+                ({ r, g, b } = c)
+            }
+            this.setOffDotColor(r, g, b)
+        }
 
         // Add renderers needed for layers rendering
         this._layerRenderers = {
@@ -95,7 +143,7 @@ export class Dmd {
         this._initDone = false
 
         // If needed create and show the fps div in the top right corner of the screen
-        this._showFPS = showFPS
+        this._showFPS = showFPS!
         if (showFPS) {
             this._createFpsBox()
         }
@@ -659,6 +707,72 @@ export class Dmd {
      */
     get minDotSpace(): number {
         return this._renderer.minDotSpace
+    }
+
+    /** Perceptual brightness (HSP) of the off-dot background color. */
+    get bgHSP(): number {
+        return this._renderer.bgHSP
+    }
+
+    /** Raw brightness value of the off-dot background (0–255). */
+    get bgBrightness(): number {
+        return this._renderer.bgBrightness
+    }
+
+    /** Set the off-dot color (RGB, each component 0–1). */
+    setOffDotColor(r: number, g: number, b: number) {
+        this._renderer.setOffDotColor(r, g, b)
+        const c = this._renderer.offDotColor
+        this._backgroundColor = `rgba(${Math.round(c.r * 255)}, ${Math.round(c.g * 255)}, ${Math.round(c.b * 255)}, 255)`
+    }
+
+    /** Get the current off-dot color (RGB, each component 0–1). */
+    get offDotColor(): { r: number, g: number, b: number } {
+        return this._renderer.offDotColor
+    }
+
+    /**
+     * Enable or disable monochrome mode (16 brightness levels, single tint color).
+     * @param {boolean} enabled
+     */
+    setMonochrome(enabled: boolean) {
+        this._renderer.setMonochrome(enabled)
+    }
+
+    /**
+     * Get current monochrome mode state.
+     */
+    get monochrome(): boolean {
+        return this._renderer.monochrome
+    }
+
+    /**
+     * Set the monochrome tint color (RGB, each component 0–1).
+     * @param {number} r Red component (0–1)
+     * @param {number} g Green component (0–1)
+     * @param {number} b Blue component (0–1)
+     */
+    setMonochromeColor(r: number, g: number, b: number) {
+        this._renderer.setMonochromeColor(r, g, b)
+    }
+
+    /**
+     * Get the current monochrome tint color.
+     */
+    get monochromeColor(): { r: number, g: number, b: number } {
+        return this._renderer.monochromeColor
+    }
+
+    /**
+     * Set the number of monochrome brightness levels.
+     * @param {number} levels — one of 4, 6, 8, 10, 12, 14, 16
+     */
+    setMonoLevels(levels: number) {
+        this._renderer.setMonoLevels(levels)
+    }
+
+    get monoLevels(): number {
+        return this._renderer.monoLevels
     }
 
     /**

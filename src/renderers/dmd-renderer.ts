@@ -39,12 +39,18 @@ class DmdRenderer extends Renderer {
 	private _pixelSize: number
 	private _dotShape: DotShape
     private _paddedBytesPerRow: number
-    private _bgBrightness: number
-    private _bgColor: number
-    private _brightness: number
     private _bgHSP: number
+    private _bgR: number
+    private _bgG: number
+    private _bgB: number
+    private _brightness: number
     private _totalPixels: number
     private _workgroupCount: number
+    private _monochrome: boolean
+    private _monoColorR: number
+    private _monoColorG: number
+    private _monoColorB: number
+    private _monoLevels: number
 
     private _canvas: HTMLCanvasElement
     private _canvasContext: GPUCanvasContext
@@ -126,11 +132,17 @@ class DmdRenderer extends Renderer {
         this.renderFrame = this._doNothing
 
 
-        this._bgBrightness = 14
-        this._bgColor = 4279176975
+        this._bgR = 14
+        this._bgG = 14
+        this._bgB = 14
         this._brightness = 1
-        // Compute UBO: [brightness(f32), totalPixels(u32), dmdWidth(u32), paddedWidth(u32)]
-        this._uboData = new ArrayBuffer(16)
+        this._monochrome = false
+        this._monoColorR = 1.0
+        this._monoColorG = 0.5
+        this._monoColorB = 0.0
+        this._monoLevels = 16
+        // Compute UBO: [brightness(f32), totalPixels(u32), dmdWidth(u32), paddedWidth(u32), monochrome(u32), monoR(f32), monoG(f32), monoB(f32), monoLevels(u32), bgR(u32), bgG(u32), bgB(u32), bgHSP(f32), pad, pad, pad]
+        this._uboData = new ArrayBuffer(64)
         this._uboF32 = new Float32Array(this._uboData)
         this._uboU32 = new Uint32Array(this._uboData)
         // Render uniforms: [pixelSize, dotSpace, dotShape, dmdWidth, dmdHeight, pad, pad, pad]
@@ -141,17 +153,16 @@ class DmdRenderer extends Renderer {
         this._lastGpuFrameTime = 0
 
         if (typeof bgBrightness === 'number') {
-                this._bgBrightness = bgBrightness
-                this._bgColor = parseInt("FF" + this._int2Hex(bgBrightness) + this._int2Hex(bgBrightness) + this._int2Hex(bgBrightness), 16)
+                this._bgR = Math.max(0, Math.min(255, Math.round(bgBrightness)))
+                this._bgG = this._bgR
+                this._bgB = this._bgR
         }
 
         if (typeof brightness === 'number') {
             this.setBrightness(brightness)
         }
 
-        const bgp2 = this._bgBrightness * this._bgBrightness
-
-        this._bgHSP = Math.sqrt(0.299 * bgp2 + 0.587 * bgp2 + 0.114 * bgp2)
+        this._bgHSP = Math.sqrt(0.299 * this._bgR**2 + 0.587 * this._bgG**2 + 0.114 * this._bgB**2)
     }
 
     private _int2Hex(n: number): string {
@@ -228,6 +239,18 @@ class DmdRenderer extends Renderer {
                 totalPixels: u32,
                 dmdWidth: u32,
                 paddedWidth: u32,
+                monochrome: u32,
+                monoR: f32,
+                monoG: f32,
+                monoB: f32,
+                monoLevels: u32,
+                bgR: u32,
+                bgG: u32,
+                bgB: u32,
+                bgHSP: f32,
+                _pad0: u32,
+                _pad1: u32,
+                _pad2: u32,
             }
 
             struct Image {
@@ -254,7 +277,6 @@ class DmdRenderer extends Renderer {
                     return;
                 }
 
-                var bgBrightness : u32 = ${this._bgBrightness}u;
                 var pixel : u32 = inputPixels.rgba[index];
                 var brightness : f32 = uniforms.brightness;
                 var br = 0u;
@@ -265,30 +287,47 @@ class DmdRenderer extends Renderer {
                 let g : u32 = (pixel >> 8u) & 255u;
                 let r : u32 = (pixel & 255u);
 
-                if (r >= bgBrightness) {
-                    br = bgBrightness + f2i(f32(r - bgBrightness) * brightness);
+                if (uniforms.monochrome == 1u) {
+                    // Monochrome mode: quantize luminance to monoLevels levels
+                    let maxLevel = uniforms.monoLevels - 1u;
+                    let lum = 0.299 * u2f(r) + 0.587 * u2f(g) + 0.114 * u2f(b);
+                    let level = clamp(u32(lum * f32(maxLevel) / 255.0), 0u, maxLevel);
+                    let scale = f32(level) / f32(maxLevel) * brightness;
+                    br = u32(uniforms.monoR * scale * 255.0);
+                    bg = u32(uniforms.monoG * scale * 255.0);
+                    bb = u32(uniforms.monoB * scale * 255.0);
+                    pixel = (255u << 24u) | (bb << 16u) | (bg << 8u) | br;
+                    // Off-dot: same background check as RGB mode so off dots look identical
+                    var hsp : f32 = sqrt(.299f * u2f(r) * u2f(r) + .587f * u2f(g) * u2f(g) + .114f * u2f(b) * u2f(b));
+                    if (hsp - 8f < uniforms.bgHSP) {
+                        pixel = (255u << 24u) | (uniforms.bgB << 16u) | (uniforms.bgG << 8u) | uniforms.bgR;
+                    }
                 } else {
-                    br = bgBrightness;
-                }
+                    if (r >= uniforms.bgR) {
+                        br = uniforms.bgR + f2i(f32(r - uniforms.bgR) * brightness);
+                    } else {
+                        br = uniforms.bgR;
+                    }
 
-                if (g >= bgBrightness) {
-                    bg = bgBrightness + f2i(f32(g - bgBrightness) * brightness);
-                } else {
-                    bg = bgBrightness;
-                }
+                    if (g >= uniforms.bgG) {
+                        bg = uniforms.bgG + f2i(f32(g - uniforms.bgG) * brightness);
+                    } else {
+                        bg = uniforms.bgG;
+                    }
 
-                if (b >= bgBrightness) {
-                    bb = bgBrightness + f2i(f32(b - bgBrightness) * brightness);
-                } else {
-                    bb = bgBrightness;
-                }
+                    if (b >= uniforms.bgB) {
+                        bb = uniforms.bgB + f2i(f32(b - uniforms.bgB) * brightness);
+                    } else {
+                        bb = uniforms.bgB;
+                    }
 
-                pixel = (255u << 24u) | (bb << 16u) | (bg << 8u) | br;
+                    pixel = (255u << 24u) | (bb << 16u) | (bg << 8u) | br;
 
-                var hsp : f32 = sqrt(.299f * u2f(r) * u2f(r) + .587f * u2f(g) * u2f(g) + .114 * u2f(b) * u2f(b));
+                    var hsp : f32 = sqrt(.299f * u2f(r) * u2f(r) + .587f * u2f(g) * u2f(g) + .114f * u2f(b) * u2f(b));
 
-                if (hsp - 8f < ${this._bgHSP}f) {
-                    pixel = ${this._bgColor}u;
+                    if (hsp - 8f < uniforms.bgHSP) {
+                        pixel = (255u << 24u) | (uniforms.bgB << 16u) | (uniforms.bgG << 8u) | uniforms.bgR;
+                    }
                 }
 
                 // Write one pixel per dot with row padding for 256-byte alignment
@@ -318,7 +357,7 @@ class DmdRenderer extends Renderer {
         // --- Compute pipeline resources ---
 
         this._uboBuffer = this._device.createBuffer({
-            size: 16,
+            size: 64,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
 
@@ -624,11 +663,20 @@ class DmdRenderer extends Renderer {
         // Upload frame pixels into the persistent input buffer
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
-        // Write compute UBO: [brightness(f32), totalPixels(u32), dmdWidth(u32), paddedWidth(u32)]
+        // Write compute UBO: [brightness(f32), totalPixels(u32), dmdWidth(u32), paddedWidth(u32), monochrome(u32), monoR(f32), monoG(f32), monoB(f32)]
         this._uboF32[0] = this._brightness
         this._uboU32[1] = this._totalPixels
         this._uboU32[2] = this._dmdWidth
         this._uboU32[3] = this._paddedBytesPerRow / 4
+        this._uboU32[4] = this._monochrome ? 1 : 0
+        this._uboF32[5] = this._monoColorR
+        this._uboF32[6] = this._monoColorG
+        this._uboF32[7] = this._monoColorB
+        this._uboU32[8] = this._monoLevels
+        this._uboU32[9]  = this._bgR
+        this._uboU32[10] = this._bgG
+        this._uboU32[11] = this._bgB
+        this._uboF32[12] = this._bgHSP
         this._device.queue.writeBuffer(this._uboBuffer, 0, this._uboData)
 
         // Write render uniforms (dotShape/dotSize/dmdSize may have changed)
@@ -774,6 +822,29 @@ class DmdRenderer extends Renderer {
         return MIN_DOT_SPACE[this._dotShape]
     }
 
+    /** Perceptual brightness (HSP) of the off-dot background color. */
+    get bgHSP(): number {
+        return this._bgHSP
+    }
+
+    /** Raw brightness value of the off-dot background (0–255). Returns average of R/G/B channels. */
+    get bgBrightness(): number {
+        return Math.round((this._bgR + this._bgG + this._bgB) / 3)
+    }
+
+    /** Set the off-dot color (RGB, each component 0–1). */
+    setOffDotColor(r: number, g: number, b: number) {
+        this._bgR = Math.round(Math.max(0, Math.min(1, r)) * 255)
+        this._bgG = Math.round(Math.max(0, Math.min(1, g)) * 255)
+        this._bgB = Math.round(Math.max(0, Math.min(1, b)) * 255)
+        this._bgHSP = Math.sqrt(0.299 * this._bgR**2 + 0.587 * this._bgG**2 + 0.114 * this._bgB**2)
+    }
+
+    /** Get the current off-dot color (RGB, each component 0–1). */
+    get offDotColor(): { r: number, g: number, b: number } {
+        return { r: this._bgR / 255, g: this._bgG / 255, b: this._bgB / 255 }
+    }
+
     get dotSize(): number {
         return this._pixelSize
     }
@@ -793,6 +864,61 @@ class DmdRenderer extends Renderer {
 
     get brightness() {
         return this._brightness
+    }
+
+    /**
+     * Enable or disable monochrome mode (16 brightness levels, single tint color).
+     * @param {boolean} enabled
+     */
+    setMonochrome(enabled: boolean) {
+        this._monochrome = enabled
+    }
+
+    get monochrome(): boolean {
+        return this._monochrome
+    }
+
+    /**
+     * Set the monochrome tint color (RGB, each component 0–1).
+     * Only affects rendering when monochrome mode is enabled.
+     * @param {number} r Red component (0–1)
+     * @param {number} g Green component (0–1)
+     * @param {number} b Blue component (0–1)
+     */
+    setMonochromeColor(r: number, g: number, b: number) {
+        const r255 = Math.max(0, Math.min(1, r)) * 255
+        const g255 = Math.max(0, Math.min(1, g)) * 255
+        const b255 = Math.max(0, Math.min(1, b)) * 255
+        const hsp = Math.sqrt(0.299 * r255 * r255 + 0.587 * g255 * g255 + 0.114 * b255 * b255)
+        if (hsp <= this._bgHSP) {
+            throw new RangeError(
+                `Monochrome color is too dark (HSP ${hsp.toFixed(2)} ≤ background HSP ${this._bgHSP.toFixed(2)}). ` +
+                `Choose a brighter color so lit dots remain distinguishable from off dots.`
+            )
+        }
+        this._monoColorR = r255 / 255
+        this._monoColorG = g255 / 255
+        this._monoColorB = b255 / 255
+    }
+
+    get monochromeColor(): { r: number, g: number, b: number } {
+        return { r: this._monoColorR, g: this._monoColorG, b: this._monoColorB }
+    }
+
+    /**
+     * Set the number of monochrome brightness levels (must be even, between 2 and 16).
+     * @param {number} levels
+     */
+    setMonoLevels(levels: number) {
+        const valid = [4, 8, 16]
+        if (!valid.includes(levels)) {
+            throw new RangeError(`monoLevels must be one of: ${valid.join(', ')}`)
+        }
+        this._monoLevels = levels
+    }
+
+    get monoLevels(): number {
+        return this._monoLevels
     }
 
     /* c8 ignore next 3 — requires GPU init */

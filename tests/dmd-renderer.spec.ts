@@ -138,9 +138,13 @@ describe('DmdRenderer — constructor computations', () => {
 
     test('background color is computed from bgBrightness', () => {
         const renderer = new DmdRenderer(32, 8, 64, 16, 1, 0, DotShape.Square, 0, 1)
-        // bgBrightness=0 → hex "00" → color = 0xFF000000
+        // bgBrightness=0 → _bgR=_bgG=_bgB=0
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        expect((renderer as any)._bgColor).toBe(parseInt("FF000000", 16))
+        expect((renderer as any)._bgR).toBe(0)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((renderer as any)._bgG).toBe(0)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((renderer as any)._bgB).toBe(0)
     })
 
     test('background HSP is computed', () => {

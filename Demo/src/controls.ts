@@ -188,13 +188,6 @@ export function buildControlPanel(dmd: Dmd): void {
         l.textContent = text;
         return l;
     };
-    const tag = (text: string) => {
-        const s = document.createElement('span');
-        s.className = 'ctl-tag';
-        s.textContent = text;
-        return s;
-    };
-
     const easingOptions: { label: string; fn: EasingFunction }[] = [
         { label: 'Ease out sine', fn: Easing.easeOutSine },
         { label: 'Ease in sine',  fn: Easing.easeInSine },
@@ -261,7 +254,7 @@ export function buildControlPanel(dmd: Dmd): void {
             syncFadeDmdButtons();
         });
 
-        row(panel, labelEl('Brightness'), brightnessSlider, brightnessValue, tag('H2'));
+        row(panel, labelEl('Brightness'), brightnessSlider, brightnessValue);
 
         // Dot shape selector
         const shapeSelect = document.createElement('select');
@@ -359,8 +352,149 @@ export function buildControlPanel(dmd: Dmd): void {
         });
 
         syncFadeDmdButtons();
-        row(panel, dmdFadeOutBtn, dmdFadeInBtn, labelEl('Easing'), dmdEasing.select, tag('H1'));
+        row(panel, dmdFadeOutBtn, dmdFadeInBtn, labelEl('Easing'), dmdEasing.select);
         row(panel, labelEl('Duration'), dmdDuration.slider, dmdDuration.value);
+
+        // Monochrome mode + color picker
+        // HSV ↔ RGB helpers
+        const hsvToRgb = (h: number, s: number, v: number) => {
+            const c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = v - c;
+            let r = 0, g = 0, b = 0;
+            if      (h < 60)  { r = c; g = x; b = 0; }
+            else if (h < 120) { r = x; g = c; b = 0; }
+            else if (h < 180) { r = 0; g = c; b = x; }
+            else if (h < 240) { r = 0; g = x; b = c; }
+            else if (h < 300) { r = x; g = 0; b = c; }
+            else              { r = c; g = 0; b = x; }
+            return { r: r + m, g: g + m, b: b + m };
+        };
+        const rgbToHsv = (r: number, g: number, b: number) => {
+            const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+            const v = max, s = max === 0 ? 0 : d / max;
+            let h = 0;
+            if (d !== 0) {
+                if      (max === r) h = 60 * (((g - b) / d) % 6);
+                else if (max === g) h = 60 * ((b - r) / d + 2);
+                else               h = 60 * ((r - g) / d + 4);
+            }
+            return { h: (h + 360) % 360, s, v };
+        };
+        const hspOf = (r: number, g: number, b: number) =>
+            Math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b);
+        // Minimum V (0–1) for given H/S — uses 4× bgHSP so on-dots have
+        // meaningful contrast over off-dots (the library guard uses 1× as hard floor)
+        const minV = (h: number, s: number) => {
+            const { r, g, b } = hsvToRgb(h, s, 1);
+            const hspAtV1 = hspOf(r, g, b);
+            if (hspAtV1 === 0) return 1;
+            return Math.min(1, (dmd.bgHSP * 4 / 255) / hspAtV1);
+        };
+
+        const monoCheckbox = document.createElement('input');
+        monoCheckbox.type = 'checkbox';
+        monoCheckbox.id = 'mono-checkbox';
+        monoCheckbox.checked = dmd.monochrome;
+        const monoLabel = document.createElement('label');
+        monoLabel.htmlFor = 'mono-checkbox';
+        monoLabel.textContent = 'Monochrome';
+
+        // Initialise HSV from current monochrome color
+        const { r: cr, g: cg, b: cb } = dmd.monochromeColor;
+        let { h: curH, s: curS } = rgbToHsv(cr, cg, cb);
+        const { v: curV } = rgbToHsv(cr, cg, cb);
+
+        const makeSlider = (min: number, max: number, value: number, step = 1) => {
+            const el = document.createElement('input');
+            el.type = 'range'; el.min = String(min); el.max = String(max);
+            el.step = String(step); el.value = String(value);
+            el.style.width = '90px';
+            return el;
+        };
+
+        const hSlider = makeSlider(0, 360, Math.round(curH));
+        const sSlider = makeSlider(0, 100, Math.round(curS * 100));
+        const vSlider = makeSlider(0, 100, Math.round(curV * 100), 1);
+        const colorSwatch = document.createElement('canvas');
+        colorSwatch.width = 160;
+        colorSwatch.height = 22;
+        colorSwatch.style.borderRadius = '3px';
+        colorSwatch.style.border = '1px solid #555';
+        colorSwatch.style.verticalAlign = 'middle';
+        const swatchCtx = colorSwatch.getContext('2d')!;
+
+        const syncHsvSliders = () => {
+            const h = curH, s = curS;
+            const floor = Math.ceil(minV(h, s) * 100);
+            vSlider.min = String(floor);
+            if (parseFloat(vSlider.value) < floor) vSlider.value = String(floor);
+            const v = parseFloat(vSlider.value) / 100;
+            const { r, g, b } = hsvToRgb(h, s, v);
+            // Draw monoLevels brightness bands: level 0 = off-dot, levels 1..n-1 = tint scaled by level/(n-1)
+            const n = dmd.monoLevels;
+            const od = dmd.offDotColor;
+            const bw = colorSwatch.width / n;
+            for (let level = 0; level < n; level++) {
+                if (level === 0) {
+                    swatchCtx.fillStyle = `rgb(${Math.round(od.r*255)},${Math.round(od.g*255)},${Math.round(od.b*255)})`;
+                } else {
+                    const scale = level / (n - 1);
+                    swatchCtx.fillStyle = `rgb(${Math.round(r * scale * 255)},${Math.round(g * scale * 255)},${Math.round(b * scale * 255)})`;
+                }
+                swatchCtx.fillRect(level * bw, 0, bw, colorSwatch.height);
+            }
+            if (dmd.monochrome) dmd.setMonochromeColor(r, g, b);
+        };
+        syncHsvSliders();
+
+        // Levels select — must be declared before setDisabled which references it
+        const levelsSelect = document.createElement('select');
+        levelsSelect.style.cssText = 'background:#222;color:#fff;border:1px solid #555;border-radius:4px;padding:3px 5px;';
+        [4, 8, 16].forEach(n => {
+            const o = document.createElement('option');
+            o.value = String(n); o.textContent = `${n} levels`;
+            if (n === dmd.monoLevels) o.selected = true;
+            levelsSelect.appendChild(o);
+        });
+        levelsSelect.addEventListener('change', () => {
+            dmd.setMonoLevels(parseInt(levelsSelect.value));
+            syncHsvSliders();
+        });
+
+        const setDisabled = (state: boolean) => {
+            hSlider.disabled = state; sSlider.disabled = state; vSlider.disabled = state;
+            levelsSelect.disabled = state;
+        };
+        setDisabled(!dmd.monochrome);
+
+        monoCheckbox.addEventListener('change', () => {
+            dmd.setMonochrome(monoCheckbox.checked);
+            setDisabled(!monoCheckbox.checked);
+        });
+        hSlider.addEventListener('input', () => { curH = parseFloat(hSlider.value); syncHsvSliders(); });
+        sSlider.addEventListener('input', () => { curS = parseFloat(sSlider.value) / 100; syncHsvSliders(); });
+        vSlider.addEventListener('input', () => syncHsvSliders());
+
+        row(panel, monoCheckbox, monoLabel);
+        row(panel, labelEl('H'), hSlider, labelEl('S'), sSlider, labelEl('V'), vSlider, colorSwatch);
+        row(panel, labelEl('Levels'), levelsSelect);
+
+        // Off-dot color picker
+        const offDotPicker = document.createElement('input');
+        offDotPicker.type = 'color';
+        offDotPicker.style.cssText = 'cursor:pointer;border:1px solid #555;border-radius:4px;height:26px;padding:1px 2px;background:#222;';
+        const { r: or, g: og, b: ob } = dmd.offDotColor;
+        const toHex2 = (x: number) => Math.round(x * 255).toString(16).padStart(2, '0');
+        offDotPicker.value = `#${toHex2(or)}${toHex2(og)}${toHex2(ob)}`;
+        offDotPicker.addEventListener('input', () => {
+            const hex = offDotPicker.value;
+            dmd.setOffDotColor(
+                parseInt(hex.slice(1, 3), 16) / 255,
+                parseInt(hex.slice(3, 5), 16) / 255,
+                parseInt(hex.slice(5, 7), 16) / 255
+            );
+            syncHsvSliders(); // redraw swatch with updated off-dot color
+        });
+        row(panel, labelEl('Off-dot color'), offDotPicker);
 
         syncBrightness();
     });
@@ -479,8 +613,7 @@ export function buildControlPanel(dmd: Dmd): void {
                 row(panel,
                     btn('\u25C0 Prev frame', () => { anim.previousFrame(); showFrame(); }),
                     btn('Next frame \u25B6', () => { anim.nextFrame(); showFrame(); }),
-                    frameInfo,
-                    tag('H3')
+                    frameInfo
                 );
             } else if (desc.kind === 'video') {
                 const video = layer as VideoLayer;
