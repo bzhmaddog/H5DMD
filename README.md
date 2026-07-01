@@ -1,5 +1,7 @@
 # H5DMD
 
+![CI](https://github.com/bzhmaddog/h5dmd/actions/workflows/ci.yml/badge.svg)
+
 A Virtual Dmd (Dot Matrix Display) powered by HTML5 Canvas and WebGPU(optional)
 
 ![256x78 Dmd on a 1280x390 display](/logo.png?raw=true "1 dot = 4x4 pixels")
