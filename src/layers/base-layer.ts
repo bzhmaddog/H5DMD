@@ -29,8 +29,7 @@ abstract class BaseLayer {
         id: string,
         width: number,
         height: number,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        options?: Options | Record<string, any>,
+        options?: Options,
         renderers?: LayerRendererDictionary,
         loadedListener?: (layer: BaseLayer) => void,
         updatedListener?: (layer: BaseLayer) => void

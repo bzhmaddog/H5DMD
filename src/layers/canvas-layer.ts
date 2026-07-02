@@ -57,7 +57,7 @@ class CanvasLayer extends BaseLayer {
         loadedListener?: (layer: CanvasLayer) => void,
         updatedListener?: (layer: CanvasLayer) => void
     ) {
-        super(id, width, height, options, renderers, loadedListener, updatedListener)
+        super(id, width, height, new Options(options as Record<string, unknown>), renderers, loadedListener, updatedListener)
         setTimeout(this._layerLoaded.bind(this), 1)
     }
 
