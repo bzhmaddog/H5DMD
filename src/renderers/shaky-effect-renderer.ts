@@ -375,7 +375,8 @@ class ShakyEffectRenderer extends LayerRenderer {
      * @param {Options} [options] currently unused - reserved for per-call overrides
      * @returns {Promise<ImageData>}
      */
-    private _doRendering(frameData: ImageData, options?: Options): Promise<ImageData> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private _doRendering(frameData: ImageData, _options?: Options): Promise<ImageData> {
 
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
