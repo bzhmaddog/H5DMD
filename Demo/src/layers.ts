@@ -325,8 +325,12 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
         });
 
     // SVG title layer — centered, initially hidden
-    dmd.addLayer(CanvasLayer, 'svg-title',
-        { visible: false }, {}, (layer) => {
+    dmd.addLayer(
+        CanvasLayer,
+        'svg-title',
+        { visible: false },
+        {},
+        (layer) => {
             const img = new Image();
             img.onload = () => {
                 createImageBitmap(img).then(bitmap => {
@@ -337,5 +341,6 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
                 });
             };
             img.src = `${imagesPath}/sptitle.svg`;
-        });
+        }
+    );
 }
