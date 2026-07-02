@@ -8,6 +8,7 @@ import {
     VideoLayer,
     SpriteSequenceItem,
     NoiseEffectRenderer,
+    ShakyRenderer,
     ChromaKeyRenderer,
     Utils
 } from "h5dmd";
@@ -167,7 +168,7 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
             left: 0,
             top: 2,
             fontSize: 80,
-            adjustWidth: true
+            adjustWidth: true,
         }
     );
 
@@ -186,10 +187,11 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
             fontStyle: 'italic bold',
             color: '#FFFFFF',
             adjustWidth: true,
-            renderers: ['score-effect']
         },
         {
-            "score-effect": new NoiseEffectRenderer(90, 52, 200, noises)
+        },
+        (l) => {
+            l.addRenderer('score-effect', NoiseEffectRenderer, { intensity: 200, noises });
         }
     );
 
@@ -209,7 +211,11 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
             color: '#00000000',
             strokeWidth: 2,
             strokeColor: Colors.Red,
-            adjustWidth: true
+            adjustWidth: true,
+        },
+        {},
+        (l) => {
+            l.addRenderer('shaky-effect', ShakyRenderer, { intensity: 0.8, speed: 160, mode: "random" });
         }
     );
 

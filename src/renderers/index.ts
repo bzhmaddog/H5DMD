@@ -4,6 +4,7 @@ export * from './dmd-renderer';
 export * from './layer-renderer';
 export * from './dummy-renderer';
 export * from './noise-effect-renderer';
+export * from './shaky-effect-renderer';
 export * from './outline-renderer';
 export * from './remove-aliasing-renderer';
 export * from './remove-alpha-renderer';

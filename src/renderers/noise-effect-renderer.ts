@@ -21,13 +21,15 @@ class NoiseEffectRenderer extends LayerRenderer {
      * @param {number} height 
      */
 
-    constructor(width: number, height: number, duration: number, images: string[]) {
+    constructor(width: number, height: number, params?: { intensity?: number, noises?: string[] }) {
 
         super("NoiseEffectRenderer", width, height)
 
+        const images = params?.noises ?? []
+        const duration = params?.intensity ?? 200
 
         this._nbFrames = images.length
-        this._frameDuration = duration / this._nbFrames
+        this._frameDuration = duration / (this._nbFrames || 1)
         this._noises = []
 
 

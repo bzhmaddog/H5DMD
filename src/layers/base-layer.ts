@@ -85,6 +85,71 @@ abstract class BaseLayer {
     }
 
     /**
+     * Add a renderer to this layer. It's constructed with the layer's own width/height,
+     * so callers pass only the class and its config - never dimensions.
+     *
+     * @example
+     *   const shaky = await layer.addRenderer('shaky', ShakyRenderer, { mode: 'decay' })
+     *   shaky.triggerShake()
+     *
+     * @param id             unique id for this renderer within the layer
+     * @param rendererClass  the renderer class (not an instance)
+     * @param params         optional config forwarded to the renderer constructor
+     * @param active         if true (default) the renderer is added to the render queue
+     * @returns the constructed, initialised renderer instance
+     */
+    addRenderer<T extends LayerRenderer, P = unknown>(
+        id: string,
+        rendererClass: new (width: number, height: number, params?: P) => T,
+        params?: P,
+        active: boolean = true
+    ): Promise<T> {
+        if (this._availableRenderers[id]) {
+            throw new Error(`Renderer with id "${id}" already exists in the list of available renderers`)
+        }
+
+        // Build with THIS layer's dimensions so the renderer's buffers and shader index
+        // math always match the frames it will be handed - this is what lets callers
+        // skip passing width/height.
+        const renderer = new rendererClass(this.width, this.height, params)
+        this._availableRenderers[id] = renderer
+
+        // Renderers set up their GPU device asynchronously and no-op until init()
+        // resolves, so wire into the queue only once it can actually run.
+        return renderer.init().then(() => {
+
+            if (active) {
+                // Default queue, NOT _renderQueue: _renderFrame rebuilds _renderQueue from
+                // _defaultRenderQueue each frame, so a transient push would vanish next tick.
+                this._defaultRenderQueue.push({ id, instance: renderer })
+
+                // The layer may not have been looping if it had no renderers before.
+                if (this.isVisible()) {
+                    this._renderNextFrame = this._requestAnimationFrame
+                    this._requestAnimationFrame()
+                }
+            }
+
+            return renderer
+        }).catch(err => {
+            // Roll back so a failed init doesn't leave a dead renderer registered.
+            delete this._availableRenderers[id]
+            throw err
+        })
+    }
+
+    /**
+     * Remove a renderer from this layer. If it was in the render queue, it will be removed from there too.
+     * @param id Renderer id to remove. If not found, this is a no-op.
+     */
+    removeRenderer(id: string) {
+        if (this._availableRenderers[id]) {
+            delete this._availableRenderers[id]
+            this._renderQueue = this._renderQueue.filter(r => r.id !== id)
+        }
+    }
+
+    /**
      * Request rendering of layer frame
      */
     private _requestAnimationFrame() {
