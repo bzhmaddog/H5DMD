@@ -138,9 +138,13 @@ describe('DmdRenderer — constructor computations', () => {
 
     test('background color is computed from bgBrightness', () => {
         const renderer = new DmdRenderer(32, 8, 64, 16, 1, 0, DotShape.Square, 0, 1)
-        // bgBrightness=0 → hex "00" → color = 0xFF000000
+        // bgBrightness=0 → _bgR=_bgG=_bgB=0
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        expect((renderer as any)._bgColor).toBe(parseInt("FF000000", 16))
+        expect((renderer as any)._bgR).toBe(0)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((renderer as any)._bgG).toBe(0)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((renderer as any)._bgB).toBe(0)
     })
 
     test('background HSP is computed', () => {
@@ -338,5 +342,99 @@ describe('DmdRenderer — gpuFrameTime getter', () => {
     test('returns 0 before any rendering', () => {
         const renderer = new DmdRenderer(10, 10, 100, 50, 5, 0, DotShape.Square, 14, 1)
         expect(renderer.gpuFrameTime).toBe(0)
+    })
+})
+
+describe('DmdRenderer — off-dot color', () => {
+
+    beforeEach(() => {
+        setupVitestCanvasMock()
+    })
+
+    test('bgHSP and bgBrightness are 0 when bgBrightness=0', () => {
+        const renderer = new DmdRenderer(32, 8, 64, 16, 1, 0, DotShape.Square, 0, 1)
+        expect(renderer.bgHSP).toBe(0)
+        expect(renderer.bgBrightness).toBe(0)
+    })
+
+    test('setOffDotColor stores RGB components', () => {
+        const renderer = new DmdRenderer(32, 8, 64, 16, 1, 0, DotShape.Square, 0, 1)
+        renderer.setOffDotColor(1, 0, 0)
+        expect(renderer.offDotColor.r).toBeCloseTo(1, 2)
+        expect(renderer.offDotColor.g).toBeCloseTo(0, 2)
+        expect(renderer.offDotColor.b).toBeCloseTo(0, 2)
+    })
+
+    test('setOffDotColor updates bgHSP to a positive value', () => {
+        const renderer = new DmdRenderer(32, 8, 64, 16, 1, 0, DotShape.Square, 0, 1)
+        renderer.setOffDotColor(1, 1, 1)
+        expect(renderer.bgHSP).toBeGreaterThan(0)
+    })
+
+    test('setOffDotColor clamps inputs to [0, 1]', () => {
+        const renderer = new DmdRenderer(32, 8, 64, 16, 1, 0, DotShape.Square, 0, 1)
+        renderer.setOffDotColor(2, -1, 0.5)
+        expect(renderer.offDotColor.r).toBeCloseTo(1, 2)
+        expect(renderer.offDotColor.g).toBeCloseTo(0, 2)
+        expect(renderer.offDotColor.b).toBeGreaterThan(0.49)
+    })
+
+    test('bgBrightness returns average of RGB channels (white → 255)', () => {
+        const renderer = new DmdRenderer(32, 8, 64, 16, 1, 0, DotShape.Square, 0, 1)
+        renderer.setOffDotColor(1, 1, 1)
+        expect(renderer.bgBrightness).toBe(255)
+    })
+})
+
+describe('DmdRenderer — monochrome', () => {
+
+    beforeEach(() => {
+        setupVitestCanvasMock()
+    })
+
+    test('monochrome defaults to false', () => {
+        const renderer = new DmdRenderer(32, 8, 64, 16, 1, 0, DotShape.Square, 0, 1)
+        expect(renderer.monochrome).toBe(false)
+    })
+
+    test('setMonochrome enables and disables monochrome mode', () => {
+        const renderer = new DmdRenderer(32, 8, 64, 16, 1, 0, DotShape.Square, 0, 1)
+        renderer.setMonochrome(true)
+        expect(renderer.monochrome).toBe(true)
+        renderer.setMonochrome(false)
+        expect(renderer.monochrome).toBe(false)
+    })
+
+    test('setMonochromeColor stores the tint color', () => {
+        const renderer = new DmdRenderer(32, 8, 64, 16, 1, 0, DotShape.Square, 0, 1)
+        renderer.setMonochromeColor(1, 0.5, 0)
+        const c = renderer.monochromeColor
+        expect(c.r).toBeCloseTo(1, 5)
+        expect(c.g).toBeCloseTo(0.5, 5)
+        expect(c.b).toBeCloseTo(0, 5)
+    })
+
+    test('setMonochromeColor throws RangeError when color is too dark', () => {
+        const renderer = new DmdRenderer(32, 8, 64, 16, 1, 0, DotShape.Square, 0, 1)
+        renderer.setOffDotColor(0.9, 0.9, 0.9)
+        expect(() => renderer.setMonochromeColor(0.1, 0.1, 0.1)).toThrow(RangeError)
+    })
+
+    test('monoLevels defaults to 16', () => {
+        const renderer = new DmdRenderer(32, 8, 64, 16, 1, 0, DotShape.Square, 0, 1)
+        expect(renderer.monoLevels).toBe(16)
+    })
+
+    test('setMonoLevels accepts 4, 8, and 16', () => {
+        const renderer = new DmdRenderer(32, 8, 64, 16, 1, 0, DotShape.Square, 0, 1)
+        for (const v of [4, 8, 16] as const) {
+            renderer.setMonoLevels(v)
+            expect(renderer.monoLevels).toBe(v)
+        }
+    })
+
+    test('setMonoLevels throws RangeError for values outside [4, 8, 16]', () => {
+        const renderer = new DmdRenderer(32, 8, 64, 16, 1, 0, DotShape.Square, 0, 1)
+        expect(() => renderer.setMonoLevels(5)).toThrow(RangeError)
     })
 })

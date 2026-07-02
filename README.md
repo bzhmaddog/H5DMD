@@ -42,13 +42,19 @@ If it doesn't load check the developer console for errors
 # Examples
 
 ```ts
-import { Dmd, DotShape, Easing, Options } from "h5dmd";
+import { Dmd, DmdOptions, DotShape, Easing, Options } from "h5dmd";
 
 const canvas = document.getElementById("output") as HTMLCanvasElement;
 
-// outputCanvas, dotSize, dotSpace, xOffset, yOffset, dotShape,
-// backgroundBrightness, brightness, showFPS
-const dmd = new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, true);
+const dmd = new Dmd({
+    outputCanvas: canvas,
+    dotSize: 4,
+    dotSpace: 1,
+    dotShape: DotShape.Square,
+    backgroundBrightness: 14,
+    brightness: 1,
+    showFPS: true,
+} as DmdOptions);
 
 await dmd.init(); // set up the renderers (WebGPU when available)
 dmd.run();        // start the render loop
@@ -58,7 +64,7 @@ dmd.addCanvasLayer("bg", {}, {} as Options, {}, (layer) => {
     fetch("background.png")
         .then((response) => response.blob())
         .then(createImageBitmap)
-        .then((bitmap) => layer.drawBitmap(bitmap));
+        .then((bitmap) => layer.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap)));
 });
 
 // Fade a layer in/out (operates on layer opacity)

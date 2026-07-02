@@ -1,0 +1,127 @@
+$accent: #6cf;
+$bg-dark: #111;
+$bg-darker: #1a1a1a;
+$border: #333;
+$border-light: #555;
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background: black;
+    padding: 0;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+span, li, label {
+    color: white;
+}
+
+#version {
+    color: white;
+    font: 13px sans-serif;
+    margin: 6px 0 10px;
+}
+
+#layer-controls {
+    font: 13px sans-serif;
+}
+
+#tab-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    border-bottom: 2px solid $accent;
+
+    button {
+        background: $bg-darker;
+        color: #bbb;
+        border: 1px solid $border;
+        border-bottom: none;
+        padding: 6px 10px;
+        cursor: pointer;
+        font: 12px sans-serif;
+        border-radius: 4px 4px 0 0;
+
+        &.active {
+            background: $accent;
+            color: #000;
+            font-weight: bold;
+        }
+
+        &[draggable="true"] {
+            cursor: grab;
+        }
+
+        &.dragging {
+            opacity: 0.4;
+        }
+
+        &.drag-over {
+            border-left: 3px solid $accent;
+        }
+    }
+}
+
+.tab-panel {
+    display: none;
+    padding: 12px;
+    border: 1px solid $border;
+    border-top: none;
+    background: $bg-dark;
+
+    &.active {
+        display: block;
+    }
+
+    button {
+        cursor: pointer;
+        background: #222;
+        color: #fff;
+        border: 1px solid $border-light;
+        border-radius: 4px;
+        padding: 4px 10px;
+
+        &:hover:not(:disabled) {
+            background: #333;
+        }
+
+        &:disabled {
+            cursor: default;
+            opacity: 0.35;
+        }
+    }
+}
+
+.ctl-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+
+    label {
+        min-width: 70px;
+    }
+}
+
+.ctl-tag {
+    color: #fa0;
+    font: bold 11px monospace;
+    margin-left: 6px;
+}
+
+.ctl-note {
+    color: #888;
+    font-size: 12px;
+}
+
+input[type='text'] {
+    background: #222;
+    color: #fff;
+    border: 1px solid $border-light;
+    border-radius: 4px;
+    padding: 4px 6px;
+}

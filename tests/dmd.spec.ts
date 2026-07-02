@@ -6,6 +6,7 @@ import {setupVitestCanvasMock} from 'vitest-canvas-mock';
 
 import {ChangeAlphaRenderer, DmdRenderer} from '../src/renderers';
 import {Dmd} from '../src'
+import {DmdOptions} from '../src/interfaces';
 import {Options} from '../src/utils';
 import {AnimationLayer, CanvasLayer, SpritesLayer} from '../src/layers';
 import {DotShape} from "../src/enums";
@@ -36,6 +37,21 @@ describe('testing entry file', () => {
 
     test('Class should be created', () => {
         const dmd = new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, true)
+        expect(dmd).toBeTruthy()
+        expect(dmd).toBeInstanceOf(Dmd)
+    });
+
+    test('Class should be created with options object', () => {
+        const options: DmdOptions = {
+            outputCanvas: canvas,
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: true
+        }
+        const dmd = new Dmd(options)
         expect(dmd).toBeTruthy()
         expect(dmd).toBeInstanceOf(Dmd)
     });
