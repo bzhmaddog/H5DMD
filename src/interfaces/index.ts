@@ -1,4 +1,5 @@
 export * from './dmd-options';
+export * from './layer-options';
 export * from './rgb-color';
 export * from './layer-dimensions';
 export * from './layer';

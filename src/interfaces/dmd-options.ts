@@ -2,7 +2,6 @@ import { DotShape } from '../enums'
 import { RgbColor } from './rgb-color'
 
 export interface DmdOptions {
-    outputCanvas: HTMLCanvasElement
     dotSize: number
     dotSpace: number
     dotShape: DotShape

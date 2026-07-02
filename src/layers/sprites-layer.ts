@@ -1,5 +1,5 @@
-import {BaseLayer, LayerType} from "./base-layer"
-import {LayerRendererDictionary, SpriteAnimationItem, SpriteSequenceItem} from "../interfaces"
+import {BaseLayer} from "./base-layer"
+import {LayerRendererDictionary, SpritesLayerOptions, SpriteAnimationItem, SpriteSequenceItem} from "../interfaces"
 import {Options, Sprite} from "../utils"
 
 interface ISpriteItem {
@@ -23,14 +23,14 @@ class SpritesLayer extends BaseLayer {
         id: string,
         width: number,
         height: number,
-        options?: Options,
+        options?: Partial<SpritesLayerOptions> | Options,
         renderers?: LayerRendererDictionary,
         loadedListener?: (layer: SpritesLayer) => void,
         updatedListener?: (layer: SpritesLayer) => void
     ) {
         const layerOptions = new Options({loop: false, autoplay: false}).merge(options)
 
-        super(id, LayerType.Sprites, width, height, layerOptions, renderers, loadedListener, updatedListener)
+        super(id, width, height, layerOptions, renderers, loadedListener, updatedListener)
 
         this._sprites = {} as ISpriteDictionary
         this._runningSprites = 0

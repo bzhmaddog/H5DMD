@@ -1,10 +1,14 @@
 import {
+    AnimationLayer,
+    CanvasLayer,
     Colors,
     Dmd,
+    SpritesLayer,
+    TextLayer,
+    VideoLayer,
     SpriteSequenceItem,
     NoiseEffectRenderer,
     ChromaKeyRenderer,
-    Options,
     Utils
 } from "h5dmd";
 
@@ -19,7 +23,7 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
         noises.push(`${imagesPath}/noises/noise-${i}.png`);
     }
 
-    dmd.addCanvasLayer('bg', {}, {} as Options, {}, (layer) => {
+    dmd.addLayer(CanvasLayer, 'bg', {}, {}, (layer) => {
 
         const bgURI = `${imagesPath}/boss-mode-bg.png`;
 
@@ -41,19 +45,17 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
     });
 
 
-    dmd.addAnimationLayer(
+    dmd.addLayer(
+        AnimationLayer,
         'animation',
         {
             width: 426,
             height: 90,
-            top: 20,
-            left: 0
-        },
-        new Options({
+            position: { top: 20, left: 0 },
             duration: 800,
             autoplay: true,
             loop: true
-        }),
+        },
         {},
         (layer) => {
 
@@ -84,22 +86,18 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
         });
 
 
-    dmd.addVideoLayer(
+    dmd.addLayer(
+        VideoLayer,
         'video-transparent',
         {
             width: 213,
             height: 130,
-            top: 0,
-            left: 110
-        },
-        new Options({
+            position: { left: 110 },
             autoplay: true,
-            width: 213,
-            height: 130,
             loop: true,
             stopOnHide: true,
             visible: false
-        }),
+        },
         {},
         (layer) => {
 
@@ -112,23 +110,19 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
             video.src = `${imagesPath}/transparent-video.webm`;
         });
 
-    dmd.addVideoLayer(
+    dmd.addLayer(
+        VideoLayer,
         'video-chromakey',
         {
             width: 213,
             height: 130,
-            top: 0,
-            left: 110
-        },
-        new Options({
+            position: { left: 110 },
             autoplay: true,
-            width: 213,
-            height: 130,
             loop: true,
             stopOnHide: true,
             visible: false,
             renderers: ['chroma']
-        }),
+        },
         { 'chroma': chromaKey },
         (layer) => {
 
@@ -141,16 +135,14 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
             video.src = `${imagesPath}/sample.webm`;
         });
 
-    dmd.addCanvasLayer(
+    dmd.addLayer(
+        CanvasLayer,
         'matthew',
         {
             width: 218,
             height: 91,
-            hAlign: 'right',
-            vAlign: 'middle',
-            hOffset: -1,
+            position: { hAlign: 'right', vAlign: 'middle', hOffset: -1 }
         },
-        {} as Options,
         {},
         (layer) => {
 
@@ -165,93 +157,82 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
         }
     );
 
-    dmd.addTextLayer(
+    dmd.addLayer(
+        TextLayer,
         'text1',
         {
             width: 100,
-            height: 17
-        },
-        new Options({
+            height: 17,
             text: "Scott Pilgrim",
             left: 0,
             top: 2,
             fontSize: 80,
             adjustWidth: true
-            //debug : true
-        })
+        }
     );
 
-    dmd.addTextLayer(
+    dmd.addLayer(
+        TextLayer,
         'text2',
         {
             width: 90,
             height: 52,
-            hAlign: 'center',
-            vAlign: 'middle',
-            hOffset: -60,
-        },
-        new Options({
+            position: { hAlign: 'center', vAlign: 'middle', hOffset: -60 },
             text: "VS",
             fontFamily: 'Arial',
             fontSize: 100,
             hAlign: 'center',
             vAlign: 'middle',
             fontStyle: 'italic bold',
-            color: '#FFFFFF', // RGB,
+            color: '#FFFFFF',
             adjustWidth: true,
             renderers: ['score-effect']
-        }),
+        },
         {
             "score-effect": new NoiseEffectRenderer(90, 52, 200, noises)
         }
     );
 
-    dmd.addTextLayer(
+    dmd.addLayer(
+        TextLayer,
         'text3',
         {
             width: 90,
             height: 52,
-            hAlign: 'center',
-            vAlign: 'middle',
-            hOffset: -60,
-        },
-        new Options({
+            position: { hAlign: 'center', vAlign: 'middle', hOffset: -60 },
             text: "VS",
             fontFamily: 'Arial',
             fontSize: 100,
             hAlign: 'center',
             vAlign: 'middle',
             fontStyle: 'italic bold',
-            color: '#00000000', // inner color totaly transparent to create an hollow text
+            color: '#00000000',
             strokeWidth: 2,
             strokeColor: Colors.Red,
             adjustWidth: true
-        })
+        }
     );
 
-    dmd.addTextLayer(
+    dmd.addLayer(
+        TextLayer,
         'text4',
         {
             width: 95,
             height: 15,
-            hAlign: 'right',
-            vAlign: 'bottom',
-            hOffset: 0
-        },
-        new Options({
+            position: { hAlign: 'right', vAlign: 'bottom' },
             text: "Matthew Patel",
             fontSize: 80,
             adjustWidth: true
-        })
+        }
     );
 
-    dmd.addSpritesLayer(
+    dmd.addLayer(
+        SpritesLayer,
         'sprite',
         {
             width: 110,
             height: 130
         },
-        {} as Options,
         {},
         (layer) => {
 
@@ -341,5 +322,20 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
 
                 });
 
+        });
+
+    // SVG title layer — centered, initially hidden
+    dmd.addLayer(CanvasLayer, 'svg-title',
+        { visible: false }, {}, (layer) => {
+            const img = new Image();
+            img.onload = () => {
+                createImageBitmap(img).then(bitmap => {
+                    layer.setDrawFunction(({ drawBitmap }) => {
+                        drawBitmap(bitmap, { hAlign: 'center', vAlign: 'middle', margin: 5 });
+                    });
+                    layer.draw();
+                });
+            };
+            img.src = `${imagesPath}/sptitle.svg`;
         });
 }

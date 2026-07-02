@@ -37,7 +37,8 @@ const layerDescriptors: LayerDescriptor[] = [
     {id: 'text1', label: 'Text: Scott', kind: 'text'},
     {id: 'text2', label: 'Text: VS in', kind: 'text'},
     {id: 'text3', label: 'Text: VS out', kind: 'text'},
-    {id: 'text4', label: 'Text: Matthew', kind: 'text'}
+    {id: 'text4', label: 'Text: Matthew', kind: 'text'},
+    {id: 'svg-title', label: 'SVG Title', kind: 'canvas'}
 ];
 
 function getReadOnlyRanges(targetState: EditorState) {
@@ -271,6 +272,13 @@ export function buildControlPanel(dmd: Dmd): void {
             syncHsvSliders(); // redraw swatch with updated off-dot color
         });
         row(panel, labelEl('Off-dot color'), offDotPicker);
+
+        // FPS overlay toggle
+        const fpsCheckbox = document.createElement('input');
+        fpsCheckbox.type = 'checkbox';
+        fpsCheckbox.checked = dmd.showFPS;
+        fpsCheckbox.addEventListener('change', () => { dmd.showFPS = fpsCheckbox.checked; });
+        row(panel, labelEl('Show FPS'), fpsCheckbox);
 
         row(panel, labelEl('Brightness'), brightnessSlider, brightnessValue);
 

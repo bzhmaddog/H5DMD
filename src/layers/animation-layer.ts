@@ -1,6 +1,6 @@
-import {BaseLayer, LayerType} from "./base-layer"
+import {BaseLayer} from "./base-layer"
 import {Options} from "../utils"
-import {LayerRendererDictionary} from "../interfaces"
+import {AnimationLayerOptions, LayerRendererDictionary} from "../interfaces"
 
 class AnimationLayer extends BaseLayer {
 
@@ -20,7 +20,7 @@ class AnimationLayer extends BaseLayer {
 		id: string,
 		width: number,
 		height: number,
-        options?: Options,
+        options?: Partial<AnimationLayerOptions> | Options,
 		renderers?: LayerRendererDictionary,
         loadedListener?: (layer: AnimationLayer) => void,
         updatedListener?: (layer: AnimationLayer) => void,
@@ -31,7 +31,7 @@ class AnimationLayer extends BaseLayer {
 
         const layerOptions = new Options({loop: false, autoplay: false, duration: 1000}).merge(options)
 
-        super(id, LayerType.Animation, width, height, layerOptions, renderers, loadedListener, updatedListener)
+        super(id, width, height, layerOptions, renderers, loadedListener, updatedListener)
 
         this._onPlayListener = playListener
         this._onPauseListener = pauseListener

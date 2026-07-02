@@ -1,7 +1,7 @@
-import {BaseLayer, LayerType} from './base-layer'
+import {BaseLayer} from './base-layer'
 import {OffscreenBuffer, Options, Utils} from '../utils'
 import {Colors} from '../enums'
-import {LayerRendererDictionary} from '../interfaces'
+import {LayerRendererDictionary, TextLayerOptions} from '../interfaces'
 import {OutlineRenderer, RemoveAliasingRenderer} from '../renderers'
 
 class TextLayer extends BaseLayer {
@@ -13,7 +13,7 @@ class TextLayer extends BaseLayer {
         id: string,
         width: number,
         height: number,
-        options: Options,
+        options: Partial<TextLayerOptions> | Options,
         renderers?: LayerRendererDictionary,
         loadedListener?: (layer: TextLayer) => void,
         updatedListener?: (layer: TextLayer) => void
@@ -44,7 +44,7 @@ class TextLayer extends BaseLayer {
 			'outline' : new OutlineRenderer(width, height)  // used by TextLayer when outlineWidth > 1
         }, renderers) as LayerRendererDictionary
 
-        super(id, LayerType.Text, width, height, layerOptions, layerRenderers, loadedListener, updatedListener)
+        super(id, width, height, layerOptions, layerRenderers, loadedListener, updatedListener)
 
         this._textBuffer = new OffscreenBuffer(this.width, this.height)
 

@@ -2,15 +2,6 @@ import {Easing, type EasingFunction, OffscreenBuffer, Options} from "../utils"
 import {ChangeAlphaRenderer, LayerRenderer} from "../renderers"
 import {LayerRendererDictionary} from "../interfaces";
 
-enum LayerType {
-	Image,
-	Canvas,
-	Text,
-	Video,
-	Animation,
-	Sprites
-}
-
 interface RenderQueueItem {
     id: string,
     instance: LayerRenderer,
@@ -26,7 +17,6 @@ abstract class BaseLayer {
     private _id: string
     private _loaded: boolean = false
     private _outputBuffer: OffscreenBuffer
-    private _layerType: LayerType
     private _renderNextFrame: () => void
 
     private _loadedListener?: (layer: BaseLayer) => void
@@ -37,15 +27,14 @@ abstract class BaseLayer {
 
     constructor(
         id: string,
-        layerType: LayerType,
         width: number,
         height: number,
-        options?: Options,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        options?: Options | Record<string, any>,
         renderers?: LayerRendererDictionary,
         loadedListener?: (layer: BaseLayer) => void,
         updatedListener?: (layer: BaseLayer) => void
     ) {
-        this._layerType = layerType
         this._id = id
 
         this._contentBuffer = new OffscreenBuffer(width, height, true)
@@ -412,10 +401,6 @@ abstract class BaseLayer {
         return this._outputBuffer.canvas
     }
 
-    get layerType(): LayerType {
-        return this._layerType
-    }
-
     get groups(): string[] {
         return this._options.get('groups') || ['default']
     }
@@ -426,4 +411,4 @@ abstract class BaseLayer {
 
 }
 
-export { BaseLayer, LayerType }
+export { BaseLayer }

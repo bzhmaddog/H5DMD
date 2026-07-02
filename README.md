@@ -46,15 +46,14 @@ import { Dmd, DmdOptions, DotShape, Easing, Options } from "h5dmd";
 
 const canvas = document.getElementById("output") as HTMLCanvasElement;
 
-const dmd = new Dmd({
-    outputCanvas: canvas,
+const dmd = new Dmd(canvas, {
     dotSize: 4,
     dotSpace: 1,
     dotShape: DotShape.Square,
     backgroundBrightness: 14,
     brightness: 1,
     showFPS: true,
-} as DmdOptions);
+});
 
 await dmd.init(); // set up the renderers (WebGPU when available)
 dmd.run();        // start the render loop

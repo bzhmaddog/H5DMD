@@ -1,6 +1,6 @@
-import {BaseLayer, LayerType} from "./base-layer"
+import {BaseLayer} from "./base-layer"
 import {Options} from "../utils"
-import {LayerRendererDictionary} from "../interfaces"
+import {LayerRendererDictionary, VideoLayerOptions} from "../interfaces"
 
 enum VideoState {
 	STOPPED,
@@ -23,7 +23,7 @@ class VideoLayer extends BaseLayer {
 		id: string,
 		width: number,
 		height: number,
-		options?: Options,
+		options?: Partial<VideoLayerOptions> | Options,
 		renderers?: LayerRendererDictionary,
 		loadedListener?: (layer: VideoLayer) => void,
 		updatedListener?: (layer: VideoLayer) => void,
@@ -38,7 +38,7 @@ class VideoLayer extends BaseLayer {
 			stopOnHide: false
 		}).merge(options)
 
-		super(id, LayerType.Video, width, height, layerOptions, renderers, loadedListener, updatedListener)
+		super(id, width, height, layerOptions, renderers, loadedListener, updatedListener)
 
 		this._onPlayListener = playListener
 		this._onPauseListener = pauseListener
@@ -105,6 +105,12 @@ class VideoLayer extends BaseLayer {
 		// If the layer is not visible do not start playing the video to save resources
 		if (!this.isVisible()) {
 			console.error(`Layer[${this.id}] is not visible`)
+			return
+		}
+
+		// Video element not yet set — defer until setVideo() is called
+		if (this._video === undefined) {
+			this._internalAction = true
 			return
 		}
 
@@ -205,8 +211,8 @@ class VideoLayer extends BaseLayer {
 		this._video = document.createElement('video')
 
 		// set the dimensions
-		this._video.width = this._options.get('width') || this.width
-		this._video.height = this._options.get('height') || this.height
+		this._video.width = this._options.get('videoWidth') || this.width
+		this._video.height = this._options.get('videoHeight') || this.height
 		this._video.loop = this._options.get('loop') || false
 		
 		// Bind loaded event of the video to publish an event so the client 

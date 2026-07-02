@@ -43,7 +43,7 @@ describe('Dmd public API', () => {
         const canvas = document.createElement('canvas')
         canvas.width = 128
         canvas.height = 32
-        return new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, false)
+        return new Dmd(canvas, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: false })
     }
 
     test('addCanvasLayer registers a retrievable layer', () => {
@@ -246,11 +246,11 @@ describe('Dmd public API', () => {
         expect(entry.top).toBe(4)
     })
 
-    test('invalid layer type throws TypeError', () => {
+    test('invalid layer class throws TypeError', () => {
         const dmd = makeDmd()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        expect(() => (dmd as any)._addLayer(999, 'bad', {}, new Options()))
-            .toThrow(/Invalid layer type/)
+        expect(() => (dmd as any).addLayer(class {}, 'bad', {}))
+            .toThrow(/Unsupported layer class/)
     })
 })
 
@@ -278,7 +278,7 @@ describe('Dmd render loop', () => {
         const canvas = document.createElement('canvas')
         canvas.width = 128
         canvas.height = 32
-        return new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, showFPS)
+        return new Dmd(canvas, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS })
     }
 
     test('renderDMD composites visible loaded layers and calls renderFrame', async () => {
@@ -312,19 +312,20 @@ describe('Dmd render loop', () => {
         internal._minFPS = 58
         internal._maxFPS = 62
 
+        const fillTextSpy = vi.spyOn(internal._fpsCtx, 'fillText')
         internal.__renderFPS()
 
-        expect(internal._fpsBox.textContent).toContain('FPS')
-        expect(internal._fpsBox.textContent).toContain('min')
+        expect(fillTextSpy).toHaveBeenCalledWith(expect.stringContaining('FPS'), expect.any(Number), expect.any(Number))
+        expect(fillTextSpy).toHaveBeenCalledWith(expect.stringContaining('min'), expect.any(Number), expect.any(Number))
     })
 
-    test('the FPS box is created on construction and removed on stop()', () => {
+    test('the FPS canvas is created on construction and removed on stop()', () => {
         const dmd = makeDmd(true)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const box = (dmd as any)._fpsBox as HTMLElement
-        expect(document.body.contains(box)).toBe(true)
+        const canvas = (dmd as any)._fpsCanvas as HTMLElement
+        expect(document.body.contains(canvas)).toBe(true)
 
         dmd.stop()
-        expect(document.body.contains(box)).toBe(false)
+        expect(document.body.contains(canvas)).toBe(false)
     })
 })

@@ -1,5 +1,5 @@
-import {BaseLayer, LayerType} from "./base-layer"
-import {LayerRendererDictionary} from "../interfaces"
+import {BaseLayer} from "./base-layer"
+import {BitmapOptions, CanvasLayerOptions, LayerRendererDictionary} from "../interfaces"
 import {Options} from "../utils"
 
 /**
@@ -27,7 +27,7 @@ interface DrawContext {
     /** Draw a rectangle filled with a linear gradient. */
     drawGradientRect(x: number, y: number, w: number, h: number, colors: string[], direction?: 'horizontal' | 'vertical'): void
     /** Draw a bitmap with optional positioning/sizing options. */
-    drawBitmap(img: ImageBitmap, options?: Options): void
+    drawBitmap(img: ImageBitmap, options?: Partial<BitmapOptions>): void
     /** Access the raw 2D context for advanced operations. */
     //readonly ctx: OffscreenCanvasRenderingContext2D
     /** Layer width. */
@@ -52,12 +52,12 @@ class CanvasLayer extends BaseLayer {
         id: string,
         width: number,
         height: number,
-        options?: Options,
+        options?: Partial<CanvasLayerOptions> | Options,
         renderers?: LayerRendererDictionary,
         loadedListener?: (layer: CanvasLayer) => void,
         updatedListener?: (layer: CanvasLayer) => void
     ) {
-        super(id, LayerType.Canvas, width, height, options, renderers, loadedListener, updatedListener)
+        super(id, width, height, options, renderers, loadedListener, updatedListener)
         setTimeout(this._layerLoaded.bind(this), 1)
     }
 
@@ -67,14 +67,14 @@ class CanvasLayer extends BaseLayer {
      * @param img bitmap object
      * @param _options options
      */
-    drawBitmap(img: ImageBitmap, _options?: Options) {
+    drawBitmap(img: ImageBitmap, _options?: Partial<BitmapOptions>) {
 
-        const bitmapOptions = new Options({
+        const bitmapOptions = new Options<BitmapOptions>({
             top : 0,
             left : 0,
             hOffset : 0,
             vOffset : 0,
-            fit : true,
+            fit : 'contain',
             keepAspectRatio : true
         }).merge(_options)
 
@@ -93,116 +93,139 @@ class CanvasLayer extends BaseLayer {
      * @param height default height
      * @returns a IDimensions object
      */
-    private _computeDimensions(_options: Options, width: number, height: number ): IDimensions {
+    private _computeDimensions(_options: Options<BitmapOptions>, width: number, height: number ): IDimensions {
         let t = 0
         let l = 0
         let w = width
         let h = height
 
-        // If required to fit image then ignore provided width and height
-        if (_options.get('fit') === true) {
+        // Resolve margins once up front
+        const mTop    = this._resolveMargin(_options.get('marginTop')    ?? _options.get('margin'), this.height)
+        const mBottom = this._resolveMargin(_options.get('marginBottom') ?? _options.get('margin'), this.height)
+        const mStart  = this._resolveMargin(_options.get('marginStart')  ?? _options.get('margin'), this.width)
+        const mEnd    = this._resolveMargin(_options.get('marginEnd')    ?? _options.get('margin'), this.width)
+        const availW  = this.width  - mStart - mEnd
+        const availH  = this.height - mTop   - mBottom
+
+        const fitOption = _options.get('fit')
+        const isFit = fitOption === 'contain' || fitOption === 'cover'
+
+        if (isFit) {
+            // Warn if width/height are set — they are ignored in fit mode
+            if (_options.get('width') !== undefined || _options.get('height') !== undefined) {
+                console.warn(`CanvasLayer[${this.id}].drawBitmap(): 'width'/'height' are ignored when 'fit' is 'contain' or 'cover'. Use margins to constrain the available area.`)
+            }
 
             if (_options.get('keepAspectRatio') === true) {
-                const ratio = width / height
-
-                if (ratio === 1) { // W == H
-                    const v = Math.min(this.width, this.height) // use smallest value
-                    w = v
-                    h = v
-                } else if (ratio > 1) { // W > H
-                    w = this.width
-                    h = Math.round(w * height / width)
-                } else { // H > W
-                    h = this.height
-                    width = Math.round(h * width / height)
-                }
-
-            // resize image to layer dimensions
+                const scaleX = availW / width
+                const scaleY = availH / height
+                // 'contain' (or true): scale down to fit; 'cover': scale up to fill
+                const scale = fitOption === 'cover'
+                    ? Math.max(scaleX, scaleY)
+                    : Math.min(scaleX, scaleY)
+                w = Math.round(width  * scale)
+                h = Math.round(height * scale)
             } else {
-                w = this.width
-                h = this.height
+                w = availW
+                h = availH
             }
 
-        // If one of the dimension is provided
+        // fit: 'none' — explicit dimensions
         } else {
 
-            const isMissingDimension = (_options.get('width') === undefined || _options.get('height') === undefined)
-            const isMissingAllDimensions = (_options.get('width') === undefined && _options.get('height') === undefined)
+            const optWidth  = _options.get('width')
+            const optHeight = _options.get('height')
+            const isMissingDimension    = (optWidth === undefined || optHeight === undefined)
+            const isMissingAllDimensions = (optWidth === undefined && optHeight === undefined)
 
-
-            if (typeof _options.get('width') === 'number') {
-                w = _options.get('width')
-            } else if  (typeof _options.get('width') === 'string' && _options.get('width').at(-1) === '%') {
-                const wv = parseInt(_options.get('width').replace('%', ''), 10)
-                w = Math.floor((wv * this.width) / 100)  // % of the dmd Width
+            if (typeof optWidth === 'number') {
+                w = optWidth
+            } else if (typeof optWidth === 'string' && optWidth.at(-1) === '%') {
+                w = Math.floor((parseInt(optWidth, 10) * this.width) / 100)
             }
 
-            if (typeof _options.get('height') === 'number') {
-                h = _options.get('height')
-            } else if (typeof _options.get('height') === 'string' && _options.get('height').at(-1) === '%') {
-                const hv = parseInt(_options.get('height').replace('%', ''), 10)
-                h =  Math.floor((hv * this.height) / 100) // % of the dmd Height
+            if (typeof optHeight === 'number') {
+                h = optHeight
+            } else if (typeof optHeight === 'string' && optHeight.at(-1) === '%') {
+                h = Math.floor((parseInt(optHeight, 10) * this.height) / 100)
             }
 
-            // If provided only one of width or height and keeping ratio is required then calculate the missing dimension
+            // If only one dimension provided and ratio must be preserved, compute the other
             if (_options.get('keepAspectRatio') && isMissingDimension && !isMissingAllDimensions) {
-                if (typeof _options.get('width') === 'undefined') {
-                    w = Math.round(_options.get('height') * width / height)
-                } else if (typeof _options.get('height') === 'undefined') {
-                    h =  Math.round(_options.get('width') * height / width)
+                if (optWidth === undefined) {
+                    w = Math.round((optHeight as number) * width / height)
+                } else if (optHeight === undefined) {
+                    h = Math.round((optWidth as number) * height / width)
                 }
             }
+
+            // Clamp to available area (margins still constrain even without fit)
+            w = Math.min(w, availW)
+            h = Math.min(h, availH)
         }
 
-        if (typeof _options.get('left') === 'string' && _options.get('left').at(-1) === '%') {
-            const xv = parseInt(_options.get('left').replace('%', ''), 10)
-            l = Math.round((xv * this.width) / 100)
+        // Resolve absolute top/left (margins offset the origin)
+        const optLeft = _options.get('left')
+        const optTop  = _options.get('top')
+
+        if (typeof optLeft === 'number') {
+            l = mStart + optLeft
+        } else if (typeof optLeft === 'string' && optLeft.at(-1) === '%') {
+            l = mStart + Math.round((parseInt(optLeft, 10) * this.width) / 100)
         }
 
-        if (typeof _options.get('top') === 'string' && _options.get('top').at(-1) === '%') {
-            const yv = parseInt(_options.get('top').replace('%', ''), 10)
-            t = Math.round((yv * this.height) / 100)
+        if (typeof optTop === 'number') {
+            t = mTop + optTop
+        } else if (typeof optTop === 'string' && optTop.at(-1) === '%') {
+            t = mTop + Math.round((parseInt(optTop, 10) * this.height) / 100)
         }
 
+        // Alignment operates within the inset area
         if (typeof _options.get('hAlign') === 'string') {
-            switch(_options.get('hAlign')) {
+            switch (_options.get('hAlign')) {
                 case 'left':
-                    l = 0 + _options.get('hOffset')
-                    break;
+                    l = mStart + _options.get('hOffset')
+                    break
                 case 'center':
-                    l = this.width / 2 - w / 2  + _options.get('hOffset')
+                    l = mStart + availW / 2 - w / 2 + _options.get('hOffset')
                     break
                 case 'right':
-                    l = this.width - w  + _options.get('hOffset')
+                    l = mStart + availW - w + _options.get('hOffset')
                     break
                 default:
-                    console.warn(`CanvasLaye[${this.id}].drawImage(): Incorrect value align:'${_options.get('align')}'`)
+                    console.warn(`CanvasLayer[${this.id}].drawBitmap(): Incorrect value hAlign:'${_options.get('hAlign')}'`)
             }
         }
 
         if (typeof _options.get('vAlign') === 'string') {
-            switch(_options.get('vAlign')) {
+            switch (_options.get('vAlign')) {
                 case 'top':
-                    t = 0 + _options.get('vOffset')
+                    t = mTop + _options.get('vOffset')
                     break
                 case 'middle':
-                    t = this.height / 2 - h / 2 + _options.get('vOffset')
+                    t = mTop + availH / 2 - h / 2 + _options.get('vOffset')
                     break
                 case 'bottom':
-                    t = this.height - h + _options.get('vOffset')
+                    t = mTop + availH - h + _options.get('vOffset')
                     break
                 default:
-                    console.warn(`CanvasLayer[${this.id}].drawImage(): Incorrect value vAlign:'${_options.get('vAlign')}'`)
+                    console.warn(`CanvasLayer[${this.id}].drawBitmap(): Incorrect value vAlign:'${_options.get('vAlign')}'`)
             }
-
         }
 
-        return {
-            top : t,
-            left : l,
-            width : w,
-            height : h
-        } as IDimensions
+        return { top: t, left: l, width: w, height: h } as IDimensions
+    }
+
+    /**
+     * Resolve a margin value (pixels or percentage string) to pixels.
+     */
+    private _resolveMargin(value: number | string | undefined, reference: number): number {
+        if (value === undefined) return 0
+        if (typeof value === 'number') return value
+        if (typeof value === 'string' && value.at(-1) === '%') {
+            return Math.floor((parseInt(value, 10) * reference) / 100)
+        }
+        return 0
     }
 
     /**
@@ -315,7 +338,7 @@ class CanvasLayer extends BaseLayer {
                 drawLine: (x1: number, y1: number, x2: number, y2: number, color: string, lineWidth?: number) => this.drawLine(x1, y1, x2, y2, color, lineWidth),
                 fillGradient: (colors: string[], direction?: 'horizontal' | 'vertical') => this.fillGradient(colors, direction),
                 drawGradientRect: (x: number, y: number, w: number, h: number, colors: string[], direction?: 'horizontal' | 'vertical') => this.drawGradientRect(x, y, w, h, colors, direction),
-                drawBitmap: (img: ImageBitmap, options?: Options) => this.drawBitmap(img, options),
+                drawBitmap: (img: ImageBitmap, options?: Partial<BitmapOptions>) => this.drawBitmap(img, options),
                 //ctx: this._contentBuffer.context,
                 width: this.width,
                 height: this.height

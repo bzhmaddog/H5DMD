@@ -36,7 +36,7 @@ describe('Dmd fades', () => {
     test('fadeIn eases by (1 - startBrightness), not 1', async () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
 
-        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, false)
+        const dmd = new Dmd(makeCanvas(), { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: false })
 
         const startBrightness = 0.4
         // Replace the GPU renderer with a lightweight fake exposing brightness.
@@ -56,7 +56,7 @@ describe('Dmd fades', () => {
     })
 
     test('fades schedule with requestAnimationFrame, not setTimeout', () => {
-        const dmd = new Dmd(makeCanvas(), 2, 1, DotShape.Square, 14, 1, false)
+        const dmd = new Dmd(makeCanvas(), { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: false })
 
         // Fake renderer so the fade actually steps (brightness stays > 0).
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,7 +103,7 @@ describe('Dmd layer fades', () => {
         const canvas = document.createElement('canvas')
         canvas.width = 64
         canvas.height = 16
-        return new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, false)
+        return new Dmd(canvas, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: false })
     }
 
     test('fadeLayerIn rejects for an unknown layer id', async () => {

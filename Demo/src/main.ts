@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if ("gpu" in navigator) {
 
         const output = document.getElementById('output') as HTMLCanvasElement;
-        const dmd = new Dmd(output, 2, 1, DotShape.Square, 14, 1, true);
+        const dmd = new Dmd(output, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: true });
 
         const chromaKey = new ChromaKeyRenderer(213, 130, [0, 0, 0], 9);
 

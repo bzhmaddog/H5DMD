@@ -25,7 +25,7 @@ describe('Dmd — monochrome and off-dot color API', () => {
     })
 
     function makeDmd(): Dmd {
-        return new Dmd(canvas, 5, 1, DotShape.Square, 0, 1, false)
+        return new Dmd(canvas, { dotSize: 5, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 0, brightness: 1, showFPS: false })
     }
 
     // ── bgHSP / bgBrightness ────────────────────────────────────────────────
@@ -90,8 +90,7 @@ describe('Dmd — monochrome and off-dot color API', () => {
     // ── DmdOptions constructor paths ────────────────────────────────────────
 
     test('DmdOptions with RgbColor enables monochrome and sets tint', () => {
-        const dmd = new Dmd({
-            outputCanvas: canvas,
+        const dmd = new Dmd(canvas, {
             dotSize: 5, dotSpace: 1, dotShape: DotShape.Square,
             backgroundBrightness: 0, brightness: 1, showFPS: false,
             color: { r: 1, g: 0.5, b: 0 },
@@ -101,8 +100,7 @@ describe('Dmd — monochrome and off-dot color API', () => {
     })
 
     test('DmdOptions with hex color string enables monochrome', () => {
-        const dmd = new Dmd({
-            outputCanvas: canvas,
+        const dmd = new Dmd(canvas, {
             dotSize: 5, dotSpace: 1, dotShape: DotShape.Square,
             backgroundBrightness: 0, brightness: 1, showFPS: false,
             color: '#FF8000',
@@ -111,8 +109,7 @@ describe('Dmd — monochrome and off-dot color API', () => {
     })
 
     test('DmdOptions with monoLevels sets the level', () => {
-        const dmd = new Dmd({
-            outputCanvas: canvas,
+        const dmd = new Dmd(canvas, {
             dotSize: 5, dotSpace: 1, dotShape: DotShape.Square,
             backgroundBrightness: 0, brightness: 1, showFPS: false,
             monoLevels: 4,
@@ -121,8 +118,7 @@ describe('Dmd — monochrome and off-dot color API', () => {
     })
 
     test('DmdOptions with offDotColor as RgbColor sets the off-dot color', () => {
-        const dmd = new Dmd({
-            outputCanvas: canvas,
+        const dmd = new Dmd(canvas, {
             dotSize: 5, dotSpace: 1, dotShape: DotShape.Square,
             backgroundBrightness: 0, brightness: 1, showFPS: false,
             offDotColor: { r: 0.5, g: 0, b: 0 },
@@ -132,8 +128,7 @@ describe('Dmd — monochrome and off-dot color API', () => {
     })
 
     test('DmdOptions with offDotColor as hex string sets the off-dot color', () => {
-        const dmd = new Dmd({
-            outputCanvas: canvas,
+        const dmd = new Dmd(canvas, {
             dotSize: 5, dotSpace: 1, dotShape: DotShape.Square,
             backgroundBrightness: 0, brightness: 1, showFPS: false,
             offDotColor: '#FF0000',
