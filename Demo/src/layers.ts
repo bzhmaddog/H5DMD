@@ -174,7 +174,7 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
         new Options({
             text: "Scott Pilgrim",
             left: 0,
-            top: 1,
+            top: 2,
             fontSize: 80,
             adjustWidth: true
             //debug : true
@@ -236,7 +236,7 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
             height: 15,
             hAlign: 'right',
             vAlign: 'bottom',
-            hOffset: -1
+            hOffset: 0
         },
         new Options({
             text: "Matthew Patel",

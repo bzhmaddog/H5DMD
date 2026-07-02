@@ -254,6 +254,24 @@ export function buildControlPanel(dmd: Dmd): void {
             syncFadeDmdButtons();
         });
 
+        // Off-dot color picker
+        const offDotPicker = document.createElement('input');
+        offDotPicker.type = 'color';
+        offDotPicker.style.cssText = 'cursor:pointer;border:1px solid #555;border-radius:4px;height:26px;padding:1px 2px;background:#222;';
+        const { r: or, g: og, b: ob } = dmd.offDotColor;
+        const toHex2 = (x: number) => Math.round(x * 255).toString(16).padStart(2, '0');
+        offDotPicker.value = `#${toHex2(or)}${toHex2(og)}${toHex2(ob)}`;
+        offDotPicker.addEventListener('input', () => {
+            const hex = offDotPicker.value;
+            dmd.setOffDotColor(
+                parseInt(hex.slice(1, 3), 16) / 255,
+                parseInt(hex.slice(3, 5), 16) / 255,
+                parseInt(hex.slice(5, 7), 16) / 255
+            );
+            syncHsvSliders(); // redraw swatch with updated off-dot color
+        });
+        row(panel, labelEl('Off-dot color'), offDotPicker);
+
         row(panel, labelEl('Brightness'), brightnessSlider, brightnessValue);
 
         // Dot shape selector
@@ -327,7 +345,10 @@ export function buildControlPanel(dmd: Dmd): void {
 
         shapeSelect.addEventListener('change', () => {
             dmd.setDotShape(parseInt(shapeSelect.value) as DotShape);
-            // Sync dot size slider after shape change (min size may have been enforced)
+            drawShapePreview(dmd.dotShape);
+            // Reset dot size to the minimum for the new shape
+            dmd.setDotSize(1);
+            dotSizeSlider.min = String(dmd.dotSize);
             dotSizeSlider.value = String(dmd.dotSize);
             dotSizeValue.textContent = String(dmd.dotSize);
             // Sync dot space slider after shape change (min space may have been enforced)
@@ -336,7 +357,78 @@ export function buildControlPanel(dmd: Dmd): void {
             dotSpaceValue.textContent = String(dmd.dotSpace);
             syncDmdSize();
         });
-        row(panel, labelEl('Dot Shape'), shapeSelect);
+
+        // Dot shape preview canvas
+        const shapeCanvas = document.createElement('canvas');
+        shapeCanvas.width = 36;
+        shapeCanvas.height = 36;
+        shapeCanvas.style.cssText = 'border:1px solid #555;border-radius:3px;vertical-align:middle;background:#111;';
+        const shapeCtx = shapeCanvas.getContext('2d')!;
+        const drawShapePreview = (shape: DotShape) => {
+            const size = shapeCanvas.width;
+            const cx = size / 2, cy = size / 2, r = size * 0.38;
+            shapeCtx.clearRect(0, 0, size, size);
+            shapeCtx.fillStyle = '#ffcc00';
+            shapeCtx.beginPath();
+            switch (shape) {
+                case DotShape.Square:
+                    shapeCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
+                    return;
+                case DotShape.Circle:
+                    shapeCtx.arc(cx, cy, r, 0, Math.PI * 2);
+                    break;
+                case DotShape.Diamond:
+                    shapeCtx.moveTo(cx, cy - r);
+                    shapeCtx.lineTo(cx + r, cy);
+                    shapeCtx.lineTo(cx, cy + r);
+                    shapeCtx.lineTo(cx - r, cy);
+                    shapeCtx.closePath();
+                    break;
+                case DotShape.RoundedSquare:
+                    shapeCtx.roundRect(cx - r, cy - r, r * 2, r * 2, r * 0.3);
+                    break;
+                case DotShape.Hexagon:
+                    for (let i = 0; i < 6; i++) {
+                        const a = (Math.PI / 3) * i - Math.PI / 6;
+                        if (i === 0) shapeCtx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+                        else         shapeCtx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+                    }
+                    shapeCtx.closePath();
+                    break;
+                case DotShape.Octagon:
+                    for (let i = 0; i < 8; i++) {
+                        const a = (Math.PI / 4) * i - Math.PI / 8;
+                        if (i === 0) shapeCtx.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+                        else         shapeCtx.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+                    }
+                    shapeCtx.closePath();
+                    break;
+                case DotShape.Star: {
+                    // Matches shader: union of diamond (d1 <= 0.333) and square (d2 <= 0.25)
+                    // produces a 4-pointed cross-star with pointed tips along the axes.
+                    const outerR = r * (0.333 / 0.5); // tip distance
+                    const innerR = r * (0.25 / 0.5);  // square half-size
+                    const transR = outerR - innerR;    // gap between square edge and tip
+                    const pts: [number, number][] = [
+                        [ outerR,      0],
+                        [ innerR,  transR], [ innerR,  innerR], [ transR,  innerR],
+                        [      0,  outerR],
+                        [-transR,  innerR], [-innerR,  innerR], [-innerR,  transR],
+                        [-outerR,      0],
+                        [-innerR, -transR], [-innerR, -innerR], [-transR, -innerR],
+                        [      0, -outerR],
+                        [ transR, -innerR], [ innerR, -innerR], [ innerR, -transR],
+                    ];
+                    shapeCtx.moveTo(cx + pts[0][0], cy + pts[0][1]);
+                    for (let i = 1; i < pts.length; i++) shapeCtx.lineTo(cx + pts[i][0], cy + pts[i][1]);
+                    shapeCtx.closePath();
+                    break;
+                }
+            }
+            shapeCtx.fill();
+        };
+        drawShapePreview(dmd.dotShape);
+        row(panel, labelEl('Dot Shape'), shapeSelect, shapeCanvas);
 
         const dmdEasing = easingSelect();
         const dmdDuration = durationSlider(1000);
@@ -460,41 +552,21 @@ export function buildControlPanel(dmd: Dmd): void {
             syncHsvSliders();
         });
 
-        const setDisabled = (state: boolean) => {
-            hSlider.disabled = state; sSlider.disabled = state; vSlider.disabled = state;
-            levelsSelect.disabled = state;
-        };
-        setDisabled(!dmd.monochrome);
-
         monoCheckbox.addEventListener('change', () => {
             dmd.setMonochrome(monoCheckbox.checked);
-            setDisabled(!monoCheckbox.checked);
+            const hidden = !monoCheckbox.checked;
+            hsvRow.style.display = hidden ? 'none' : '';
+            levelsRow.style.display = hidden ? 'none' : '';
         });
         hSlider.addEventListener('input', () => { curH = parseFloat(hSlider.value); syncHsvSliders(); });
         sSlider.addEventListener('input', () => { curS = parseFloat(sSlider.value) / 100; syncHsvSliders(); });
         vSlider.addEventListener('input', () => syncHsvSliders());
 
         row(panel, monoCheckbox, monoLabel);
-        row(panel, labelEl('H'), hSlider, labelEl('S'), sSlider, labelEl('V'), vSlider, colorSwatch);
-        row(panel, labelEl('Levels'), levelsSelect);
-
-        // Off-dot color picker
-        const offDotPicker = document.createElement('input');
-        offDotPicker.type = 'color';
-        offDotPicker.style.cssText = 'cursor:pointer;border:1px solid #555;border-radius:4px;height:26px;padding:1px 2px;background:#222;';
-        const { r: or, g: og, b: ob } = dmd.offDotColor;
-        const toHex2 = (x: number) => Math.round(x * 255).toString(16).padStart(2, '0');
-        offDotPicker.value = `#${toHex2(or)}${toHex2(og)}${toHex2(ob)}`;
-        offDotPicker.addEventListener('input', () => {
-            const hex = offDotPicker.value;
-            dmd.setOffDotColor(
-                parseInt(hex.slice(1, 3), 16) / 255,
-                parseInt(hex.slice(3, 5), 16) / 255,
-                parseInt(hex.slice(5, 7), 16) / 255
-            );
-            syncHsvSliders(); // redraw swatch with updated off-dot color
-        });
-        row(panel, labelEl('Off-dot color'), offDotPicker);
+        const hsvRow = row(panel, labelEl('H'), hSlider, labelEl('S'), sSlider, labelEl('V'), vSlider);
+        const levelsRow = row(panel, labelEl('Levels'), levelsSelect, colorSwatch);
+        hsvRow.style.display = dmd.monochrome ? '' : 'none';
+        levelsRow.style.display = dmd.monochrome ? '' : 'none';
 
         syncBrightness();
     });

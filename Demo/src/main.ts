@@ -1,3 +1,4 @@
+import './style.scss';
 import {
     Dmd,
     DotShape,

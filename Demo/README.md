@@ -5,7 +5,8 @@ An interactive [Vite](https://vitejs.dev/) + TypeScript application that demonst
 and WebGPU.
 
 The demo renders a 256×78 dot display (on a 1280×390 canvas) and stacks several layer types on
-top of each other. Checkboxes below the canvas let you toggle each layer on and off in real time.
+top of each other. A tabbed control panel below the canvas lets you tweak every aspect of the
+display and each layer in real time.
 
 ## Requirements
 
@@ -34,13 +35,16 @@ see [Running the demo locally](../README.md#running-the-demo-locally) in the roo
 From the `Demo/` directory:
 
 ```bash
-# Start the Vite dev server with hot reload
+# Install dependencies, link the local h5dmd build, then start the Vite dev server
+npm run li && npm run dev
+
+# Start the Vite dev server (h5dmd must already be linked)
 npm run dev
 
 # Type-check and build a production bundle into dist/
 npm run build
 
-# Preview the production build locally
+# Preview the production build locally (serves the dist/ folder)
 npm run preview
 ```
 
@@ -49,26 +53,32 @@ browser.
 
 ## What the demo shows
 
-The whole scene is built in [src/main.ts](src/main.ts) after `DOMContentLoaded`. It creates a
+The whole scene is built in [src/layers.ts](src/layers.ts) after `DOMContentLoaded`. It creates a
 `Dmd` bound to the `#output` canvas, calls `dmd.init()`, then `dmd.run()`, and adds layers:
 
-| Layer name  | Type             | Content                                            |
-|-------------|------------------|----------------------------------------------------|
-| `bg`        | Canvas layer     | Static background image                             |
-| `animation` | Animation layer  | Looping frame-by-frame WebP animation              |
-| `video`     | Video layer      | Transparent WebM video                             |
-| `matthew`   | Canvas layer     | Aligned character image                            |
-| `sprite`    | Sprites layer    | Sprite sheet with queued animation sequences       |
-| `text1`–`4` | Text layers      | Styled text, some with stroke or a noise effect    |
+| Layer name        | Type             | Content                                          |
+|-------------------|------------------|--------------------------------------------------|
+| `bg`              | Canvas layer     | Static background image                          |
+| `animation`       | Animation layer  | Looping frame-by-frame WebP animation            |
+| `video-transparent` | Video layer    | Transparent WebM video                           |
+| `video-chromakey` | Video layer      | WebM video with chroma-key background removal    |
+| `matthew`         | Canvas layer     | Aligned character image                          |
+| `sprite`          | Sprites layer    | Sprite sheet with queued animation sequences     |
+| `text1`–`text4`   | Text layers      | Styled text, some with stroke or a noise effect  |
 
 Image, video, and sprite assets are served from [public/images](public/images).
 
 ### Interactive controls
 
-A tabbed control panel below the canvas ([src/controls.ts](src/controls.ts)) provides per-layer
-controls:
+A tabbed control panel below the canvas ([src/controls.ts](src/controls.ts)) exposes:
 
-- **Global (DMD)** tab: brightness slider, fade in/out buttons with easing and duration selectors
+- **Global (DMD)** tab:
+  - Off-dot color picker
+  - Brightness slider
+  - Dot shape selector with live shape preview, dot size and dot space sliders
+  - Fade in/out buttons with easing and duration selectors
+  - Monochrome mode toggle — when enabled: HSV color sliders, levels selector, and a color
+    palette preview swatch
 - **Per-layer** tabs: visibility checkbox, opacity slider, fade in/out buttons (disabled when
   already at target opacity), easing selector, and duration slider
 - **Layer-specific** controls: play/pause/stop for animation and video layers, text input and
@@ -78,11 +88,14 @@ controls:
 
 ```
 Demo/
-├── index.html        # Canvas + checkbox controls
-├── vite.config.js    # Vite config (base './', tsc-watch plugin)
-├── tsconfig.json     # TypeScript (bundler resolution)
+├── index.html           # HTML shell — canvas and control panel mount points
+├── vite.config.js       # Vite config (base '/H5DMD/', tsc-watch plugin)
+├── tsconfig.json        # TypeScript (bundler resolution)
 ├── src/
-│   └── main.ts       # Demo logic: builds the Dmd and its layers
+│   ├── main.ts          # Entry point: creates Dmd, wires up layers and controls
+│   ├── layers.ts        # Builds and adds all demo layers to the Dmd instance
+│   ├── controls.ts      # Builds the tabbed control panel
+│   └── style.scss       # All demo styles (compiled by Vite via sass)
 └── public/
-    └── images/       # Backgrounds, animations, noises, sprites, video
+    └── images/          # Backgrounds, animations, noises, sprites, video
 ```
