@@ -5,7 +5,8 @@ import {LayerRendererDictionary} from "../interfaces";
 interface RenderQueueItem {
     id: string,
     instance: LayerRenderer,
-    params?: Options
+    params?: Options,
+    active: boolean
 }
 
 abstract class BaseLayer {
@@ -74,7 +75,8 @@ abstract class BaseLayer {
                 if (typeof this._availableRenderers[r] !== 'undefined') {
                     this._defaultRenderQueue.push({
                         id : r,
-                        instance : this._availableRenderers[r]
+                        instance : this._availableRenderers[r],
+                        active: true
                     })
                 } else {
                     console.log(`Renderer "${r}" is not in the list of available renderers`)
@@ -120,13 +122,16 @@ abstract class BaseLayer {
             if (active) {
                 // Default queue, NOT _renderQueue: _renderFrame rebuilds _renderQueue from
                 // _defaultRenderQueue each frame, so a transient push would vanish next tick.
-                this._defaultRenderQueue.push({ id, instance: renderer })
-
+                this._defaultRenderQueue.push({ id, instance: renderer, active: true })
                 // The layer may not have been looping if it had no renderers before.
                 if (this.isVisible()) {
                     this._renderNextFrame = this._requestAnimationFrame
                     this._requestAnimationFrame()
                 }
+            } else {
+                // Register in queue as inactive so activateRenderer() can find it
+                // at its original insertion position.
+                this._defaultRenderQueue.push({ id, instance: renderer, active: false })
             }
 
             return renderer
@@ -144,8 +149,50 @@ abstract class BaseLayer {
     removeRenderer(id: string) {
         if (this._availableRenderers[id]) {
             delete this._availableRenderers[id]
+            this._defaultRenderQueue = this._defaultRenderQueue.filter(r => r.id !== id)
             this._renderQueue = this._renderQueue.filter(r => r.id !== id)
         }
+    }
+
+    /**
+     * Pause a renderer without destroying it. The instance is kept and can be
+     * re-enabled with {@link activateRenderer}. Order in the queue is preserved.
+     * @param id Renderer id to deactivate. No-op if not found or already inactive.
+     */
+    deactivateRenderer(id: string) {
+        const item = this._defaultRenderQueue.find(r => r.id === id)
+        if (item) item.active = false
+    }
+
+    /**
+     * Re-enable a previously deactivated renderer, restoring it at its original
+     * position in the queue. The renderer must have been registered via the
+     * constructor `renderers` dict or {@link addRenderer}.
+     * @param id Renderer id to activate.
+     * @throws if the renderer is not registered on this layer.
+     */
+    activateRenderer(id: string) {
+        if (!this._availableRenderers[id]) {
+            throw new Error(`Renderer "${id}" is not registered on layer "${this._id}"`)
+        }
+        const item = this._defaultRenderQueue.find(r => r.id === id)
+        if (item) {
+            item.active = true
+        } else {
+            // Renderer was registered with active:false — append it now
+            this._defaultRenderQueue.push({ id, instance: this._availableRenderers[id], active: true })
+        }
+        if (this.isVisible()) {
+            this._renderNextFrame = this._requestAnimationFrame
+            this._requestAnimationFrame()
+        }
+    }
+
+    /**
+     * Returns true if the renderer is registered and currently active.
+     */
+    isRendererActive(id: string): boolean {
+        return this._defaultRenderQueue.some(r => r.id === id && r.active)
     }
 
     /**
@@ -160,15 +207,16 @@ abstract class BaseLayer {
      */
     private _renderFrame() {
 
-        // clone renderers array
-        this._renderQueue = [...this._defaultRenderQueue]
+        // Clone only active renderers into the working queue for this frame
+        this._renderQueue = this._defaultRenderQueue.filter(r => r.active)
 
         // If opacity is below 1 add opacity renderer as the last in the queue
         if (this._options.get('opacity') < 1) {
             this._renderQueue.push({
                 id : 'opacity',
                 instance : this._availableRenderers['opacity'],
-                params: new Options({ opacity : parseFloat(this._options.get('opacity'))})
+                params: new Options({ opacity : parseFloat(this._options.get('opacity'))}),
+                active: true
             })
         }
 
@@ -321,7 +369,7 @@ abstract class BaseLayer {
      * @returns boolean
      */
     haveRenderer() {
-        return this._defaultRenderQueue.length > 0
+        return this._defaultRenderQueue.some(r => r.active)
     }
 
     setVisibility(isVisible: boolean) {
