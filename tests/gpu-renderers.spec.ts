@@ -22,7 +22,7 @@ import {
     RemoveAliasingRenderer,
     RemoveAlphaRenderer,
 } from '../src/renderers'
-import {Options} from '../src/utils'
+import {Options, Utils} from '../src/utils'
 
 // ---------------------------------------------------------------------------
 // Shared GPU stub
@@ -293,13 +293,25 @@ describe('NoiseEffectRenderer', () => {
     })
     afterEach(restoreGpu)
 
-    test('constructor accepts empty noises array without fetching', () => {
+    test('constructor accepts empty params', () => {
         expect(() => new NoiseEffectRenderer(W, H)).not.toThrow()
     })
 
-    test('constructor rejects non-array noises', () => {
+    test('constructor stores pre-loaded noise frames', () => {
+        const noises = [new Uint8ClampedArray(W * H * 4)]
+        const r = new NoiseEffectRenderer(W, H, { noises, intensity: 400 })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        expect(() => new NoiseEffectRenderer(W, H, { noises: 'bad' as any })).toThrow(TypeError)
+        expect((r as any)._noises).toBe(noises)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((r as any)._frameDuration).toBe(400)
+    })
+
+    test('fromBitmaps moved to Utils.bitmapsToPixelData — converts ImageBitmaps to pixel arrays', () => {
+        const fakeBitmap = document.createElement('canvas') as unknown as ImageBitmap
+        const result = Utils.bitmapsToPixelData([fakeBitmap], W, H)
+        expect(result).toHaveLength(1)
+        expect(result[0]).toBeInstanceOf(Uint8ClampedArray)
+        expect(result[0].length).toBe(W * H * 4)
     })
 
     test('init() rejects when navigator.gpu is absent', async () => {
@@ -331,44 +343,12 @@ describe('NoiseEffectRenderer', () => {
     })
 
     test('renderFrame uploads noise data when a noise frame is loaded', async () => {
-        const r = new NoiseEffectRenderer(W, H)
+        const r = new NoiseEffectRenderer(W, H, { noises: [new Uint8ClampedArray(W * H * 4)] })
         await r.init()
-        // Inject a noise frame so the `if (noise)` branch is taken
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const p = r as any
-        p._noises = [new Uint8ClampedArray(W * H * 4)]
-        p._nbFrames = 1
-        const writeSpy = vi.spyOn(p._device.queue, 'writeBuffer')
+        const writeSpy = vi.spyOn((r as any)._device.queue, 'writeBuffer')
         await r.renderFrame(makeImageData())
         expect(writeSpy).toHaveBeenCalled()
-    })
-
-    test('_getImageData draws bitmap and returns pixel data', async () => {
-        const r = new NoiseEffectRenderer(W, H)
-        const fakeBitmap = document.createElement('canvas') as unknown as ImageBitmap
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(fakeBitmap as any).close = () => {}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const data = await (r as any)._getImageData(fakeBitmap)
-        expect(data).toBeInstanceOf(Uint8ClampedArray)
-        expect(data.length).toBe(W * H * 4)
-    })
-
-    test('_loadNoise resolves with blob on a successful fetch', async () => {
-        const fakeBlob = new Blob()
-        vi.stubGlobal('fetch', () => Promise.resolve({ ok: true, blob: () => Promise.resolve(fakeBlob) }))
-        const r = new NoiseEffectRenderer(W, H)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await expect((r as any)._loadNoise('noise.png')).resolves.toBe(fakeBlob)
-        vi.unstubAllGlobals()
-    })
-
-    test('_loadNoise rejects on a failed fetch', async () => {
-        vi.stubGlobal('fetch', () => Promise.resolve({ ok: false, status: 404 }))
-        const r = new NoiseEffectRenderer(W, H)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await expect((r as any)._loadNoise('noise.png')).rejects.toThrow(/HTTP error/)
-        vi.unstubAllGlobals()
     })
 
     test('renderFrame falls back to input when output buffer is busy', async () => {

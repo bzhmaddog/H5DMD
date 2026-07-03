@@ -1,5 +1,15 @@
-import {OffscreenBuffer} from "../utils"
 import {LayerRenderer} from "./layer-renderer"
+
+export interface NoiseEffectRendererParams {
+    /** Frame display duration in ms. Default: `200`. */
+    intensity?: number
+    /**
+     * Pre-loaded noise frames as raw pixel data.
+     * Use {@link Utils.bitmapsToPixelData} to convert `ImageBitmap[]`
+     * to the required format.
+     */
+    noises?: Uint8ClampedArray[]
+}
 
 class NoiseEffectRenderer extends LayerRenderer {
 
@@ -7,7 +17,6 @@ class NoiseEffectRenderer extends LayerRenderer {
     private _startTime: number
     private _frameDuration: number
     private _nbFrames: number
-    private _tmpBuffer: OffscreenBuffer
 
     private _noiseBuffer: GPUBuffer
     private _inputBuffer: GPUBuffer
@@ -16,59 +25,17 @@ class NoiseEffectRenderer extends LayerRenderer {
     private _computePipeline: GPUComputePipeline
 
     /**
-     * https://robson.plus/white-noise-image-generator/
-     * @param {number} width 
-     * @param {number} height 
+     * @param {number} width
+     * @param {number} height
+     * @param {NoiseEffectRendererParams} params Optional noise frames and intensity.
      */
-
-    constructor(width: number, height: number, params?: { intensity?: number, noises?: string[] }) {
-
+    constructor(width: number, height: number, params?: NoiseEffectRendererParams) {
         super("NoiseEffectRenderer", width, height)
 
-        const images = params?.noises ?? []
-        const duration = params?.intensity ?? 200
-
-        this._nbFrames = images.length
-        this._frameDuration = duration / (this._nbFrames || 1)
-        this._noises = []
-
-
-        if (!Array.isArray(images)) {
-            throw new TypeError("An array of images filename is expected as third argument")
-        }
-
-        // Temporary buffer to draw noise image and get data array from it
-        this._tmpBuffer = new OffscreenBuffer(width, height, true)
-
-
-        const promises = images.map(url => fetch(url))
-	
-        Promise
-        .all(promises)
-        .then(responses => Promise.all(responses.map(res => res.blob())))
-        .then(blobs => Promise.all(blobs.map(blob => createImageBitmap(blob))))
-        .then(bitmaps => Promise.all(bitmaps.map(bitmap => this._getImageData(bitmap))))
-        .then(bitmaps => {
-            this._noises = bitmaps
-            console.log('Noises images loaded')
-        })
+        this._noises = params?.noises ?? []
+        this._nbFrames = this._noises.length
+        this._frameDuration = (params?.intensity ?? 200) / (this._nbFrames || 1)
     }
-
-    /**
-     * Fetch image from server
-     * @param {string} src 
-     * @returns 
-     */
-    async _loadNoise(src: string) {
-        const response = await fetch(src)
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`)
-          } else {
-            return await response.blob()
-          }        
-    }
-
 
     init(): Promise<void> {
 
@@ -273,18 +240,6 @@ class NoiseEffectRenderer extends LayerRenderer {
 
         return this._submitAndReadback(this._tempBuffer, commandEncoder) || Promise.resolve(frameData)
 	}
-
-    /**
-     * Draw a bitmap in an offscreen buffer then grab the data
-     * @param {ImageBitmap} bitmap 
-     * @returns Promise<Uint8ClampedArray>
-     */
-    private _getImageData(bitmap: ImageBitmap): Promise<Uint8ClampedArray> {
-        return new Promise<Uint8ClampedArray>( resolve => {
-            this._tmpBuffer.context.drawImage(bitmap, 0, 0)
-            resolve(this._tmpBuffer.context.getImageData(0, 0, this._width, this._height).data)
-        })
-    }
 }
 
 export { NoiseEffectRenderer }

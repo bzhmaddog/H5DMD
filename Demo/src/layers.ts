@@ -20,35 +20,44 @@ import {
  */
 export function setupLayers(dmd: Dmd, imagesPath: string): void {
 
-    const noises: string[] = [];
+    const noiseUrls: string[] = [];
     for (let i = 0; i < 6; i++) {
-        noises.push(`${imagesPath}/noises/noise-${i}.png`);
+        noiseUrls.push(`${imagesPath}/noises/noise-${i}.png`);
     }
+
+    const animationImagesUrls: string[] = [
+        `${imagesPath}/animation/0.webp`,
+        `${imagesPath}/animation/1.webp`,
+        `${imagesPath}/animation/2.webp`,
+        `${imagesPath}/animation/3.webp`,
+        `${imagesPath}/animation/4.webp`,
+        `${imagesPath}/animation/5.webp`,
+        `${imagesPath}/animation/6.webp`,
+        `${imagesPath}/animation/7.webp`,
+        `${imagesPath}/animation/8.webp`,
+        `${imagesPath}/animation/9.webp`,
+        `${imagesPath}/animation/10.webp`,
+        `${imagesPath}/animation/11.webp`,
+        `${imagesPath}/animation/12.webp`,
+        `${imagesPath}/animation/13.webp`,
+        `${imagesPath}/animation/14.webp`
+    ];
+
+    const matthewImageUrl: string = `${imagesPath}/boss-matthew-big.png`
+
+    const scottSpriteSheetUrl: string = `${imagesPath}/scott2x.png`
 
     dmd.addLayer(
         CanvasLayer,
         'bg',
         {},
-        (layer) => {
-
-        const bgURI = `${imagesPath}/boss-mode-bg.png`;
-
-        console.log(`Fetching background image from: ${bgURI}`);
-
-        fetch(
-            bgURI
-        )
-        .then(response => response.blob())
-        .then(blob => createImageBitmap(blob))
-        .then(bitmap => {
-
-            layer.setDrawFunction(({ drawBitmap }) => {
-                drawBitmap(bitmap);
-            });
-
-            layer.draw(); // Draw the layer content once to initialize it            
+        async (layer) => {
+            const bgURI = `${imagesPath}/boss-mode-bg.png`;
+            console.log(`Fetching background image from: ${bgURI}`);
+            const bitmap = await fetch(bgURI).then(r => r.blob()).then(createImageBitmap);
+            layer.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap));
+            layer.draw();
         });
-    });
 
 
     dmd.addLayer(
@@ -62,32 +71,9 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
             autoplay: true,
             loop: true
         },
-        (layer) => {
-
-            const images = [
-                `${imagesPath}/animation/0.webp`,
-                `${imagesPath}/animation/1.webp`,
-                `${imagesPath}/animation/2.webp`,
-                `${imagesPath}/animation/3.webp`,
-                `${imagesPath}/animation/4.webp`,
-                `${imagesPath}/animation/5.webp`,
-                `${imagesPath}/animation/6.webp`,
-                `${imagesPath}/animation/7.webp`,
-                `${imagesPath}/animation/8.webp`,
-                `${imagesPath}/animation/9.webp`,
-                `${imagesPath}/animation/10.webp`,
-                `${imagesPath}/animation/11.webp`,
-                `${imagesPath}/animation/12.webp`,
-                `${imagesPath}/animation/13.webp`,
-                `${imagesPath}/animation/14.webp`
-            ];
-
-            Utils
-                .loadImagesOrdered(images)
-                .then((bitmaps) => {
-                    layer.setAnimationData(bitmaps);
-                });
-
+        async (layer) => {
+            const bitmaps = await Utils.loadImagesOrdered(animationImagesUrls);
+            layer.setAnimationData(bitmaps);
         });
 
 
@@ -148,16 +134,9 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
             height: 91,
             position: { hAlign: 'right', vAlign: 'middle', hOffset: -1 }
         },
-        (layer) => {
-
-            const bgURI = `${imagesPath}/boss-matthew-big.png`;
-
-            fetch(bgURI)
-                .then(response => response.blob())
-                .then(blob => createImageBitmap(blob))
-                .then(bitmap => {
-                    layer.drawBitmap(bitmap);
-                });
+        async (layer) => {
+            const bitmap = await fetch(matthewImageUrl).then(r => r.blob()).then(createImageBitmap);
+            layer.drawBitmap(bitmap);
         }
     );
 
@@ -190,9 +169,11 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
             fontStyle: 'italic bold',
             color: '#FFFFFF',
             adjustWidth: true,
-            renderers: [
-                rendererEntry('noise-effect', NoiseEffectRenderer, { intensity: 200, noises })
-            ]
+        },
+        async (layer) => {
+            const bitmaps = await Utils.loadImagesOrdered(noiseUrls);
+            const noiseData = Utils.bitmapsToPixelData(bitmaps, layer.width, layer.height);
+            await layer.addRenderer('noise-effect', NoiseEffectRenderer, { intensity: 200, noises: noiseData });
         }
     );
 
@@ -214,8 +195,8 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
             strokeColor: Colors.Red,
             adjustWidth: true,
         },
-        (l) => {
-            l.addRenderer('shaky-effect', ShakyRenderer, { intensity: 0.8, speed: 160, mode: "random" });
+        async (l) => {
+            await l.addRenderer('shaky-effect', ShakyRenderer, { intensity: 0.8, speed: 160, mode: "random" });
         }
     );
 
@@ -239,16 +220,10 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
             width: 110,
             height: 130
         },
-        (layer) => {
+        async (layer) => {
+            const bitmap = await fetch(scottSpriteSheetUrl).then(r => r.blob()).then(createImageBitmap);
 
-            const bgURI = `${imagesPath}/scott2x.png`;
-
-            fetch(bgURI)
-                .then(response => response.blob())
-                .then(blob => createImageBitmap(blob))
-                .then(bitmap => {
-
-                    layer.createSprite(
+            await layer.createSprite(
                         'scott',
                         bitmap,
                         6,
@@ -262,9 +237,9 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
                                     height: 118,
                                     xOffset: 0,
                                     yOffset: 0,
-                                    duration: 900 // 900
+                                    duration: 900
                                 }
-                            }, //800
+                            },
                             {
                                 key: 'walk',
                                 animationParams: {
@@ -312,21 +287,16 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
                         ],
                         '2%',
                         '2%'
-                    ).then(() => {
-                        const seq: SpriteSequenceItem[] = [
-                            {key: 'idle', nbLoop: 3},
-                            {key: 'walk', nbLoop: 5},
-                            {key: 'run', nbLoop: 4},
-                            {key: 'taunt', nbLoop: 1}
-                            //['idle2', 1]
-                        ];
+                    );
 
-                        layer.enqueueSequence('scott', seq, true);
-                        layer.run('scott');
-                    });
-
-                });
-
+            const seq: SpriteSequenceItem[] = [
+                {key: 'idle', nbLoop: 3},
+                {key: 'walk', nbLoop: 5},
+                {key: 'run', nbLoop: 4},
+                {key: 'taunt', nbLoop: 1}
+            ];
+            layer.enqueueSequence('scott', seq, true);
+            layer.run('scott');
         });
 
     // SVG title layer — centered, initially hidden
@@ -334,17 +304,14 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
         CanvasLayer,
         'svg-title',
         { visible: false },
-        (layer) => {
+        async (layer) => {
             const img = new Image();
-            img.onload = () => {
-                createImageBitmap(img).then(bitmap => {
-                    layer.setDrawFunction(({ drawBitmap }) => {
-                        drawBitmap(bitmap, { hAlign: 'center', vAlign: 'middle', margin: 5 });
-                    });
-                    layer.draw();
-                });
-            };
-            img.src = `${imagesPath}/sptitle.svg`;
+            await new Promise<void>(resolve => { img.onload = () => resolve(); img.src = `${imagesPath}/sptitle.svg`; });
+            const bitmap = await createImageBitmap(img);
+            layer.setDrawFunction(({ drawBitmap }) => {
+                drawBitmap(bitmap, { hAlign: 'center', vAlign: 'middle', margin: 5 });
+            });
+            layer.draw();
         }
     );
 }
