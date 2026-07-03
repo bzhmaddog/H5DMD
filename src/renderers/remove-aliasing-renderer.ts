@@ -1,8 +1,17 @@
 import {LayerRenderer} from './layer-renderer'
-import {Options, Utils} from '../utils'
+import {Utils} from '../utils'
 
-class RemoveAliasingRenderer extends LayerRenderer {
+export interface RemoveAliasingRendererParams {
+    /** Alpha threshold — semi-transparent pixels above this value are fully opaqued. Default: `0`. */
+    threshold?: number
+    /** Inner base color (RRGGBBAA hex string) used to detect the text boundary. Default: `'FFFFFFFF'`. */
+    baseColor?: string
+}
 
+class RemoveAliasingRenderer extends LayerRenderer<RemoveAliasingRendererParams> {
+
+    private _threshold: number
+    private _baseColor: string
     private _uboBuffer: GPUBuffer
     private _inputBuffer: GPUBuffer
     private _tempBuffer: GPUBuffer
@@ -10,11 +19,14 @@ class RemoveAliasingRenderer extends LayerRenderer {
     private _computePipeline: GPUComputePipeline
 
     /**
-     * @param {number} width 
-     * @param {number} height 
+     * @param {number} width
+     * @param {number} height
+     * @param {RemoveAliasingRendererParams} params Optional defaults for threshold and baseColor.
      */
-    constructor(width: number, height: number) {
+    constructor(width: number, height: number, params?: RemoveAliasingRendererParams) {
         super("RemoveAliasingRenderer", width, height)
+        this._threshold = params?.threshold ?? 0
+        this._baseColor  = params?.baseColor  ?? 'FFFFFFFF'
     }
 
     init(): Promise<void> {
@@ -227,18 +239,16 @@ class RemoveAliasingRenderer extends LayerRenderer {
      * @param {Options} _options
      * @returns {Promise<ImageData>}
      */
-    private _doRendering(frameData: ImageData, _options?: Options): Promise<ImageData> {
+    private _doRendering(frameData: ImageData, options?: RemoveAliasingRendererParams): Promise<ImageData> {
 
-        const options = new Options({
-            threshold: 0,
-            baseColor: 'FFFFFFFF' // Check Impact
-        }).merge(_options)
+        const threshold = options?.threshold ?? this._threshold
+        const baseColor  = options?.baseColor  ?? this._baseColor
 
         // Upload frame pixels into the persistent input buffer
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
         // Write values to uniform buffer object
-        const uniformData = [options.get('threshold'), Utils.hexColorToInt(Utils.rgba2abgr(options.get('baseColor')))]
+        const uniformData = [threshold, Utils.hexColorToInt(Utils.rgba2abgr(baseColor))]
         const uniformTypedArray = new Int32Array(uniformData)
         this._device.queue.writeBuffer(this._uboBuffer, 0, uniformTypedArray.buffer)
 

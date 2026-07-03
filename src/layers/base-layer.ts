@@ -4,8 +4,9 @@ import {LayerRendererDictionary, RendererEntry} from "../interfaces";
 
 interface RenderQueueItem {
     id: string,
-    instance: LayerRenderer,
-    params?: Options,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    instance: LayerRenderer<any>,
+    params?: Record<string, unknown>,
     active: boolean
 }
 
@@ -249,7 +250,7 @@ abstract class BaseLayer {
             this._renderQueue.push({
                 id : 'opacity',
                 instance : this._availableRenderers['opacity'],
-                params: new Options({ opacity : parseFloat(this._options.get('opacity'))}),
+                params: { opacity: parseFloat(this._options.get('opacity')) },
                 active: true
             })
         }
@@ -288,10 +289,26 @@ abstract class BaseLayer {
 
             // Put final frame data into output buffer and start process again (if needed)
             createImageBitmap(frameImageData).then(bitmap => {
+                // Background behind content
+                const bgColor: string | undefined = this._options.get('backgroundColor')
+                if (bgColor) {
+                    const bgOpacity: number = this._options.get('backgroundOpacity') ?? 1
+                    this._outputBuffer.context.globalAlpha = bgOpacity
+                    this._outputBuffer.context.fillStyle = bgColor
+                    this._outputBuffer.context.fillRect(0, 0, this._outputBuffer.width, this._outputBuffer.height)
+                    this._outputBuffer.context.globalAlpha = 1
+                }
                 // Put final layer data in the output buffer
                 this._outputBuffer.context.drawImage(bitmap, 0, 0)
-                // Release the bitmap now that it has been copied into the buffer
                 bitmap.close()
+                // Border over content
+                const borderColor: string | undefined = this._options.get('borderColor')
+                const borderWidth: number = this._options.get('borderWidth') ?? 0
+                if (borderColor && borderWidth > 0) {
+                    this._outputBuffer.context.strokeStyle = borderColor
+                    this._outputBuffer.context.lineWidth = borderWidth
+                    this._outputBuffer.context.strokeRect(borderWidth / 2, borderWidth / 2, this._outputBuffer.width - borderWidth, this._outputBuffer.height - borderWidth)
+                }
                 // request next frame rendering
                 this._renderNextFrame()
             })
@@ -315,8 +332,23 @@ abstract class BaseLayer {
 
             this._outputBuffer.clear()
             createImageBitmap(frameImageData).then(bitmap => {
+                const bgColor: string | undefined = this._options.get('backgroundColor')
+                if (bgColor) {
+                    const bgOpacity: number = this._options.get('backgroundOpacity') ?? 1
+                    this._outputBuffer.context.globalAlpha = bgOpacity
+                    this._outputBuffer.context.fillStyle = bgColor
+                    this._outputBuffer.context.fillRect(0, 0, this._outputBuffer.width, this._outputBuffer.height)
+                    this._outputBuffer.context.globalAlpha = 1
+                }
                 this._outputBuffer.context.drawImage(bitmap, 0, 0)
                 bitmap.close()
+                const borderColor: string | undefined = this._options.get('borderColor')
+                const borderWidth: number = this._options.get('borderWidth') ?? 0
+                if (borderColor && borderWidth > 0) {
+                    this._outputBuffer.context.strokeStyle = borderColor
+                    this._outputBuffer.context.lineWidth = borderWidth
+                    this._outputBuffer.context.strokeRect(borderWidth / 2, borderWidth / 2, this._outputBuffer.width - borderWidth, this._outputBuffer.height - borderWidth)
+                }
             })
         }
 
@@ -419,6 +451,34 @@ abstract class BaseLayer {
      * Return if the layer have renderer in the queue
      * @returns boolean
      */
+    /** Set the background fill color for this layer and trigger a redraw. Pass `undefined` to clear. */
+    setBackgroundColor(color: string | undefined) {
+        this._options.set('backgroundColor', color)
+        if (this.isVisible() && !this.haveRenderer()) this._renderFrame()
+    }
+    get backgroundColor(): string | undefined { return this._options.get('backgroundColor') }
+
+    /** Set the background fill opacity (0–1) and trigger a redraw. */
+    setBackgroundOpacity(opacity: number) {
+        this._options.set('backgroundOpacity', Math.max(0, Math.min(1, opacity)))
+        if (this.isVisible() && !this.haveRenderer()) this._renderFrame()
+    }
+    get backgroundOpacity(): number { return this._options.get('backgroundOpacity') ?? 1 }
+
+    /** Set the border stroke color and trigger a redraw. */
+    setBorderColor(color: string) {
+        this._options.set('borderColor', color)
+        if (this.isVisible() && !this.haveRenderer()) this._renderFrame()
+    }
+    get borderColor(): string | undefined { return this._options.get('borderColor') }
+
+    /** Set the border stroke width in pixels and trigger a redraw. */
+    setBorderWidth(width: number) {
+        this._options.set('borderWidth', width)
+        if (this.isVisible() && !this.haveRenderer()) this._renderFrame()
+    }
+    get borderWidth(): number { return this._options.get('borderWidth') ?? 0 }
+
     haveRenderer() {
         return this._defaultRenderQueue.some(r => r.active)
     }

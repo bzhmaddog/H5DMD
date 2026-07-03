@@ -1,7 +1,11 @@
 import {LayerRenderer} from "./layer-renderer"
-import {Options} from "../utils"
 
-class ChangeAlphaRenderer extends LayerRenderer {
+export interface ChangeAlphaRenderOptions {
+    /** Frame opacity 0–1. Default: `1`. */
+    opacity?: number
+}
+
+class ChangeAlphaRenderer extends LayerRenderer<ChangeAlphaRenderOptions> {
 
     private _uboBuffer: GPUBuffer
     private _inputBuffer: GPUBuffer
@@ -191,15 +195,13 @@ class ChangeAlphaRenderer extends LayerRenderer {
      * @param {Options} _options
      * @returns {Promise<ImageData>}
      */
-    private _doRendering(frameData: ImageData, _options?: Options): Promise<ImageData> {
-
-        const options = new Options({opacity: 1}).merge(_options)
+    private _doRendering(frameData: ImageData, options?: ChangeAlphaRenderOptions): Promise<ImageData> {
 
         // Upload frame pixels into the persistent input buffer
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
         // Write values to uniform buffer object
-        const uniformTypedArray = new Float32Array([options.get('opacity')])
+        const uniformTypedArray = new Float32Array([options?.opacity ?? 1])
         this._device.queue.writeBuffer(this._uboBuffer, 0, uniformTypedArray.buffer)
 
         const commandEncoder = this._device.createCommandEncoder()

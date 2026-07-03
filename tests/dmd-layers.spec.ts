@@ -159,8 +159,8 @@ describe('Dmd public API', () => {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const entry = (dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'c')
-        expect(entry.left).toBe(15)  // (42 - 10) / 2 - 1
-        expect(entry.top).toBe(1.5)  // (10 - 5) / 2 - 1
+        expect(entry.left).toBe(16)  // (42 - 10) / 2
+        expect(entry.top).toBe(2.5)  // (10 - 5) / 2
     })
 
     test('an explicit zIndex option is honoured in the sorted list', () => {
@@ -217,14 +217,14 @@ describe('Dmd public API', () => {
         expect(entry.left).toBe(3)
     })
 
-    test('hAlign right positions at dmd width - layer width - 1', () => {
+    test('hAlign right positions at dmd width - layer width', () => {
         const dmd = makeDmd()
         dmd.addLayer(CanvasLayer, 'a', new Options({width: 10, height: 5, position: {hAlign: 'right'}}))
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const entry = (dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'a')
-        // dmd width = floor(128/3) = 42 → 42 - 10 - 1 = 31
-        expect(entry.left).toBe(31)
+        // dmd width = floor(128/3) = 42 → 42 - 10 = 32
+        expect(entry.left).toBe(32)
     })
 
     test('vAlign top positions at vOffset', () => {
@@ -236,14 +236,14 @@ describe('Dmd public API', () => {
         expect(entry.top).toBe(2)
     })
 
-    test('vAlign bottom positions at dmd height - layer height - 1', () => {
+    test('vAlign bottom positions at dmd height - layer height', () => {
         const dmd = makeDmd()
         dmd.addLayer(CanvasLayer, 'a', new Options({width: 10, height: 5, position: {vAlign: 'bottom'}}))
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const entry = (dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'a')
-        // dmd height = floor(32/3) = 10 → 10 - 5 - 1 = 4
-        expect(entry.top).toBe(4)
+        // dmd height = floor(32/3) = 10 → 10 - 5 = 5
+        expect(entry.top).toBe(5)
     })
 
     test('invalid layer class throws TypeError', () => {

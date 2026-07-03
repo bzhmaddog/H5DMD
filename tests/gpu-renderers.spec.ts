@@ -368,6 +368,24 @@ describe('OutlineRenderer', () => {
     beforeEach(stubGpu)
     afterEach(restoreGpu)
 
+    test('stores default constructor params', () => {
+        const r = new OutlineRenderer(W, H)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const p = r as any
+        expect(p._innerColor).toBe('FFFFFFFF')
+        expect(p._outerColor).toBe('000000FF')
+        expect(p._outlineWidth).toBe(1)
+    })
+
+    test('stores custom constructor params', () => {
+        const r = new OutlineRenderer(W, H, { innerColor: 'FF0000FF', outerColor: 'AABBCCFF', width: 3 })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const p = r as any
+        expect(p._innerColor).toBe('FF0000FF')
+        expect(p._outerColor).toBe('AABBCCFF')
+        expect(p._outlineWidth).toBe(3)
+    })
+
     test('init() rejects when navigator.gpu is absent', async () => {
         nav.gpu = undefined
         await expect(new OutlineRenderer(W, H).init()).rejects.toThrow(/WebGPU is not available/)
@@ -393,8 +411,13 @@ describe('OutlineRenderer', () => {
     test('renderFrame returns ImageData with valid outline options', async () => {
         const r = new OutlineRenderer(W, H)
         await r.init()
-        const opts = new Options({ innerColor: 'FF0000FF', outerColor: '000000FF', width: 1 })
-        await expect(r.renderFrame(makeImageData(), opts)).resolves.toBeInstanceOf(ImageData)
+        await expect(r.renderFrame(makeImageData(), { innerColor: 'FF0000FF', outerColor: '000000FF', width: 1 })).resolves.toBeInstanceOf(ImageData)
+    })
+
+    test('renderFrame uses constructor defaults when no options are passed', async () => {
+        const r = new OutlineRenderer(W, H, { innerColor: 'FF0000FF', outerColor: '000000FF', width: 2 })
+        await r.init()
+        await expect(r.renderFrame(makeImageData())).resolves.toBeInstanceOf(ImageData)
     })
 
     test('renderFrame falls back to input when output buffer is busy', async () => {
@@ -414,6 +437,22 @@ describe('RemoveAliasingRenderer', () => {
 
     beforeEach(stubGpu)
     afterEach(restoreGpu)
+
+    test('stores default constructor params', () => {
+        const r = new RemoveAliasingRenderer(W, H)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((r as any)._threshold).toBe(0)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((r as any)._baseColor).toBe('FFFFFFFF')
+    })
+
+    test('stores custom constructor params', () => {
+        const r = new RemoveAliasingRenderer(W, H, { threshold: 10, baseColor: 'FF0000FF' })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((r as any)._threshold).toBe(10)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((r as any)._baseColor).toBe('FF0000FF')
+    })
 
     test('init() rejects when navigator.gpu is absent', async () => {
         nav.gpu = undefined

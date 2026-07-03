@@ -38,7 +38,8 @@ const layerDescriptors: LayerDescriptor[] = [
     {id: 'text2', label: 'Text: VS in', kind: 'text'},
     {id: 'text3', label: 'Text: VS out', kind: 'text'},
     {id: 'text4', label: 'Text: Matthew', kind: 'text'},
-    {id: 'svg-title', label: 'SVG Title', kind: 'canvas'}
+    {id: 'svg-title', label: 'SVG Title', kind: 'canvas'},
+    {id: 'big-text-demo', label: 'Text Demo', kind: 'text'},
 ];
 
 function getReadOnlyRanges(targetState: EditorState) {
@@ -737,6 +738,118 @@ export function buildControlPanel(dmd: Dmd): void {
                 const adjustLabel = document.createElement('label');
                 adjustLabel.append(adjustCheckbox, ' Adjust width');
                 row(panel, adjustLabel);
+
+                const outlineValue = document.createElement('span');
+                const outlineSlider = document.createElement('input');
+                outlineSlider.type = 'range';
+                outlineSlider.min = '0';
+                outlineSlider.max = '10';
+                outlineSlider.step = '1';
+                outlineSlider.value = String(text.outlineWidth);
+                outlineValue.textContent = outlineSlider.value;
+                outlineSlider.addEventListener('input', () => {
+                    outlineValue.textContent = outlineSlider.value;
+                    text.setOutlineWidth(parseInt(outlineSlider.value));
+                });
+                row(panel, labelEl('Outline width'), outlineSlider, outlineValue);
+
+                const outlineColorInput = document.createElement('input');
+                outlineColorInput.type = 'color';
+                // Initialise from the layer's current outlineColor (strip alpha if present)
+                outlineColorInput.value = (text.outlineColor.startsWith('#') ? text.outlineColor : '#' + text.outlineColor).slice(0, 7);
+                outlineColorInput.addEventListener('input', () => {
+                    text.setOutlineColor(outlineColorInput.value);
+                });
+                row(panel, labelEl('Outline color'), outlineColorInput);
+
+                const fontSizeValue = document.createElement('span');
+                const fontSizeSlider = document.createElement('input');
+                fontSizeSlider.type = 'range';
+                fontSizeSlider.min = '0';
+                fontSizeSlider.max = '100';
+                fontSizeSlider.step = '1';
+                fontSizeSlider.value = String(text.fontSize);
+                fontSizeValue.textContent = `${fontSizeSlider.value}%`;
+                fontSizeSlider.addEventListener('input', () => {
+                    fontSizeValue.textContent = `${fontSizeSlider.value}%`;
+                    text.setFontSize(parseInt(fontSizeSlider.value));
+                });
+                row(panel, labelEl('Font size'), fontSizeSlider, fontSizeValue);
+
+                const fonts = ['Arial', 'Arial Black', 'Verdana', 'Helvetica', 'Tahoma',
+                    'Trebuchet MS', 'Impact', 'Georgia', 'Times New Roman',
+                    'Courier New', 'Lucida Console', 'monospace', 'serif', 'sans-serif',
+                ];
+                const fontSelect = document.createElement('select');
+                fontSelect.style.cssText = 'background:#222;color:#fff;border:1px solid #555;border-radius:4px;padding:4px 6px;';
+                fonts.forEach(f => {
+                    const o = document.createElement('option');
+                    o.value = f;
+                    o.textContent = f;
+                    o.style.fontFamily = f;
+                    if (f === text.fontFamily) o.selected = true;
+                    fontSelect.appendChild(o);
+                });
+                fontSelect.addEventListener('change', () => text.setFontFamily(fontSelect.value));
+                row(panel, labelEl('Font'), fontSelect);
+
+                // Extra decoration controls — only shown for the interactive text demo
+                if (desc.id === 'big-text-demo') {
+                    const bgPicker = document.createElement('input');
+                    bgPicker.type = 'color';
+                    bgPicker.style.cssText = 'cursor:pointer;border:1px solid #555;border-radius:4px;height:26px;padding:1px 2px;background:#222;';
+                    bgPicker.value = text.backgroundColor?.slice(0, 7) ?? '#000000';
+                    const bgEnabled = document.createElement('input');
+                    bgEnabled.type = 'checkbox';
+                    bgEnabled.checked = !!text.backgroundColor;
+                    bgEnabled.addEventListener('change', () => {
+                        text.setBackgroundColor(bgEnabled.checked ? bgPicker.value : undefined);
+                    });
+                    bgPicker.addEventListener('input', () => {
+                        if (bgEnabled.checked) text.setBackgroundColor(bgPicker.value);
+                    });
+                    const bgLabel = document.createElement('label');
+                    bgLabel.append(bgEnabled, '\u00a0Enable');
+                    row(panel, labelEl('Background'), bgLabel, bgPicker);
+
+                    const bgOpacityValue = document.createElement('span');
+                    const bgOpacitySlider = document.createElement('input');
+                    bgOpacitySlider.type = 'range';
+                    bgOpacitySlider.min = '0';
+                    bgOpacitySlider.max = '1';
+                    bgOpacitySlider.step = '0.05';
+                    bgOpacitySlider.value = String(text.backgroundOpacity);
+                    bgOpacityValue.textContent = bgOpacitySlider.value;
+                    bgOpacitySlider.addEventListener('input', () => {
+                        bgOpacityValue.textContent = parseFloat(bgOpacitySlider.value).toFixed(2);
+                        text.setBackgroundOpacity(parseFloat(bgOpacitySlider.value));
+                    });
+                    row(panel, labelEl('Bg opacity'), bgOpacitySlider, bgOpacityValue);
+
+                    const borderColorPicker = document.createElement('input');
+                    borderColorPicker.type = 'color';
+                    borderColorPicker.style.cssText = 'cursor:pointer;border:1px solid #555;border-radius:4px;height:26px;padding:1px 2px;background:#222;';
+                    borderColorPicker.value = text.borderColor?.slice(0, 7) ?? '#ffffff';
+                    borderColorPicker.addEventListener('input', () => {
+                        if (borderWidthSlider.valueAsNumber > 0) text.setBorderColor(borderColorPicker.value);
+                    });
+                    row(panel, labelEl('Border color'), borderColorPicker);
+
+                    const borderWidthValue = document.createElement('span');
+                    const borderWidthSlider = document.createElement('input');
+                    borderWidthSlider.type = 'range';
+                    borderWidthSlider.min = '0';
+                    borderWidthSlider.max = '10';
+                    borderWidthSlider.step = '1';
+                    borderWidthSlider.value = String(text.borderWidth);
+                    borderWidthValue.textContent = `${borderWidthSlider.value}px`;
+                    borderWidthSlider.addEventListener('input', () => {
+                        borderWidthValue.textContent = `${borderWidthSlider.value}px`;
+                        text.setBorderWidth(borderWidthSlider.valueAsNumber);
+                        if (borderWidthSlider.valueAsNumber > 0) text.setBorderColor(borderColorPicker.value);
+                    });
+                    row(panel, labelEl('Border width'), borderWidthSlider, borderWidthValue);
+                }
             } else if (desc.kind === 'canvas' && desc.id === 'bg') {
                 const canvas = layer as CanvasLayer;
 

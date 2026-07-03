@@ -43,6 +43,14 @@ export interface BaseLayerOptions {
      * Default: `[]`.
      */
     renderers: Array<RendererEntry>
+    /** Background fill color drawn behind the layer content. Transparent if omitted. */
+    backgroundColor?: string
+    /** Background fill opacity 0–1. Default: `1`. */
+    backgroundOpacity?: number
+    /** Border stroke color drawn around the layer edge. No border if omitted. */
+    borderColor?: string
+    /** Border stroke width in pixels. Default: `0`. */
+    borderWidth?: number
 }
 
 /**

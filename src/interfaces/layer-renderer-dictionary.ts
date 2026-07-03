@@ -1,7 +1,8 @@
 import {LayerRenderer} from "../renderers/layer-renderer";
 
 export interface LayerRendererDictionary {
-    [index: string]: LayerRenderer;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [index: string]: LayerRenderer<any>;
 }
 
 /**

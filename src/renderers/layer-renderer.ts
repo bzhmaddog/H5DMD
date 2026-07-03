@@ -1,7 +1,6 @@
 import {Renderer} from "./renderer";
-import {Options} from "../utils";
 
-export abstract class LayerRenderer extends Renderer {
+export abstract class LayerRenderer<O = never> extends Renderer {
     protected _width: number;
     protected _height: number;
     protected _bufferByteLength: number;
@@ -19,7 +18,7 @@ export abstract class LayerRenderer extends Renderer {
 
     abstract init(): Promise<void>;
 
-    renderFrame: (frameData: ImageData, options?: Options) => Promise<ImageData>;
+    renderFrame: (frameData: ImageData, options?: O extends never ? never : O) => Promise<ImageData>;
 
     /**
      * Create the double-buffered output buffers. Must be called in _createResources()
@@ -105,7 +104,7 @@ export abstract class LayerRenderer extends Renderer {
         }
         return true
     }
-    
+
     /* @param {ImageData} frameData
      * @returns {Promise<ImageData>}
      */

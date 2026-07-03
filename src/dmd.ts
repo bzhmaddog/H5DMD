@@ -425,10 +425,10 @@ export class Dmd {
                     layerLeft = pos.hOffset || 0
                     break
                 case "center":
-                    layerLeft = (this._outputWidth - layerWidth) / 2 + (pos.hOffset || 0) - 1
+                    layerLeft = (this._outputWidth - layerWidth) / 2 + (pos.hOffset || 0)
                     break
                 case "right":
-                    layerLeft = this._outputWidth - layerWidth + (pos.hOffset || 0) - 1
+                    layerLeft = this._outputWidth - layerWidth + (pos.hOffset || 0)
             }
         }
 
@@ -438,10 +438,10 @@ export class Dmd {
                     layerTop = pos.vOffset || 0
                     break
                 case 'middle':
-                    layerTop = (this._outputHeight - layerHeight) / 2 + (pos.vOffset || 0) - 1
+                    layerTop = (this._outputHeight - layerHeight) / 2 + (pos.vOffset || 0)
                     break
                 case 'bottom':
-                    layerTop = this._outputHeight - layerHeight + (pos.vOffset || 0) - 1
+                    layerTop = this._outputHeight - layerHeight + (pos.vOffset || 0)
             }
         }
 

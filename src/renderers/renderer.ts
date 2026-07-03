@@ -1,5 +1,3 @@
-import {Options} from "../utils"
-
 export abstract class Renderer {
 
     protected _adapter: GPUAdapter
@@ -17,7 +15,7 @@ export abstract class Renderer {
 
     abstract init(): Promise<void>
 
-    abstract renderFrame(frameData: ImageData, options?: Options): Promise<ImageData | void>
+    abstract renderFrame(frameData: ImageData, options?: unknown): Promise<ImageData | void>
 
     get name(): string {
         return this._name

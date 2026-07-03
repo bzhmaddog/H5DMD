@@ -34,7 +34,9 @@ class TextLayer extends BaseLayer {
             adjustWidth: false,
             outlineWidth: 0,
             outlineColor: Colors.Black,
-            antialiasing: true
+            antialiasing: true,
+            vAlign: 'middle',
+            hAlign: 'center'
         }).merge(options)
 
         // Prepend built-in renderer classes (inactive by default; activated
@@ -47,15 +49,22 @@ class TextLayer extends BaseLayer {
         ]
         layerOptions.set('renderers', [...builtinRenderers, ...userRenderers])
 
-        super(id, width, height, layerOptions, loadedListener, updatedListener)
+        // Wrap the loaded listener so the text is redrawn once renderers are
+        // initialised — the first _drawText() call below happens before GPU init
+        // finishes, so outline/anti-aliasing only takes effect on this second pass.
+        const onReady = async (layer: TextLayer) => {
+            if (this._text !== '') {
+                await this._drawText()
+                this._layerUpdated()
+            }
+            await loadedListener?.(layer)
+        }
+
+        super(id, width, height, layerOptions, onReady, updatedListener)
 
         this._textBuffer = new OffscreenBuffer(this.width, this.height)
 
         this._text = ""
-
-        //this._contentBuffer.imageSmoothingEnabled = this._options.antialiasing
-
-        //this.#ctx.imageSmoothingEnabled = false
 
         setTimeout(this._layerLoaded.bind(this), 1)
 
@@ -130,32 +139,30 @@ class TextLayer extends BaseLayer {
             let fontSize = options.get('fontSize')
             let fontUnit = options.get('fontUnit')
 
-            // Approximation of the height in percentage
-            // TODO : Check with different fonts
+            // Convert % fontSize to pixels proportional to the layer height.
+            // Reserve space for the outline on both sides and a 2px safety margin
+            // so glyphs with tall ascenders/descenders are never clipped.
             if (fontUnit === '%') {
                 fontUnit = 'px'
-                fontSize = (fontSize * this.height) / 80
+                const outlineW = options.get('outlineWidth') ?? 0
+                const verticalHeadroom = this.height - outlineW * 2 - 2
+                fontSize = Math.min((fontSize * this.height) / 80, verticalHeadroom)
             }
 
 
-            // Adjust size of font so that the text fit the screen
-            // TODO : Fix that to handle text that are not aligned 
+            // Adjust the font size so the text does not overflow the layer width.
+            // adjustWidth shrinks the font if the text is too wide; the fontSize
+            // from the slider is always the starting (maximum) size.
             if (options.get('adjustWidth')) {
-                // Smallest font we are willing to shrink to; also guarantees the
-                // loop terminates even when the text can never fully fit.
                 const minFontSize = 1
-                let textOk = false
 
-                while (!textOk) {
-                    this._textBuffer.context.font = options.get('fontStyle') + " " + fontSize + fontUnit + ' ' + options.get('fontFamily')
+                this._textBuffer.context.font = options.get('fontStyle') + ' ' + fontSize + fontUnit + ' ' + options.get('fontFamily')
+                m = this._textBuffer.context.measureText(this._text)
+
+                while (m.width > this.width - 5 && fontSize > minFontSize) {
+                    fontSize -= 1
+                    this._textBuffer.context.font = options.get('fontStyle') + ' ' + fontSize + fontUnit + ' ' + options.get('fontFamily')
                     m = this._textBuffer.context.measureText(this._text)
-
-                    if (m.width > this.width - 5 && fontSize > minFontSize) {
-                        // Shrink the value actually used to build the font string.
-                        fontSize -= 1
-                    } else {
-                        textOk = true
-                    }
                 }
             } else {
                 this._textBuffer.context.font = options.get('fontStyle') + " " + fontSize + fontUnit + ' ' + options.get('fontFamily')
@@ -170,14 +177,12 @@ class TextLayer extends BaseLayer {
             // Convert % to pixels/dots
             if (typeof options.get('left') === 'string' && options.get('left').at(-1) === '%') {
                 const vl = parseFloat(options.get('left').replace('%', ''))
-                //left =  ((vl * this.width) / 100) - (m.width / 2)
                 left = Math.floor((vl * this.width) / 100)
             }
 
             // Convert % to pixels/dots
             if (typeof options.get('top') === 'string' && options.get('top').at(-1) === '%') {
                 const vt = parseFloat(options.get('top').replace('%', ''))
-                //top = ((vt * this.height) / 100) - (this.#textBuffer.context.measureText('M').width / 2) // m.height not available
                 top = Math.floor((vt * this.height) / 100)
             }
 
@@ -249,16 +254,16 @@ class TextLayer extends BaseLayer {
 
                     this._getRendererInstance('outline').renderFrame(
                         frameImageData,
-                        new Options({
+                        {
                             innerColor: Utils.hexRGBToHexRGBA(this._options.get('color').replace('#', ''), 'FF'),
                             outerColor: Utils.hexRGBToHexRGBA(this._options.get('outlineColor').replace('#', ''), 'FF'),
-                            width: this._options.get('outlineWidth') // TODO Check if correct
-                        })
+                            width: this._options.get('outlineWidth')
+                        }
                     ).then((outputData: ImageData) => {
                         createImageBitmap(outputData).then(bitmap => {
                             this._contentBuffer.clear()
                             this._contentBuffer.context.drawImage(bitmap, 0, 0)
-                            resolve() // outputData
+                            resolve()
                         })
                     })
 
@@ -267,30 +272,30 @@ class TextLayer extends BaseLayer {
 
                     this._getRendererInstance('no-antialiasing').renderFrame(
                         frameImageData,
-                        new Options({
-                            threshold: 255, // TODO find how param was set before
+                        {
+                            threshold: 255,
                             baseColor: Utils.hexRGBToHexRGBA(this._options.get('color').replace('#', ''), 'FF')
-                        })
+                        }
                     ).then((aaData: ImageData) => {
                         this._getRendererInstance('outline').renderFrame(
                             aaData,
-                            new Options({
+                            {
                                 innerColor: Utils.hexRGBToHexRGBA(this._options.get('color').replace('#', ''), 'FF'),
                                 outerColor: Utils.hexRGBToHexRGBA(this._options.get('outlineColor').replace('#', ''), 'FF'),
                                 width: this._options.get('outlineWidth')
-                            })
+                            }
                         ).then((outputData: ImageData) => {
                             createImageBitmap(outputData).then(bitmap => {
                                 this._contentBuffer.clear()
                                 this._contentBuffer.context.drawImage(bitmap, 0, 0)
-                                resolve() // outputData
+                                resolve()
                             })
                         })
                     })
                 }
 
 
-                // otherwise just render the text as is
+            // otherwise just render the text as is
             } else {
 
                 if (this._options.get('antialiasing')) {
@@ -303,14 +308,13 @@ class TextLayer extends BaseLayer {
 
                     this._getRendererInstance('no-antialiasing').renderFrame(
                         frameImageData,
-                        new Options({
-                            threshold: 255, // TODO: Find how param was set before
+                        {
+                            threshold: 255,
                             baseColor: Utils.hexRGBToHexRGBA(this._options.get('color').replace('#', ''), 'FF')
-                        })
+                        }
                     ).then((aaData: ImageData) => {
                         createImageBitmap(aaData).then(bitmap => {
                             this._contentBuffer.clear()
-                            this._contentBuffer.context.fillRect(0,0,this.width, this.height)
                             this._contentBuffer.context.drawImage(bitmap, 0, 0)
                             resolve()
                         })
@@ -344,6 +348,84 @@ class TextLayer extends BaseLayer {
      */
     get text(): string {
         return this._text
+    }
+
+    /**
+     * Set the outline width in pixels and redraw.
+     * Set to `0` to disable the outline.
+     */
+    setOutlineWidth(width: number) {
+        this._options.set('outlineWidth', width)
+        this._drawText().then(() => this._layerUpdated())
+    }
+
+    /** Current outline width in pixels. */
+    get outlineWidth(): number {
+        return this._options.get('outlineWidth') ?? 0
+    }
+
+    /**
+     * Set the outline colour and redraw.
+     * @param {string} color CSS color string (e.g. '#FF0000')
+     */
+    setOutlineColor(color: string) {
+        this._options.set('outlineColor', color)
+        this._drawText().then(() => this._layerUpdated())
+    }
+
+    /** Current outline colour as a CSS hex string (e.g. `'#FF0000'`). */
+    get outlineColor(): string {
+        return this._options.get('outlineColor') ?? '#000000'
+    }
+
+    /** Set the background fill color and redraw. Pass `undefined` to clear. */
+    override setBackgroundColor(color: string | undefined) {
+        this._options.set('backgroundColor', color)
+        this._drawText().then(() => this._layerUpdated())
+    }
+
+    /** Set the border stroke color and redraw. */
+    override setBorderColor(color: string) {
+        this._options.set('borderColor', color)
+        this._drawText().then(() => this._layerUpdated())
+    }
+
+    /** Set the border stroke width in pixels and redraw. */
+    override setBorderWidth(width: number) {
+        this._options.set('borderWidth', width)
+        this._drawText().then(() => this._layerUpdated())
+    }
+
+    /**
+     * Set the font family and redraw.
+     * @param {string} family CSS font-family string (e.g. 'Arial', 'monospace')
+     */
+    setFontFamily(family: string) {
+        this._options.set('fontFamily', family)
+        this._drawText().then(() => this._layerUpdated())
+    }
+
+    /**
+     * Current font family.
+     */
+    get fontFamily(): string {
+        return this._options.get('fontFamily')
+    }
+
+    /**
+     * Set the font size and redraw.
+     * @param {number} size Font size value (interpreted according to the layer's fontUnit).
+     */
+    setFontSize(size: number) {
+        this._options.set('fontSize', size)
+        this._drawText().then(() => this._layerUpdated())
+    }
+
+    /**
+     * Current font size value (in the layer's fontUnit).
+     */
+    get fontSize(): number {
+        return parseFloat(this._options.get('fontSize'))
     }
 
     /**

@@ -314,4 +314,29 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
             layer.draw();
         }
     );
+
+    // Interactive text demo layer — shows text options (outline, shaky, adjustWidth)
+    dmd.addLayer(
+        TextLayer,
+        'big-text-demo',
+        {
+            width: 426,
+            height: 94,
+            position: { vAlign: 'middle' },
+            text: 'Hello DMD!',
+            fontFamily: 'Arial',
+            fontSize: 90,
+            fontUnit: '%',
+            fontStyle: 'bold',
+            color: Colors.Orange,
+            adjustWidth: true,
+            outlineWidth: 2,
+            outlineColor: Colors.DarkOrange,
+            backgroundColor: Colors.Black,
+            backgroundOpacity: 0.8,
+            borderColor: Colors.White,
+            borderWidth: 2,
+            visible: false,
+        }
+    );
 }
