@@ -9,6 +9,8 @@
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
 
 import {ShakyRenderer} from '../src/renderers'
+import {Renderer} from '../src/renderers/renderer'
+import {makeFakeGpu, warnMsg, errorMsg} from './helpers/fake-gpu'
 
 // ---------------------------------------------------------------------------
 // helpers
@@ -108,7 +110,7 @@ describe('ShakyRenderer.init — WebGPU unavailable', () => {
     const nav = globalThis.navigator as any
     const originalGpu = nav.gpu
 
-    afterEach(() => { nav.gpu = originalGpu })
+    afterEach(() => { nav.gpu = originalGpu; Renderer.releaseSharedDevice() })
 
     test('rejects when navigator.gpu is undefined', async () => {
         nav.gpu = undefined
@@ -296,47 +298,6 @@ describe('ShakyRenderer.init — GPU success path + rendering', () => {
     const nav = globalThis.navigator as any
     const originalGpu = nav.gpu
 
-    // Build a minimal fake GPU chain that satisfies every WebGPU call made by
-    // ShakyRenderer without performing any actual GPU work.
-    const makeFakeDevice = (compilationMessages: unknown[] = []) => {
-        const byteLength = W * H * 4
-
-        const makeBuffer = () => ({
-            mapState: 'unmapped' as const,
-            mapAsync: () => Promise.resolve(),
-            getMappedRange: () => new ArrayBuffer(byteLength),
-            unmap: vi.fn(),
-        })
-
-        return {
-            createShaderModule: () => ({
-                getCompilationInfo: () => Promise.resolve({ messages: compilationMessages })
-            }),
-            createBuffer: () => makeBuffer(),
-            createBindGroupLayout: () => ({}),
-            createBindGroup: () => ({}),
-            createComputePipeline: () => ({}),
-            createPipelineLayout: () => ({}),
-            queue: { writeBuffer: vi.fn(), submit: vi.fn() },
-            createCommandEncoder: () => ({
-                beginComputePass: () => ({
-                    setPipeline: vi.fn(),
-                    setBindGroup: vi.fn(),
-                    dispatchWorkgroups: vi.fn(),
-                    end: vi.fn(),
-                }),
-                copyBufferToBuffer: vi.fn(),
-                finish: () => ({}),
-            }),
-        }
-    }
-
-    const makeFakeGpu = (compilationMessages: {type: string; message: string; lineNum: number}[] = []) => ({
-        requestAdapter: () => Promise.resolve({
-            requestDevice: () => Promise.resolve(makeFakeDevice(compilationMessages))
-        })
-    })
-
     beforeEach(() => {
         // Stub the WebGPU flag constants that the renderer reads at runtime
         vi.stubGlobal('GPUBufferUsage', { STORAGE: 0x80, COPY_SRC: 0x04, COPY_DST: 0x08, MAP_READ: 0x01, UNIFORM: 0x40 })
@@ -349,6 +310,7 @@ describe('ShakyRenderer.init — GPU success path + rendering', () => {
         nav.gpu = originalGpu
         vi.unstubAllGlobals()
         vi.restoreAllMocks()
+        Renderer.releaseSharedDevice()
     })
 
     test('init() resolves successfully with a stubbed GPU', async () => {
@@ -357,7 +319,7 @@ describe('ShakyRenderer.init — GPU success path + rendering', () => {
     })
 
     test('init() logs a warning when shader compilation reports warning messages', async () => {
-        nav.gpu = makeFakeGpu([{ type: 'warning', message: 'unused variable', lineNum: 1 }])
+        nav.gpu = makeFakeGpu([warnMsg()])
         const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
         const r = new ShakyRenderer(W, H)
         await r.init()
@@ -366,7 +328,7 @@ describe('ShakyRenderer.init — GPU success path + rendering', () => {
     })
 
     test('init() rejects when the shader has compilation errors', async () => {
-        nav.gpu = makeFakeGpu([{ type: 'error', message: 'undefined symbol', lineNum: 2 }])
+        nav.gpu = makeFakeGpu([errorMsg()])
         const r = new ShakyRenderer(W, H)
         await expect(r.init()).rejects.toThrow(/shader compilation failed/)
     })

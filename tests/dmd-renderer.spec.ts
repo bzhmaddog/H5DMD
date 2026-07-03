@@ -13,6 +13,7 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
 import {setupVitestCanvasMock} from 'vitest-canvas-mock'
 
 import {DmdRenderer} from '../src/renderers'
+import {Renderer} from '../src/renderers/renderer'
 import {DotShape} from '../src/enums'
 
 describe('DmdRenderer.init — WebGPU availability', () => {
@@ -23,6 +24,7 @@ describe('DmdRenderer.init — WebGPU availability', () => {
 
     afterEach(() => {
         nav.gpu = originalGpu
+        Renderer.releaseSharedDevice()
     })
 
     test('rejects when no GPU adapter is available', async () => {

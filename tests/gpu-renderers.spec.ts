@@ -22,58 +22,15 @@ import {
     RemoveAliasingRenderer,
     RemoveAlphaRenderer,
 } from '../src/renderers'
+import {Renderer} from '../src/renderers/renderer'
 import {Options, Utils} from '../src/utils'
+import {errorMsg, makeFakeGpu, warnMsg} from './helpers/fake-gpu'
 
 // ---------------------------------------------------------------------------
 // Shared GPU stub
 // ---------------------------------------------------------------------------
 
 const W = 4, H = 4
-
-type FakeMessage = { type: 'error' | 'warning' | 'info'; message: string; lineNum: number }
-
-const warnMsg  = (): FakeMessage => ({ type: 'warning', message: 'unused variable', lineNum: 1 })
-const errorMsg = (): FakeMessage => ({ type: 'error',   message: 'undefined symbol', lineNum: 2 })
-
-/** Build a fake GPUDevice that satisfies every API call made by LayerRenderer subclasses. */
-function makeFakeDevice(compilationMessages: FakeMessage[] = []) {
-    const byteLength = W * H * 4
-
-    const makeBuffer = () => ({
-        mapState: 'unmapped' as const,
-        mapAsync: () => Promise.resolve(),
-        getMappedRange: () => new ArrayBuffer(byteLength),
-        unmap: vi.fn(),
-    })
-
-    return {
-        createShaderModule: () => ({
-            getCompilationInfo: () => Promise.resolve({ messages: compilationMessages })
-        }),
-        createBuffer: () => makeBuffer(),
-        createBindGroupLayout: () => ({}),
-        createBindGroup: () => ({}),
-        createComputePipeline: () => ({}),
-        createPipelineLayout: () => ({}),
-        queue: { writeBuffer: vi.fn(), submit: vi.fn() },
-        createCommandEncoder: () => ({
-            beginComputePass: () => ({
-                setPipeline: vi.fn(),
-                setBindGroup: vi.fn(),
-                dispatchWorkgroups: vi.fn(),
-                end: vi.fn(),
-            }),
-            copyBufferToBuffer: vi.fn(),
-            finish: () => ({}),
-        }),
-    }
-}
-
-const makeFakeGpu = (compilationMessages: FakeMessage[] = []) => ({
-    requestAdapter: () => Promise.resolve({
-        requestDevice: () => Promise.resolve(makeFakeDevice(compilationMessages))
-    })
-})
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const nav = globalThis.navigator as any
@@ -91,6 +48,7 @@ function restoreGpu() {
     nav.gpu = savedGpu
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
+    Renderer.releaseSharedDevice()
 }
 
 const makeImageData = () => new ImageData(new Uint8ClampedArray(W * H * 4), W, H)

@@ -182,26 +182,7 @@ class DmdRenderer extends Renderer {
 
         return new Promise((resolve, reject) => {
 
-            if (typeof navigator === 'undefined' || !navigator.gpu) {
-                reject(new Error(`${this.name}: WebGPU is not available in this environment (navigator.gpu is undefined)`))
-                return
-            }
-
-            navigator.gpu.requestAdapter().then( adapter => {
-                if (!adapter) {
-                    reject(new Error(`${this.name}: no compatible GPU adapter found (requestAdapter() returned null)`))
-                    return
-                }
-
-                this._adapter = adapter
-
-                // Request timestamp-query feature if supported for GPU profiling
-                const features: GPUFeatureName[] = []
-                if (adapter.features.has('timestamp-query')) {
-                    features.push('timestamp-query')
-                }
-
-                adapter.requestDevice({ requiredFeatures: features }).then( device => {
+            Renderer.requestSharedDevice().then( device => {
                     this._device = device
                     this._hasTimestampQuery = device.features.has('timestamp-query')
 
@@ -222,7 +203,6 @@ class DmdRenderer extends Renderer {
                     this.renderFrame = this._doRendering
                     resolve()
                 }).catch(reject)
-            }).catch(reject)
        })
     
     }

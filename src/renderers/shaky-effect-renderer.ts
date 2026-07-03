@@ -1,3 +1,4 @@
+import {Renderer} from "./renderer"
 import {LayerRenderer} from "./layer-renderer"
 import {Options} from "../utils"
 
@@ -89,20 +90,7 @@ class ShakyEffectRenderer extends LayerRenderer {
 
         return new Promise((resolve, reject) => {
 
-            if (typeof navigator === 'undefined' || !navigator.gpu) {
-                reject(new Error(`${this.name}: WebGPU is not available in this environment (navigator.gpu is undefined)`))
-                return
-            }
-
-            navigator.gpu.requestAdapter().then( adapter => {
-                if (!adapter) {
-                    reject(new Error(`${this.name}: no compatible GPU adapter found (requestAdapter() returned null)`))
-                    return
-                }
-
-                this._adapter = adapter
-
-                adapter.requestDevice().then( device => {
+            Renderer.requestSharedDevice().then( device => {
                     this._device = device
 
                     this._shaderModule = device.createShaderModule({
@@ -186,7 +174,6 @@ class ShakyEffectRenderer extends LayerRenderer {
                         resolve()
                     })
                 }).catch(reject)
-            }).catch(reject)
        })
 
     }
