@@ -1,7 +1,7 @@
 import {BaseLayer} from './base-layer'
 import {OffscreenBuffer, Options, Utils} from '../utils'
 import {Colors} from '../enums'
-import {LayerRendererDictionary, TextLayerOptions} from '../interfaces'
+import {RendererClassEntry, RendererEntry, TextLayerOptions} from '../interfaces'
 import {OutlineRenderer, RemoveAliasingRenderer} from '../renderers'
 
 class TextLayer extends BaseLayer {
@@ -14,9 +14,8 @@ class TextLayer extends BaseLayer {
         width: number,
         height: number,
         options: Partial<TextLayerOptions> | Options,
-        renderers?: LayerRendererDictionary,
-        loadedListener?: (layer: TextLayer) => void,
-        updatedListener?: (layer: TextLayer) => void
+        loadedListener?: (layer: TextLayer) => void | Promise<void>,
+        updatedListener?: (layer: TextLayer) => void | Promise<void>
     ) {
 
         const layerOptions = new Options({
@@ -38,13 +37,17 @@ class TextLayer extends BaseLayer {
             antialiasing: true
         }).merge(options)
 
+        // Prepend built-in renderer classes (inactive by default; activated
+        // programmatically by _drawText when outlineWidth > 0 / antialiasing = false).
+        // Using class entries lets BaseLayer instantiate them with the correct dimensions.
+        const userRenderers: Array<RendererEntry> = layerOptions.get('renderers') ?? []
+        const builtinRenderers: RendererClassEntry[] = [
+            { id: 'no-antialiasing', rendererClass: RemoveAliasingRenderer, active: false },
+            { id: 'outline', rendererClass: OutlineRenderer, active: false },
+        ]
+        layerOptions.set('renderers', [...builtinRenderers, ...userRenderers])
 
-        const layerRenderers = Object.assign({
-			'no-antialiasing' : new RemoveAliasingRenderer(width, height), // used by TextLayer if antialiasing  = false
-			'outline' : new OutlineRenderer(width, height)  // used by TextLayer when outlineWidth > 1
-        }, renderers) as LayerRendererDictionary
-
-        super(id, width, height, layerOptions, layerRenderers, loadedListener, updatedListener)
+        super(id, width, height, layerOptions, loadedListener, updatedListener)
 
         this._textBuffer = new OffscreenBuffer(this.width, this.height)
 

@@ -1,5 +1,12 @@
 import {LayerRenderer} from "./layer-renderer"
 
+export interface ChromaKeyParams {
+    /** RGB key color to make transparent (0–255 each). Default: `[0, 255, 0]` (green). */
+    color?: [number, number, number]
+    /** Euclidean distance threshold — pixels within this distance become transparent. Default: `50`. */
+    threshold?: number
+}
+
 class ChromaKeyRenderer extends LayerRenderer {
 
     private _uboBuffer: GPUBuffer
@@ -15,15 +22,15 @@ class ChromaKeyRenderer extends LayerRenderer {
     /**
      * @param {number} width
      * @param {number} height
-     * @param {[number, number, number]} color RGB key color (0–255 each), default green [0, 255, 0]
-     * @param {number} threshold Euclidean distance threshold, default 50
+     * @param {ChromaKeyParams} params Optional key color and threshold.
      */
-    constructor(width: number, height: number, color: [number, number, number] = [0, 255, 0], threshold: number = 50) {
+    constructor(width: number, height: number, params?: ChromaKeyParams) {
         super("ChromaKeyRenderer", width, height)
+        const color = params?.color ?? [0, 255, 0]
         this._keyR = color[0]
         this._keyG = color[1]
         this._keyB = color[2]
-        this._threshold = threshold
+        this._threshold = params?.threshold ?? 50
     }
 
     /**
@@ -93,18 +100,14 @@ class ChromaKeyRenderer extends LayerRenderer {
                         `
                     })
 
-                    console.log('ChromaKeyRenderer:init()')
+                    console.log(`ChromaKeyRenderer:init([${this._keyR}, ${this._keyG}, ${this._keyB}], ${this._threshold})`)
 
-                    this._shaderModule.getCompilationInfo()?.then(i => {
-                        if (i.messages.length > 0) {
-                            console.warn("ChromaKeyRenderer:compilationInfo() ", i.messages)
-                        }
+                    this._validateShader(reject).then(valid => {
+                        if (!valid) return
+                        this._createResources()
+                        this.renderFrame = this._doRendering
+                        resolve()
                     })
-
-                    this._createResources()
-
-                    this.renderFrame = this._doRendering
-                    resolve()
                 }).catch(reject)
             }).catch(reject)
         })

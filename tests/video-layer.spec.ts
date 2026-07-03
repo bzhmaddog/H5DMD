@@ -181,7 +181,7 @@ describe('VideoLayer playback control', () => {
 
     test('the play event fires the onPlay listener', () => {
         const onPlay = vi.fn()
-        const layer = new VideoLayer('v', 64, 16, new Options({visible: true}), undefined, undefined, undefined, onPlay)
+        const layer = new VideoLayer('v', 64, 16, new Options({visible: true}), undefined, undefined, onPlay)
         const video = fakeVideo()
         layer.setVideo(video)
 
@@ -192,7 +192,7 @@ describe('VideoLayer playback control', () => {
 
     test('the pause event fires the onPause listener', () => {
         const onPause = vi.fn()
-        const layer = new VideoLayer('v', 64, 16, new Options({visible: true}), undefined, undefined, undefined, undefined, onPause)
+        const layer = new VideoLayer('v', 64, 16, new Options({visible: true}), undefined, undefined, undefined, onPause)
         const video = fakeVideo()
         layer.setVideo(video)
 

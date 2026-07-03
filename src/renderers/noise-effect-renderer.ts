@@ -136,16 +136,12 @@ class NoiseEffectRenderer extends LayerRenderer {
 
                     console.log('ScoreEffectRenderer:init()')
 
-                    this._shaderModule.getCompilationInfo()?.then(i => {
-                        if (i.messages.length > 0 ) {
-                            console.warn("ScoreEffectRenderer:compilationInfo() ", i.messages)
-                        }
+                    this._validateShader(reject).then(valid => {
+                        if (!valid) return
+                        this._createResources()
+                        this.renderFrame = this._doRendering
+                        resolve()
                     })
-
-                    this._createResources()
-
-                    this.renderFrame = this._doRendering
-                    resolve()
                 }).catch(reject)
             }).catch(reject)
        })

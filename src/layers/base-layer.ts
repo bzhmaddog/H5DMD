@@ -1,6 +1,6 @@
 import {Easing, type EasingFunction, OffscreenBuffer, Options} from "../utils"
 import {ChangeAlphaRenderer, LayerRenderer} from "../renderers"
-import {LayerRendererDictionary} from "../interfaces";
+import {LayerRendererDictionary, RendererEntry} from "../interfaces";
 
 interface RenderQueueItem {
     id: string,
@@ -20,20 +20,23 @@ abstract class BaseLayer {
     private _outputBuffer: OffscreenBuffer
     private _renderNextFrame: () => void
 
-    private _loadedListener?: (layer: BaseLayer) => void
-    private _updatedListener?: (layer: BaseLayer) => void
+    private _loadedListener?: (layer: BaseLayer) => void | Promise<void>
+    private _updatedListener?: (layer: BaseLayer) => void | Promise<void>
     private _availableRenderers: LayerRendererDictionary
     private _defaultRenderQueue: RenderQueueItem[]
     private _renderQueue: RenderQueueItem[]
+    /** Set to true once all renderer init() promises have resolved. */
+    private _renderersReady: boolean = false
+    /** Prevents starting more than one requestAnimationFrame render loop at a time. */
+    private _loopRunning: boolean = false
 
     constructor(
         id: string,
         width: number,
         height: number,
         options?: Options,
-        renderers?: LayerRendererDictionary,
-        loadedListener?: (layer: BaseLayer) => void,
-        updatedListener?: (layer: BaseLayer) => void
+        loadedListener?: (layer: BaseLayer) => void | Promise<void>,
+        updatedListener?: (layer: BaseLayer) => void | Promise<void>
     ) {
         this._id = id
 
@@ -44,45 +47,72 @@ abstract class BaseLayer {
         this._updatedListener = updatedListener
         this._defaultRenderQueue = []
         this._renderQueue = []
-        this._availableRenderers = Object.assign({
-            'opacity' : new ChangeAlphaRenderer(width, height)
-        }, renderers)
+        this._availableRenderers = {
+            'opacity': new ChangeAlphaRenderer(width, height)
+        }
 
         this._options = new Options({visible: true, groups: ['default'], opacity: 1, renderers: []}).merge(options)
 
-        this._renderNextFrame = function() { console.log(`Layer [${this._id}] : Rendering ended`) }
+        this._renderNextFrame = function() {}
 
-        const rendererPromises: Promise<void>[] = []
+        const rendererEntries: Array<RendererEntry> = this._options.get('renderers') ?? []
 
-        // Build array of promises
-        Object.keys(this._availableRenderers).forEach(id => {
-            rendererPromises.push(this._availableRenderers[id].init())
-        })
-
-
-        Promise.all<void>(rendererPromises).then(() => {
-            console.log(`Layer[${id}] : Renderers init done`)
-        }).catch(err => {
-            console.error(`Layer[${id}] : Renderer init failed`, err)
-        })
-
-        if (this._options.get('renderers').length > 0) {
-            // Build default render queue to save some time in renderFrame
-            // Since this should not change after creation
-            for (let i = 0; i < this._options.get('renderers').length; i++) {
-                const r = this._options.get('renderers')[i]
-
-                if (typeof this._availableRenderers[r] !== 'undefined') {
-                    this._defaultRenderQueue.push({
-                        id : r,
-                        instance : this._availableRenderers[r],
-                        active: true
-                    })
-                } else {
-                    console.log(`Renderer "${r}" is not in the list of available renderers`)
-                }
+        // Register renderer instances into _availableRenderers
+        for (const entry of rendererEntries) {
+            if ('instance' in entry) {
+                // RendererInstanceEntry: use the pre-created instance as-is
+                this._availableRenderers[entry.id] = entry.instance
+            } else {
+                // RendererClassEntry: instantiate with this layer's dimensions so
+                // the renderer's buffers always match the frames it will process
+                this._availableRenderers[entry.id] = new entry.rendererClass(width, height, entry.params)
             }
         }
+
+        // Collect renderer ids alongside their init promises so we can identify
+        // which ones failed if allSettled reports a rejection.
+        const rendererIds = Object.keys(this._availableRenderers)
+        const rendererPromises = rendererIds.map(rid => this._availableRenderers[rid].init())
+
+        // Use allSettled so a single renderer failure (e.g. the built-in opacity
+        // renderer losing a GPU resource race) does not prevent the user-defined
+        // renderers from being queued.
+        Promise.allSettled(rendererPromises).then(results => {
+
+            // Log any individual failures and remove those renderers so they are
+            // not added to the queue in a broken state.
+            results.forEach((result, i) => {
+                if (result.status === 'rejected') {
+                    console.error(`Layer[${id}] : Renderer "${rendererIds[i]}" init failed`, result.reason)
+                    delete this._availableRenderers[rendererIds[i]]
+                }
+            })
+
+            console.log(`Layer[${id}] : Renderers init done`)
+
+            // Build default render queue for successfully initialised renderers
+            for (const entry of rendererEntries) {
+                if (entry.active !== false && this._availableRenderers[entry.id]) {
+                    this._defaultRenderQueue.push({
+                        id: entry.id,
+                        instance: this._availableRenderers[entry.id],
+                        active: true
+                    })
+                }
+            }
+
+            this._renderersReady = true
+
+            // If _layerLoaded already fired (the 1ms setTimeout beat init), kick off
+            // the render loop and fire the deferred loaded listener.
+            if (this.isLoaded()) {
+                if (this.isVisible() && this.haveRenderer()) {
+                    this._renderNextFrame = this._requestAnimationFrame
+                    this._requestAnimationFrame()
+                }
+                this._fireLoadedListener()
+            }
+        })
     }
 
     /**
@@ -99,7 +129,7 @@ abstract class BaseLayer {
      * @param active         if true (default) the renderer is added to the render queue
      * @returns the constructed, initialised renderer instance
      */
-    addRenderer<T extends LayerRenderer, P = unknown>(
+    async addRenderer<T extends LayerRenderer, P = unknown>(
         id: string,
         rendererClass: new (width: number, height: number, params?: P) => T,
         params?: P,
@@ -117,29 +147,30 @@ abstract class BaseLayer {
 
         // Renderers set up their GPU device asynchronously and no-op until init()
         // resolves, so wire into the queue only once it can actually run.
-        return renderer.init().then(() => {
-
-            if (active) {
-                // Default queue, NOT _renderQueue: _renderFrame rebuilds _renderQueue from
-                // _defaultRenderQueue each frame, so a transient push would vanish next tick.
-                this._defaultRenderQueue.push({ id, instance: renderer, active: true })
-                // The layer may not have been looping if it had no renderers before.
-                if (this.isVisible()) {
-                    this._renderNextFrame = this._requestAnimationFrame
-                    this._requestAnimationFrame()
-                }
-            } else {
-                // Register in queue as inactive so activateRenderer() can find it
-                // at its original insertion position.
-                this._defaultRenderQueue.push({ id, instance: renderer, active: false })
-            }
-
-            return renderer
-        }).catch(err => {
+        try {
+            await renderer.init()
+        } catch (err) {
             // Roll back so a failed init doesn't leave a dead renderer registered.
             delete this._availableRenderers[id]
             throw err
-        })
+        }
+
+        if (active) {
+            // Default queue, NOT _renderQueue: _renderFrame rebuilds _renderQueue from
+            // _defaultRenderQueue each frame, so a transient push would vanish next tick.
+            this._defaultRenderQueue.push({ id, instance: renderer, active: true })
+            // The layer may not have been looping if it had no renderers before.
+            if (this.isVisible()) {
+                this._renderNextFrame = this._requestAnimationFrame
+                this._requestAnimationFrame()
+            }
+        } else {
+            // Register in queue as inactive so activateRenderer() can find it
+            // at its original insertion position.
+            this._defaultRenderQueue.push({ id, instance: renderer, active: false })
+        }
+
+        return renderer
     }
 
     /**
@@ -199,6 +230,8 @@ abstract class BaseLayer {
      * Request rendering of layer frame
      */
     private _requestAnimationFrame() {
+        if (this._loopRunning) return
+        this._loopRunning = true
         requestAnimationFrame(this._renderFrame.bind(this))
     }
 
@@ -206,6 +239,7 @@ abstract class BaseLayer {
      * Start rendering process
      */
     private _renderFrame() {
+        this._loopRunning = false
 
         // Clone only active renderers into the working queue for this frame
         this._renderQueue = this._defaultRenderQueue.filter(r => r.active)
@@ -241,6 +275,10 @@ abstract class BaseLayer {
             // Apply 'filter' to provided content with current renderer then process next renderer in queue
             renderer?.instance.renderFrame(frameImageData, renderer.params).then((outputData: ImageData) => {
                 this._processRenderQueue(outputData)
+            }).catch(err => {
+                console.error(`Layer[${this._id}] : Renderer "${renderer?.id}" failed`, err)
+                // Restart loop so a single GPU error doesn't permanently stop rendering
+                this._requestAnimationFrame()
             })
         // no more renderer in queue then draw final image and start queue process again	
         } else {
@@ -288,7 +326,20 @@ abstract class BaseLayer {
 			this._requestAnimationFrame()
 		}
 
-        // Call callback if there is one
+        // Fire the loaded callback only once renderers are also ready.
+        // If renderer init hasn't resolved yet, the callback is deferred to
+        // Promise.all.then() via _fireLoadedListener().
+        if (this._renderersReady) {
+            this._fireLoadedListener()
+        }
+    }
+
+    /**
+     * Fires the loaded listener exactly once, after both content and all renderer
+     * init() calls are complete. Called from _layerLoaded (if renderers are already
+     * ready) or from the Promise.all.then() callback (if _layerLoaded fired first).
+     */
+    private _fireLoadedListener() {
         if (typeof this._loadedListener === 'function') {
             this._loadedListener(this)
         }
@@ -351,7 +402,7 @@ abstract class BaseLayer {
      * Stop rendering of the layer
      */
     protected _stopRendering() {
-        this._renderNextFrame = function() {console.log(`Rendering stopped : ${this._id}`)}
+        this._renderNextFrame = function() {console.log(`Layer [${this._id}] : Rendering stopped`)}
     }
 
     /**
@@ -385,7 +436,7 @@ abstract class BaseLayer {
             this._requestAnimationFrame()
         // Otherwise stop the rendering loop
         } else {
-            this._renderNextFrame = function() { console.log('End of rendering :' + this._id) }
+            this._renderNextFrame = function() { console.log(`Layer [${this._id}] : Stop rendering`) }
         }
     }
 

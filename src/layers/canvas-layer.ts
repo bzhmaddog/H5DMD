@@ -1,5 +1,5 @@
 import {BaseLayer} from "./base-layer"
-import {BitmapOptions, CanvasLayerOptions, LayerRendererDictionary} from "../interfaces"
+import {BitmapOptions, CanvasLayerOptions} from "../interfaces"
 import {Options} from "../utils"
 
 /**
@@ -53,11 +53,10 @@ class CanvasLayer extends BaseLayer {
         width: number,
         height: number,
         options?: Partial<CanvasLayerOptions> | Options,
-        renderers?: LayerRendererDictionary,
-        loadedListener?: (layer: CanvasLayer) => void,
-        updatedListener?: (layer: CanvasLayer) => void
+        loadedListener?: (layer: CanvasLayer) => void | Promise<void>,
+        updatedListener?: (layer: CanvasLayer) => void | Promise<void>
     ) {
-        super(id, width, height, new Options(options as Record<string, unknown>), renderers, loadedListener, updatedListener)
+        super(id, width, height, new Options(options as Record<string, unknown>), loadedListener, updatedListener)
         setTimeout(this._layerLoaded.bind(this), 1)
     }
 

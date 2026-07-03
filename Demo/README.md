@@ -64,7 +64,7 @@ The whole scene is built in [src/layers.ts](src/layers.ts) after `DOMContentLoad
 | `video-chromakey` | Video layer      | WebM video with chroma-key background removal    |
 | `matthew`         | Canvas layer     | Aligned character image                          |
 | `sprite`          | Sprites layer    | Sprite sheet with queued animation sequences     |
-| `text1`–`text4`   | Text layers      | Styled text, some with stroke or a noise effect  |
+| `text1`–`text4`   | Text layers      | Styled text — `text2` with noise effect, `text3` with shaky effect |
 
 Image, video, and sprite assets are served from [public/images](public/images).
 

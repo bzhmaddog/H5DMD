@@ -60,7 +60,7 @@ describe('testing entry file', () => {
 
         const dmd = new Dmd(canvas, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: true })
 
-        const layer = dmd.addCanvasLayer('test', {}, new Options(), {}, (l) => {
+        const layer = dmd.addLayer(CanvasLayer, 'test', new Options(), (l) => {
             expect(l).toBe(layer)
         }, () => {
         })
@@ -71,7 +71,7 @@ describe('testing entry file', () => {
 
     test('Created Layer should exist and match class AnimationLayer', () => {
         const dmd = new Dmd(canvas, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: true })
-        const layer = dmd.addAnimationLayer('test', {}, new Options(), {}, (l) => {
+        const layer = dmd.addLayer(AnimationLayer, 'test', new Options(), (l) => {
             expect(l).toBe(layer)
         }, () => {
         })
@@ -82,7 +82,7 @@ describe('testing entry file', () => {
 
     test('Created Layer should exist and match class SpritesLayer', () => {
         const dmd = new Dmd(canvas, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: true })
-        const layer = dmd.addSpritesLayer('test', {}, new Options(), {}, (l) => {
+        const layer = dmd.addLayer(SpritesLayer, 'test', new Options(), (l) => {
             expect(l).toBe(layer)
         }, () => {
         })

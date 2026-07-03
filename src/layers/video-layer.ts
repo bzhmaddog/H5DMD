@@ -1,6 +1,6 @@
 import {BaseLayer} from "./base-layer"
 import {Options} from "../utils"
-import {LayerRendererDictionary, VideoLayerOptions} from "../interfaces"
+import {VideoLayerOptions} from "../interfaces"
 
 enum VideoState {
 	STOPPED,
@@ -24,9 +24,8 @@ class VideoLayer extends BaseLayer {
 		width: number,
 		height: number,
 		options?: Partial<VideoLayerOptions> | Options,
-		renderers?: LayerRendererDictionary,
-		loadedListener?: (layer: VideoLayer) => void,
-		updatedListener?: (layer: VideoLayer) => void,
+		loadedListener?: (layer: VideoLayer) => void | Promise<void>,
+		updatedListener?: (layer: VideoLayer) => void | Promise<void>,
 		playListener?: (layer: VideoLayer) => void,
 		pauseListener?: (layer: VideoLayer) => void,
 		stopListener?: (layer: VideoLayer) => void
@@ -38,7 +37,7 @@ class VideoLayer extends BaseLayer {
 			stopOnHide: false
 		}).merge(options)
 
-		super(id, width, height, layerOptions, renderers, loadedListener, updatedListener)
+		super(id, width, height, layerOptions, loadedListener, updatedListener)
 
 		this._onPlayListener = playListener
 		this._onPauseListener = pauseListener

@@ -9,6 +9,7 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
 import {setupVitestCanvasMock} from 'vitest-canvas-mock'
 
 import {Dmd} from '../src'
+import {CanvasLayer} from '../src/layers'
 import {ChangeAlphaRenderer, DmdRenderer} from '../src/renderers'
 import {Easing, Options} from '../src/utils'
 import {DotShape} from '../src/enums'
@@ -113,7 +114,7 @@ describe('Dmd layer fades', () => {
 
     test('fadeLayerIn makes a hidden layer visible at opacity 0 then fades to 1', async () => {
         const dmd = makeDmd()
-        const layer = dmd.addCanvasLayer('x', {}, new Options())
+        const layer = dmd.addLayer(CanvasLayer, 'x', new Options())
         layer.setVisibility(false)
 
         let t = 0
@@ -132,7 +133,7 @@ describe('Dmd layer fades', () => {
 
     test('fadeLayerOut fades opacity to 0 then hides the layer', async () => {
         const dmd = makeDmd()
-        const layer = dmd.addCanvasLayer('x', {}, new Options())
+        const layer = dmd.addLayer(CanvasLayer, 'x', new Options())
 
         let t = 0
         vi.spyOn(window.performance, 'now').mockImplementation(() => { const v = t; t += 500; return v })

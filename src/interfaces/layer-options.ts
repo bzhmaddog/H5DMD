@@ -1,3 +1,5 @@
+import type {RendererEntry} from './layer-renderer-dictionary'
+
 /**
  * Positioning of a layer within the DMD frame.
  */
@@ -33,8 +35,14 @@ export interface BaseLayerOptions {
     opacity: number
     /** Groups this layer belongs to. Default: `['default']`. */
     groups: string[]
-    /** Named renderers to apply on every frame. Default: `[]`. */
-    renderers: string[]
+    /**
+     * Renderers to register (and optionally activate) on this layer.
+     * Each entry is either a {@link RendererInstanceEntry} (pre-created instance)
+     * or a {@link RendererClassEntry} (class instantiated by the layer with the
+     * correct dimensions). Set `active: false` to register without activating.
+     * Default: `[]`.
+     */
+    renderers: Array<RendererEntry>
 }
 
 /**

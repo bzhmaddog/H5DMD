@@ -14,17 +14,6 @@ export default defineConfig({
             exclude: [
                 'src/**/*.d.ts',
                 'src/interfaces/**',
-                // WebGPU compute-shader renderers: their bodies require a real GPU
-                // device and cannot run under jsdom (only their init() rejection
-                // paths are reachable, which DmdRenderer already covers).
-                'src/renderers/change-alpha-renderer.ts',
-                'src/renderers/chroma-key-renderer.ts',
-                'src/renderers/dummy-renderer.ts',
-                'src/renderers/layer-renderer.ts',
-                'src/renderers/noise-effect-renderer.ts',
-                'src/renderers/outline-renderer.ts',
-                'src/renderers/remove-aliasing-renderer.ts',
-                'src/renderers/remove-alpha-renderer.ts',
             ],
             // Fail the run if coverage drops below these floors (set a few points
             // under the current ~90% to catch regressions without being flaky).

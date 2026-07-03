@@ -10,21 +10,26 @@ import {
     NoiseEffectRenderer,
     ShakyRenderer,
     ChromaKeyRenderer,
-    Utils
+    Utils,
+    rendererEntry
 } from "h5dmd";
 
 /**
  * Add every demo layer (background, animation, video, images, text and sprites)
  * to the given Dmd instance.
  */
-export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRenderer): void {
+export function setupLayers(dmd: Dmd, imagesPath: string): void {
 
     const noises: string[] = [];
     for (let i = 0; i < 6; i++) {
         noises.push(`${imagesPath}/noises/noise-${i}.png`);
     }
 
-    dmd.addLayer(CanvasLayer, 'bg', {}, {}, (layer) => {
+    dmd.addLayer(
+        CanvasLayer,
+        'bg',
+        {},
+        (layer) => {
 
         const bgURI = `${imagesPath}/boss-mode-bg.png`;
 
@@ -57,7 +62,6 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
             autoplay: true,
             loop: true
         },
-        {},
         (layer) => {
 
             const images = [
@@ -99,7 +103,6 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
             stopOnHide: true,
             visible: false
         },
-        {},
         (layer) => {
 
             const video = document.createElement('video');
@@ -122,15 +125,16 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
             loop: true,
             stopOnHide: true,
             visible: false,
-            renderers: ['chroma']
+            renderers: [
+                rendererEntry('chroma-key', ChromaKeyRenderer, { color: [0, 0, 0], threshold: 9 })
+            ]
         },
-        { 'chroma': chromaKey },
-        (layer) => {
+        (l) => {
 
             const video = document.createElement('video');
 
             video.addEventListener('loadeddata', function () {
-                layer.setVideo(video);
+                l.setVideo(video);
             });
 
             video.src = `${imagesPath}/sample.webm`;
@@ -144,7 +148,6 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
             height: 91,
             position: { hAlign: 'right', vAlign: 'middle', hOffset: -1 }
         },
-        {},
         (layer) => {
 
             const bgURI = `${imagesPath}/boss-matthew-big.png`;
@@ -187,11 +190,9 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
             fontStyle: 'italic bold',
             color: '#FFFFFF',
             adjustWidth: true,
-        },
-        {
-        },
-        (l) => {
-            l.addRenderer('score-effect', NoiseEffectRenderer, { intensity: 200, noises });
+            renderers: [
+                rendererEntry('noise-effect', NoiseEffectRenderer, { intensity: 200, noises })
+            ]
         }
     );
 
@@ -213,7 +214,6 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
             strokeColor: Colors.Red,
             adjustWidth: true,
         },
-        {},
         (l) => {
             l.addRenderer('shaky-effect', ShakyRenderer, { intensity: 0.8, speed: 160, mode: "random" });
         }
@@ -239,7 +239,6 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
             width: 110,
             height: 130
         },
-        {},
         (layer) => {
 
             const bgURI = `${imagesPath}/scott2x.png`;
@@ -335,7 +334,6 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
         CanvasLayer,
         'svg-title',
         { visible: false },
-        {},
         (layer) => {
             const img = new Image();
             img.onload = () => {

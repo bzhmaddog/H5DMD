@@ -76,8 +76,37 @@ export abstract class LayerRenderer extends Renderer {
     }
 
     /**
-     * Does nothing except returning passed data (placeholder until init is done)
-     * @param {ImageData} frameData
+     * Validate the compiled shader module and reject if there are any errors.
+     * Warnings are logged but do not prevent initialisation.
+     *
+     * Call this inside init() immediately after createShaderModule(), before
+     * _createResources() and resolve().  Returns a Promise that resolves when
+     * the check is done (the caller should chain .then(() => { _createResources(); resolve() })).
+     *
+     * @param reject the reject callback from the surrounding Promise constructor
+     * @returns Promise<boolean> — true if the shader is valid, false if it was rejected
+     */
+    protected async _validateShader(reject: (reason: Error) => void): Promise<boolean> {
+        const info = await this._shaderModule.getCompilationInfo?.()
+        if (!info) return true
+
+        const errors = info.messages.filter((m: GPUCompilationMessage) => m.type === 'error')
+        if (errors.length > 0) {
+            const details = errors.map((e: GPUCompilationMessage) =>
+                `line ${e.lineNum}: ${e.message}`
+            ).join('\n')
+            reject(new Error(`${this.name}: shader compilation failed\n${details}`))
+            return false
+        }
+
+        const warnings = info.messages.filter((m: GPUCompilationMessage) => m.type === 'warning' || m.type === 'info')
+        if (warnings.length > 0) {
+            console.warn(`${this.name}: shader compilation warnings`, warnings)
+        }
+        return true
+    }
+    
+    /* @param {ImageData} frameData
      * @returns {Promise<ImageData>}
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

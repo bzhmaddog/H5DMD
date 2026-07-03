@@ -2,7 +2,7 @@ import {Easing, OffscreenBuffer, Options, type EasingFunction} from './utils'
 import {DmdRenderer, LayerRenderer} from './renderers'
 import {AnimationLayer, BaseLayer, CanvasLayer, SpritesLayer, TextLayer, VideoLayer} from './layers'
 import {DotShape} from "./enums"
-import {AnimationLayerOptions, CanvasLayerOptions, DmdOptions, Layer, LayerDimensions, LayerPosition, LayerRendererDictionary, SpritesLayerOptions, TextLayerOptions, VideoLayerOptions} from "./interfaces"
+import {AnimationLayerOptions, CanvasLayerOptions, DmdOptions, Layer, LayerPosition, LayerRendererDictionary, SpritesLayerOptions, TextLayerOptions, VideoLayerOptions} from "./interfaces"
 
 
 interface LayerDictionary {
@@ -395,158 +395,12 @@ export class Dmd {
         this._renderer.setBrightness(b)
     }
 
-    /**
-     * Convert deprecated LayerDimensions + options into a single merged options object.
-     */
-    private _mergeDeprecatedDimensions(
-        dims: LayerDimensions,
-        options?: Record<string, unknown> | Options
-    ): Options {
-        const { width, height, top, left, hAlign, vAlign, hOffset, vOffset } = dims
-        const position: LayerPosition = {}
-        if (top !== undefined) position.top = top
-        if (left !== undefined) position.left = left
-        if (hAlign !== undefined) position.hAlign = hAlign as LayerPosition['hAlign']
-        if (vAlign !== undefined) position.vAlign = vAlign as LayerPosition['vAlign']
-        if (hOffset !== undefined) position.hOffset = hOffset
-        if (vOffset !== undefined) position.vOffset = vOffset
-
-        const raw = options instanceof Options
-            ? Object.fromEntries(options.entries())
-            : (options ?? {})
-
-        const merged: Record<string, unknown> = { ...raw }
-        if (width !== undefined) merged.width = width
-        if (height !== undefined) merged.height = height
-        if (Object.keys(position).length > 0) merged.position = position
-
-        return new Options(merged)
-    }
-
-    /**
-     * @deprecated Use `addLayer(CanvasLayer, ...)` instead.
-     */
-    addCanvasLayer(
-        id: string,
-        layerDimensions: LayerDimensions,
-        options?: Partial<CanvasLayerOptions> | Options,
-        renderers?: LayerRendererDictionary,
-        layerLoadedListener?: (layer: CanvasLayer) => void,
-        layerUpdatedListener?: (layer: CanvasLayer) => void,
-    ): CanvasLayer {
-        return this.addLayer<CanvasLayer>(
-            CanvasLayer,
-            id,
-            this._mergeDeprecatedDimensions(layerDimensions, options),
-            renderers,
-            layerLoadedListener,
-            layerUpdatedListener
-        )
-    }
-
-    /**
-     * @deprecated Use `addLayer(VideoLayer, ...)` instead.
-     */
-    addVideoLayer(
-        id: string,
-        layerDimensions: LayerDimensions,
-        options?: Partial<VideoLayerOptions> | Options,
-        renderers?: LayerRendererDictionary,
-        layerLoadedListener?: (layer: VideoLayer) => void,
-        layerUpdatedListener?: (layer: VideoLayer) => void,
-        layerOnPlayListener?: (layer: VideoLayer) => void,
-        layerOnPauseListener?: (layer: VideoLayer) => void
-        // Why no _layerOnStopListener ?
-    ): VideoLayer {
-        return this.addLayer<VideoLayer>(
-            VideoLayer,
-            id,
-            this._mergeDeprecatedDimensions(layerDimensions, options),
-            renderers,
-            layerLoadedListener,
-            layerUpdatedListener,
-            layerOnPlayListener,
-            layerOnPauseListener
-        )
-    }
-
-    /**
-     * @deprecated Use `addLayer(AnimationLayer, ...)` instead.
-     */
-    addAnimationLayer(
-        id: string,
-        layerDimensions: LayerDimensions,
-        options?: Partial<AnimationLayerOptions> | Options,
-        renderers?: LayerRendererDictionary,
-        layerLoadedListener?: (layer: AnimationLayer) => void,
-        layerUpdatedListener?: (layer: AnimationLayer) => void,
-        layerOnPlayListener?: (layer: AnimationLayer) => void,
-        layerOnPauseListener?: (layer: AnimationLayer) => void,
-        layerOnStopListener?: (layer: AnimationLayer) => void
-    ): AnimationLayer {
-        return this.addLayer<AnimationLayer>(
-            AnimationLayer,
-            id,
-            this._mergeDeprecatedDimensions(layerDimensions, options),
-            renderers,
-            layerLoadedListener,
-            layerUpdatedListener,
-            layerOnPlayListener,
-            layerOnPauseListener,
-            layerOnStopListener
-        )
-    }
-
-    /**
-     * @deprecated Use `addLayer(SpritesLayer, ...)` instead.
-     */
-    addSpritesLayer(
-        id: string,
-        layerDimensions: LayerDimensions,
-        options?: Partial<SpritesLayerOptions> | Options,
-        renderers?: LayerRendererDictionary,
-        layerLoadedListener?: (layer: SpritesLayer) => void,
-        layerUpdatedListener?: (layer: SpritesLayer) => void,
-    ): SpritesLayer {
-        return this.addLayer<SpritesLayer>(
-            SpritesLayer,
-            id,
-            this._mergeDeprecatedDimensions(layerDimensions, options),
-            renderers,
-            layerLoadedListener,
-            layerUpdatedListener,
-        )
-    }
-
-
-    /**
-     * @deprecated Use `addLayer(TextLayer, ...)` instead.
-     */
-    addTextLayer(
-        id: string,
-        layerDimensions: LayerDimensions,
-        options?: Partial<TextLayerOptions> | Options,
-        renderers?: LayerRendererDictionary,
-        layerLoadedListener?: (layer: TextLayer) => void,
-        layerUpdatedListener?: (layer: TextLayer) => void,
-    ): TextLayer {
-        return this.addLayer<TextLayer>(
-            TextLayer,
-            id,
-            this._mergeDeprecatedDimensions(layerDimensions, options),
-            renderers,
-            layerLoadedListener,
-            layerUpdatedListener,
-        )
-    }
-
     addLayer<T extends BaseLayer>(
         layerClass: new (...args: never[]) => T,
         id: string,
         options?: LayerOptionsByInstance<T>,
-        renderers?: LayerRendererDictionary,
-        layerLoadedListener?: (layer: T) => void,
-        layerUpdatedListener?: (layer: T) => void,
+        layerLoadedListener?: (layer: T) => void | Promise<void>,
+        layerUpdatedListener?: (layer: T) => void | Promise<void>,
         layerOnPlayListener?: LayerPlayListenerByInstance<T>,
         layerOnPauseListener?: LayerPauseListenerByInstance<T>,
         layerOnStopListener?: LayerStopListenerByInstance<T>,
@@ -592,8 +446,8 @@ export class Dmd {
         }
 
         // Cast typed callbacks to (layer: BaseLayer) for the layer constructors
-        const onLoaded  = layerLoadedListener  as unknown as ((layer: BaseLayer) => void) | undefined
-        const onUpdated = layerUpdatedListener as unknown as ((layer: BaseLayer) => void) | undefined
+        const onLoaded  = layerLoadedListener  as unknown as ((layer: BaseLayer) => void | Promise<void>) | undefined
+        const onUpdated = layerUpdatedListener as unknown as ((layer: BaseLayer) => void | Promise<void>) | undefined
         const onPlay    = layerOnPlayListener  as unknown as ((layer: BaseLayer) => void) | undefined
         const onPause   = layerOnPauseListener as unknown as ((layer: BaseLayer) => void) | undefined
         const onStop    = layerOnStopListener  as unknown as ((layer: BaseLayer) => void) | undefined
@@ -602,15 +456,15 @@ export class Dmd {
 
         const cls = layerClass as unknown
         if (cls === CanvasLayer) {
-            layer = new CanvasLayer(id, layerWidth, layerHeight, opts, renderers, onLoaded, onUpdated)
+            layer = new CanvasLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated)
         } else if (cls === VideoLayer) {
-            layer = new VideoLayer(id, layerWidth, layerHeight, opts, renderers, onLoaded, onUpdated, onPlay, onPause)
+            layer = new VideoLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated, onPlay, onPause)
         } else if (cls === AnimationLayer) {
-            layer = new AnimationLayer(id, layerWidth, layerHeight, opts, renderers, onLoaded, onUpdated, onPlay, onPause, onStop)
+            layer = new AnimationLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated, onPlay, onPause, onStop)
         } else if (cls === SpritesLayer) {
-            layer = new SpritesLayer(id, layerWidth, layerHeight, opts, renderers, onLoaded, onUpdated)
+            layer = new SpritesLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated)
         } else if (cls === TextLayer) {
-            layer = new TextLayer(id, layerWidth, layerHeight, opts, renderers, onLoaded, onUpdated)
+            layer = new TextLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated)
         } else {
             throw new TypeError('Unsupported layer class')
         }
