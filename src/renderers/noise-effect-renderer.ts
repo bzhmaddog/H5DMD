@@ -1,8 +1,8 @@
 import {LayerRenderer} from "./layer-renderer"
 
 export interface NoiseEffectRendererParams {
-    /** Frame display duration in ms. Default: `200`. */
-    intensity?: number
+    /** Total animation cycle duration in ms. Default: `200`. */
+    duration?: number
     /**
      * Pre-loaded noise frames as raw pixel data.
      * Use {@link Utils.bitmapsToPixelData} to convert `ImageBitmap[]`
@@ -34,7 +34,7 @@ class NoiseEffectRenderer extends LayerRenderer {
 
         this._noises = params?.noises ?? []
         this._nbFrames = this._noises.length
-        this._frameDuration = (params?.intensity ?? 200) / (this._nbFrames || 1)
+        this._frameDuration = (params?.duration ?? 200) / (this._nbFrames || 1)
     }
 
     init(): Promise<void> {
@@ -101,7 +101,7 @@ class NoiseEffectRenderer extends LayerRenderer {
                         `
                     })
 
-                    console.log('ScoreEffectRenderer:init()')
+                    console.log('NoiseEffectRenderer:init()')
 
                     this._validateShader(reject).then(valid => {
                         if (!valid) return

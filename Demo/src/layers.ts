@@ -173,7 +173,7 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
         async (layer) => {
             const bitmaps = await Utils.loadImagesOrdered(noiseUrls);
             const noiseData = Utils.bitmapsToPixelData(bitmaps, layer.width, layer.height);
-            await layer.addRenderer('noise-effect', NoiseEffectRenderer, { intensity: 200, noises: noiseData });
+            await layer.addRenderer('noise-effect', NoiseEffectRenderer, { duration: 200, noises: noiseData });
         }
     );
 

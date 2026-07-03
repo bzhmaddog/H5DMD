@@ -299,7 +299,7 @@ describe('NoiseEffectRenderer', () => {
 
     test('constructor stores pre-loaded noise frames', () => {
         const noises = [new Uint8ClampedArray(W * H * 4)]
-        const r = new NoiseEffectRenderer(W, H, { noises, intensity: 400 })
+        const r = new NoiseEffectRenderer(W, H, { noises, duration: 400 })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         expect((r as any)._noises).toBe(noises)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
