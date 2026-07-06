@@ -1,3 +1,6 @@
+/**
+ * @deprecated Use `width`, `height`, and `position` in layer options instead.
+ */
 export interface LayerDimensions {
     width?: number,
     height?: number,

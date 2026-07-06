@@ -1,106 +1,94 @@
 import {
+    AnimationLayer,
+    CanvasLayer,
     Colors,
     Dmd,
+    SpritesLayer,
+    TextLayer,
+    VideoLayer,
     SpriteSequenceItem,
     NoiseEffectRenderer,
+    ShakyRenderer,
     ChromaKeyRenderer,
-    Options,
-    Utils
+    Utils,
+    rendererEntry
 } from "h5dmd";
 
 /**
  * Add every demo layer (background, animation, video, images, text and sprites)
  * to the given Dmd instance.
  */
-export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRenderer): void {
+export function setupLayers(dmd: Dmd, imagesPath: string): void {
 
-    const noises: string[] = [];
+    const noiseUrls: string[] = [];
     for (let i = 0; i < 6; i++) {
-        noises.push(`${imagesPath}/noises/noise-${i}.png`);
+        noiseUrls.push(`${imagesPath}/noises/noise-${i}.png`);
     }
 
-    dmd.addCanvasLayer('bg', {}, {} as Options, {}, (layer) => {
+    const animationImagesUrls: string[] = [
+        `${imagesPath}/animation/0.webp`,
+        `${imagesPath}/animation/1.webp`,
+        `${imagesPath}/animation/2.webp`,
+        `${imagesPath}/animation/3.webp`,
+        `${imagesPath}/animation/4.webp`,
+        `${imagesPath}/animation/5.webp`,
+        `${imagesPath}/animation/6.webp`,
+        `${imagesPath}/animation/7.webp`,
+        `${imagesPath}/animation/8.webp`,
+        `${imagesPath}/animation/9.webp`,
+        `${imagesPath}/animation/10.webp`,
+        `${imagesPath}/animation/11.webp`,
+        `${imagesPath}/animation/12.webp`,
+        `${imagesPath}/animation/13.webp`,
+        `${imagesPath}/animation/14.webp`
+    ];
 
-        const bgURI = `${imagesPath}/boss-mode-bg.png`;
+    const matthewImageUrl: string = `${imagesPath}/boss-matthew-big.png`
 
-        console.log(`Fetching background image from: ${bgURI}`);
+    const scottSpriteSheetUrl: string = `${imagesPath}/scott2x.png`
 
-        fetch(
-            bgURI
-        )
-        .then(response => response.blob())
-        .then(blob => createImageBitmap(blob))
-        .then(bitmap => {
-
-            layer.setDrawFunction(({ drawBitmap }) => {
-                drawBitmap(bitmap);
-            });
-
-            layer.draw(); // Draw the layer content once to initialize it            
+    dmd.addLayer(
+        CanvasLayer,
+        'bg',
+        {},
+        async (layer) => {
+            const bgURI = `${imagesPath}/boss-mode-bg.png`;
+            console.log(`Fetching background image from: ${bgURI}`);
+            const bitmap = await fetch(bgURI).then(r => r.blob()).then(createImageBitmap);
+            layer.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap));
+            layer.draw();
         });
-    });
 
 
-    dmd.addAnimationLayer(
+    dmd.addLayer(
+        AnimationLayer,
         'animation',
         {
             width: 426,
             height: 90,
-            top: 20,
-            left: 0
-        },
-        new Options({
+            position: { top: 20, left: 0 },
             duration: 800,
             autoplay: true,
             loop: true
-        }),
-        {},
-        (layer) => {
-
-            const images = [
-                `${imagesPath}/animation/0.webp`,
-                `${imagesPath}/animation/1.webp`,
-                `${imagesPath}/animation/2.webp`,
-                `${imagesPath}/animation/3.webp`,
-                `${imagesPath}/animation/4.webp`,
-                `${imagesPath}/animation/5.webp`,
-                `${imagesPath}/animation/6.webp`,
-                `${imagesPath}/animation/7.webp`,
-                `${imagesPath}/animation/8.webp`,
-                `${imagesPath}/animation/9.webp`,
-                `${imagesPath}/animation/10.webp`,
-                `${imagesPath}/animation/11.webp`,
-                `${imagesPath}/animation/12.webp`,
-                `${imagesPath}/animation/13.webp`,
-                `${imagesPath}/animation/14.webp`
-            ];
-
-            Utils
-                .loadImagesOrdered(images)
-                .then((bitmaps) => {
-                    layer.setAnimationData(bitmaps);
-                });
-
+        },
+        async (layer) => {
+            const bitmaps = await Utils.loadImagesOrdered(animationImagesUrls);
+            layer.setAnimationData(bitmaps);
         });
 
 
-    dmd.addVideoLayer(
+    dmd.addLayer(
+        VideoLayer,
         'video-transparent',
         {
             width: 213,
             height: 130,
-            top: 0,
-            left: 110
-        },
-        new Options({
+            position: { left: 110 },
             autoplay: true,
-            width: 213,
-            height: 130,
             loop: true,
             stopOnHide: true,
             visible: false
-        }),
-        {},
+        },
         (layer) => {
 
             const video = document.createElement('video');
@@ -112,157 +100,130 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
             video.src = `${imagesPath}/transparent-video.webm`;
         });
 
-    dmd.addVideoLayer(
+    dmd.addLayer(
+        VideoLayer,
         'video-chromakey',
         {
             width: 213,
             height: 130,
-            top: 0,
-            left: 110
-        },
-        new Options({
+            position: { left: 110 },
             autoplay: true,
-            width: 213,
-            height: 130,
             loop: true,
             stopOnHide: true,
             visible: false,
-            renderers: ['chroma']
-        }),
-        { 'chroma': chromaKey },
-        (layer) => {
+            renderers: [
+                rendererEntry('chroma-key', ChromaKeyRenderer, { color: [0, 0, 0], threshold: 9 })
+            ]
+        },
+        (l) => {
 
             const video = document.createElement('video');
 
             video.addEventListener('loadeddata', function () {
-                layer.setVideo(video);
+                l.setVideo(video);
             });
 
             video.src = `${imagesPath}/sample.webm`;
         });
 
-    dmd.addCanvasLayer(
+    dmd.addLayer(
+        CanvasLayer,
         'matthew',
         {
             width: 218,
             height: 91,
-            hAlign: 'right',
-            vAlign: 'middle',
-            hOffset: -1,
+            position: { hAlign: 'right', vAlign: 'middle', hOffset: -1 }
         },
-        {} as Options,
-        {},
-        (layer) => {
-
-            const bgURI = `${imagesPath}/boss-matthew-big.png`;
-
-            fetch(bgURI)
-                .then(response => response.blob())
-                .then(blob => createImageBitmap(blob))
-                .then(bitmap => {
-                    layer.drawBitmap(bitmap);
-                });
+        async (layer) => {
+            const bitmap = await fetch(matthewImageUrl).then(r => r.blob()).then(createImageBitmap);
+            layer.drawBitmap(bitmap);
         }
     );
 
-    dmd.addTextLayer(
+    dmd.addLayer(
+        TextLayer,
         'text1',
         {
             width: 100,
-            height: 17
-        },
-        new Options({
+            height: 17,
             text: "Scott Pilgrim",
             left: 0,
             top: 2,
             fontSize: 80,
-            adjustWidth: true
-            //debug : true
-        })
+            adjustWidth: true,
+        }
     );
 
-    dmd.addTextLayer(
+    dmd.addLayer(
+        TextLayer,
         'text2',
         {
             width: 90,
             height: 52,
-            hAlign: 'center',
-            vAlign: 'middle',
-            hOffset: -60,
-        },
-        new Options({
+            position: { hAlign: 'center', vAlign: 'middle', hOffset: -60 },
             text: "VS",
             fontFamily: 'Arial',
             fontSize: 100,
             hAlign: 'center',
             vAlign: 'middle',
             fontStyle: 'italic bold',
-            color: '#FFFFFF', // RGB,
+            color: '#FFFFFF',
             adjustWidth: true,
-            renderers: ['score-effect']
-        }),
-        {
-            "score-effect": new NoiseEffectRenderer(90, 52, 200, noises)
+        },
+        async (layer) => {
+            const bitmaps = await Utils.loadImagesOrdered(noiseUrls);
+            const noiseData = Utils.bitmapsToPixelData(bitmaps, layer.width, layer.height);
+            await layer.addRenderer('noise-effect', NoiseEffectRenderer, { duration: 200, noises: noiseData });
         }
     );
 
-    dmd.addTextLayer(
+    dmd.addLayer(
+        TextLayer,
         'text3',
         {
             width: 90,
             height: 52,
-            hAlign: 'center',
-            vAlign: 'middle',
-            hOffset: -60,
-        },
-        new Options({
+            position: { hAlign: 'center', vAlign: 'middle', hOffset: -60 },
             text: "VS",
             fontFamily: 'Arial',
             fontSize: 100,
             hAlign: 'center',
             vAlign: 'middle',
             fontStyle: 'italic bold',
-            color: '#00000000', // inner color totaly transparent to create an hollow text
+            color: '#00000000',
             strokeWidth: 2,
             strokeColor: Colors.Red,
-            adjustWidth: true
-        })
+            adjustWidth: true,
+        },
+        async (l) => {
+            await l.addRenderer('shaky-effect', ShakyRenderer, { intensity: 0.8, speed: 160, mode: "random" });
+        }
     );
 
-    dmd.addTextLayer(
+    dmd.addLayer(
+        TextLayer,
         'text4',
         {
             width: 95,
             height: 15,
-            hAlign: 'right',
-            vAlign: 'bottom',
-            hOffset: 0
-        },
-        new Options({
+            position: { hAlign: 'right', vAlign: 'bottom' },
             text: "Matthew Patel",
             fontSize: 80,
             adjustWidth: true
-        })
+        }
     );
 
-    dmd.addSpritesLayer(
+    dmd.addLayer(
+        SpritesLayer,
         'sprite',
         {
             width: 110,
             height: 130
         },
-        {} as Options,
-        {},
-        (layer) => {
+        async (layer) => {
+            const bitmap = await fetch(scottSpriteSheetUrl).then(r => r.blob()).then(createImageBitmap);
 
-            const bgURI = `${imagesPath}/scott2x.png`;
-
-            fetch(bgURI)
-                .then(response => response.blob())
-                .then(blob => createImageBitmap(blob))
-                .then(bitmap => {
-
-                    layer.createSprite(
+            await layer.createSprite(
                         'scott',
                         bitmap,
                         6,
@@ -276,9 +237,9 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
                                     height: 118,
                                     xOffset: 0,
                                     yOffset: 0,
-                                    duration: 900 // 900
+                                    duration: 900
                                 }
-                            }, //800
+                            },
                             {
                                 key: 'walk',
                                 animationParams: {
@@ -326,20 +287,56 @@ export function setupLayers(dmd: Dmd, imagesPath: string, chromaKey: ChromaKeyRe
                         ],
                         '2%',
                         '2%'
-                    ).then(() => {
-                        const seq: SpriteSequenceItem[] = [
-                            {key: 'idle', nbLoop: 3},
-                            {key: 'walk', nbLoop: 5},
-                            {key: 'run', nbLoop: 4},
-                            {key: 'taunt', nbLoop: 1}
-                            //['idle2', 1]
-                        ];
+                    );
 
-                        layer.enqueueSequence('scott', seq, true);
-                        layer.run('scott');
-                    });
-
-                });
-
+            const seq: SpriteSequenceItem[] = [
+                {key: 'idle', nbLoop: 3},
+                {key: 'walk', nbLoop: 5},
+                {key: 'run', nbLoop: 4},
+                {key: 'taunt', nbLoop: 1}
+            ];
+            layer.enqueueSequence('scott', seq, true);
+            layer.run('scott');
         });
+
+    // SVG title layer — centered, initially hidden
+    dmd.addLayer(
+        CanvasLayer,
+        'svg-title',
+        { visible: false },
+        async (layer) => {
+            const img = new Image();
+            await new Promise<void>(resolve => { img.onload = () => resolve(); img.src = `${imagesPath}/sptitle.svg`; });
+            const bitmap = await createImageBitmap(img);
+            layer.setDrawFunction(({ drawBitmap }) => {
+                drawBitmap(bitmap, { hAlign: 'center', vAlign: 'middle', margin: 5 });
+            });
+            layer.draw();
+        }
+    );
+
+    // Interactive text demo layer — shows text options (outline, shaky, adjustWidth)
+    dmd.addLayer(
+        TextLayer,
+        'big-text-demo',
+        {
+            width: 426,
+            height: 94,
+            position: { vAlign: 'middle' },
+            text: 'Hello DMD!',
+            fontFamily: 'Arial',
+            fontSize: 90,
+            fontUnit: '%',
+            fontStyle: 'bold',
+            color: Colors.Orange,
+            adjustWidth: true,
+            outlineWidth: 2,
+            outlineColor: Colors.DarkOrange,
+            backgroundColor: Colors.Black,
+            backgroundOpacity: 0.8,
+            borderColor: Colors.White,
+            borderWidth: 2,
+            visible: false,
+        }
+    );
 }

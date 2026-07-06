@@ -42,29 +42,54 @@ If it doesn't load check the developer console for errors
 # Examples
 
 ```ts
-import { Dmd, DmdOptions, DotShape, Easing, Options } from "h5dmd";
+import {
+    CanvasLayer, ChromaKeyRenderer, Dmd, DmdOptions, DotShape, Easing,
+    rendererEntry, ShakyRenderer,
+} from "h5dmd";
 
 const canvas = document.getElementById("output") as HTMLCanvasElement;
 
-const dmd = new Dmd({
-    outputCanvas: canvas,
+const dmd = new Dmd(canvas, {
     dotSize: 4,
     dotSpace: 1,
     dotShape: DotShape.Square,
     backgroundBrightness: 14,
     brightness: 1,
     showFPS: true,
-} as DmdOptions);
+});
 
 await dmd.init(); // set up the renderers (WebGPU when available)
 dmd.run();        // start the render loop
 
 // Add a canvas layer and draw an image into it
-dmd.addCanvasLayer("bg", {}, {} as Options, {}, (layer) => {
+dmd.addLayer(CanvasLayer, "bg", {}, (layer) => {
     fetch("background.png")
         .then((response) => response.blob())
         .then(createImageBitmap)
         .then((bitmap) => layer.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap)));
+});
+
+// Add a layer with a renderer declared up-front in the options.
+// rendererEntry() infers the params type from the class, so excess/wrong-typed
+// properties are caught at compile time.
+dmd.addLayer(VideoLayer, "video-chroma", {
+    autoplay: true,
+    renderers: [
+        rendererEntry("chroma", ChromaKeyRenderer, { color: [0, 255, 0], threshold: 20 })
+    ]
+}, (layer) => {
+    const video = document.createElement("video");
+    video.addEventListener("loadeddata", () => layer.setVideo(video));
+    video.src = "green-screen.webm";
+});
+
+// Or add a renderer after construction using the async addRenderer() method.
+// The loaded callback accepts async/await so you can await initialisation.
+dmd.addLayer(CanvasLayer, "shaky", {}, async (layer) => {
+    // await ensures the renderer is fully initialised before drawing starts
+    await layer.addRenderer("shake", ShakyRenderer, { intensity: 2, speed: 8, mode: "sine" });
+    layer.setDrawFunction(({ fillColor }) => fillColor("#FF0000"));
+    layer.draw();
 });
 
 // Fade a layer in/out (operates on layer opacity)

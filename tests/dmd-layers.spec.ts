@@ -43,12 +43,12 @@ describe('Dmd public API', () => {
         const canvas = document.createElement('canvas')
         canvas.width = 128
         canvas.height = 32
-        return new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, false)
+        return new Dmd(canvas, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: false })
     }
 
-    test('addCanvasLayer registers a retrievable layer', () => {
+    test('addLayer registers a retrievable layer', () => {
         const dmd = makeDmd()
-        const layer = dmd.addCanvasLayer('bg', {}, new Options())
+        const layer = dmd.addLayer(CanvasLayer, 'bg', new Options())
 
         expect(layer).toBeInstanceOf(CanvasLayer)
         expect(dmd.getLayer('bg')).toBe(layer)
@@ -61,21 +61,21 @@ describe('Dmd public API', () => {
 
     test('adding two layers with the same id throws', () => {
         const dmd = makeDmd()
-        dmd.addCanvasLayer('dup', {}, new Options())
-        expect(() => dmd.addCanvasLayer('dup', {}, new Options())).toThrow(/already exists/)
+        dmd.addLayer(CanvasLayer, 'dup', new Options())
+        expect(() => dmd.addLayer(CanvasLayer, 'dup', new Options())).toThrow(/already exists/)
     })
 
-    test('each add* helper builds the matching layer type', () => {
+    test('addLayer builds the correct layer type', () => {
         const dmd = makeDmd()
-        expect(dmd.addVideoLayer('v', {}, new Options())).toBeInstanceOf(VideoLayer)
-        expect(dmd.addAnimationLayer('a', {}, new Options())).toBeInstanceOf(AnimationLayer)
-        expect(dmd.addSpritesLayer('s', {}, new Options())).toBeInstanceOf(SpritesLayer)
-        expect(dmd.addTextLayer('t', {}, new Options({text: 'hi'}))).toBeInstanceOf(TextLayer)
+        expect(dmd.addLayer(VideoLayer, 'v', new Options())).toBeInstanceOf(VideoLayer)
+        expect(dmd.addLayer(AnimationLayer, 'a', new Options())).toBeInstanceOf(AnimationLayer)
+        expect(dmd.addLayer(SpritesLayer, 's', new Options())).toBeInstanceOf(SpritesLayer)
+        expect(dmd.addLayer(TextLayer, 't', new Options({text: 'hi'}))).toBeInstanceOf(TextLayer)
     })
 
     test('removeLayer deletes a layer and drops it from the sorted list', () => {
         const dmd = makeDmd()
-        dmd.addCanvasLayer('x', {}, new Options())
+        dmd.addLayer(CanvasLayer, 'x', new Options())
 
         dmd.removeLayer('x')
 
@@ -91,7 +91,7 @@ describe('Dmd public API', () => {
 
     test('setLayerVisibility toggles a single layer', () => {
         const dmd = makeDmd()
-        const layer = dmd.addCanvasLayer('x', {}, new Options())
+        const layer = dmd.addLayer(CanvasLayer, 'x', new Options())
 
         dmd.setLayerVisibility('x', false)
 
@@ -100,9 +100,9 @@ describe('Dmd public API', () => {
 
     test('setLayerGroupVisibility toggles every layer in the group', () => {
         const dmd = makeDmd()
-        const a = dmd.addCanvasLayer('a', {}, new Options({groups: ['hud']}))
-        const b = dmd.addCanvasLayer('b', {}, new Options({groups: ['hud']}))
-        const c = dmd.addCanvasLayer('c', {}, new Options({groups: ['other']}))
+        const a = dmd.addLayer(CanvasLayer, 'a', new Options({groups: ['hud']}))
+        const b = dmd.addLayer(CanvasLayer, 'b', new Options({groups: ['hud']}))
+        const c = dmd.addLayer(CanvasLayer, 'c', new Options({groups: ['other']}))
 
         dmd.setLayerGroupVisibility('hud', false)
 
@@ -125,8 +125,8 @@ describe('Dmd public API', () => {
 
     test('reset clears all layers', () => {
         const dmd = makeDmd()
-        dmd.addCanvasLayer('a', {}, new Options())
-        dmd.addCanvasLayer('b', {}, new Options())
+        dmd.addLayer(CanvasLayer, 'a', new Options())
+        dmd.addLayer(CanvasLayer, 'b', new Options())
 
         dmd.reset()
 
@@ -155,17 +155,17 @@ describe('Dmd public API', () => {
 
     test('_addLayer positions a centered/middle layer and records it in the sorted list', () => {
         const dmd = makeDmd()
-        dmd.addCanvasLayer('c', {width: 10, height: 5, hAlign: 'center', vAlign: 'middle'}, new Options())
+        dmd.addLayer(CanvasLayer, 'c', new Options({width: 10, height: 5, position: {hAlign: 'center', vAlign: 'middle'}}))
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const entry = (dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'c')
-        expect(entry.left).toBe(15)  // (42 - 10) / 2 - 1
-        expect(entry.top).toBe(1.5)  // (10 - 5) / 2 - 1
+        expect(entry.left).toBe(16)  // (42 - 10) / 2
+        expect(entry.top).toBe(2.5)  // (10 - 5) / 2
     })
 
     test('an explicit zIndex option is honoured in the sorted list', () => {
         const dmd = makeDmd()
-        dmd.addCanvasLayer('z', {}, new Options({zIndex: 7}))
+        dmd.addLayer(CanvasLayer, 'z', new Options({zIndex: 7}))
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const entry = (dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'z')
@@ -210,47 +210,47 @@ describe('Dmd public API', () => {
 
     test('hAlign left positions at hOffset', () => {
         const dmd = makeDmd()
-        dmd.addCanvasLayer('a', {width: 10, height: 5, hAlign: 'left', hOffset: 3}, new Options())
+        dmd.addLayer(CanvasLayer, 'a', new Options({width: 10, height: 5, position: {hAlign: 'left', hOffset: 3}}))
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const entry = (dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'a')
         expect(entry.left).toBe(3)
     })
 
-    test('hAlign right positions at dmd width - layer width - 1', () => {
+    test('hAlign right positions at dmd width - layer width', () => {
         const dmd = makeDmd()
-        dmd.addCanvasLayer('a', {width: 10, height: 5, hAlign: 'right'}, new Options())
+        dmd.addLayer(CanvasLayer, 'a', new Options({width: 10, height: 5, position: {hAlign: 'right'}}))
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const entry = (dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'a')
-        // dmd width = floor(128/3) = 42 → 42 - 10 - 1 = 31
-        expect(entry.left).toBe(31)
+        // dmd width = floor(128/3) = 42 → 42 - 10 = 32
+        expect(entry.left).toBe(32)
     })
 
     test('vAlign top positions at vOffset', () => {
         const dmd = makeDmd()
-        dmd.addCanvasLayer('a', {width: 10, height: 5, vAlign: 'top', vOffset: 2}, new Options())
+        dmd.addLayer(CanvasLayer, 'a', new Options({width: 10, height: 5, position: {vAlign: 'top', vOffset: 2}}))
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const entry = (dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'a')
         expect(entry.top).toBe(2)
     })
 
-    test('vAlign bottom positions at dmd height - layer height - 1', () => {
+    test('vAlign bottom positions at dmd height - layer height', () => {
         const dmd = makeDmd()
-        dmd.addCanvasLayer('a', {width: 10, height: 5, vAlign: 'bottom'}, new Options())
+        dmd.addLayer(CanvasLayer, 'a', new Options({width: 10, height: 5, position: {vAlign: 'bottom'}}))
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const entry = (dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'a')
-        // dmd height = floor(32/3) = 10 → 10 - 5 - 1 = 4
-        expect(entry.top).toBe(4)
+        // dmd height = floor(32/3) = 10 → 10 - 5 = 5
+        expect(entry.top).toBe(5)
     })
 
-    test('invalid layer type throws TypeError', () => {
+    test('invalid layer class throws TypeError', () => {
         const dmd = makeDmd()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        expect(() => (dmd as any)._addLayer(999, 'bad', {}, new Options()))
-            .toThrow(/Invalid layer type/)
+        expect(() => (dmd as any).addLayer(class {}, 'bad', {}))
+            .toThrow(/Unsupported layer class/)
     })
 })
 
@@ -278,12 +278,12 @@ describe('Dmd render loop', () => {
         const canvas = document.createElement('canvas')
         canvas.width = 128
         canvas.height = 32
-        return new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, showFPS)
+        return new Dmd(canvas, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS })
     }
 
     test('renderDMD composites visible loaded layers and calls renderFrame', async () => {
         const dmd = makeDmd()
-        const layer = dmd.addCanvasLayer('bg', {}, new Options())
+        const layer = dmd.addLayer(CanvasLayer, 'bg', new Options())
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(layer as any)._loaded = true // visible by default
 
@@ -312,19 +312,20 @@ describe('Dmd render loop', () => {
         internal._minFPS = 58
         internal._maxFPS = 62
 
+        const fillTextSpy = vi.spyOn(internal._fpsCtx, 'fillText')
         internal.__renderFPS()
 
-        expect(internal._fpsBox.textContent).toContain('FPS')
-        expect(internal._fpsBox.textContent).toContain('min')
+        expect(fillTextSpy).toHaveBeenCalledWith(expect.stringContaining('FPS'), expect.any(Number), expect.any(Number))
+        expect(fillTextSpy).toHaveBeenCalledWith(expect.stringContaining('min'), expect.any(Number), expect.any(Number))
     })
 
-    test('the FPS box is created on construction and removed on stop()', () => {
+    test('the FPS canvas is created on construction and removed on stop()', () => {
         const dmd = makeDmd(true)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const box = (dmd as any)._fpsBox as HTMLElement
-        expect(document.body.contains(box)).toBe(true)
+        const canvas = (dmd as any)._fpsCanvas as HTMLElement
+        expect(document.body.contains(canvas)).toBe(true)
 
         dmd.stop()
-        expect(document.body.contains(box)).toBe(false)
+        expect(document.body.contains(canvas)).toBe(false)
     })
 })

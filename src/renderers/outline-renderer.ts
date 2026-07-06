@@ -1,8 +1,21 @@
+import {Renderer} from './renderer'
 import {LayerRenderer} from './layer-renderer'
-import {Options, Utils} from '../utils'
+import {Utils} from '../utils'
 
-class OutlineRenderer extends LayerRenderer {
+export interface OutlineRendererParams {
+    /** Fill color of the inner text region (RRGGBBAA hex string). Default: `'FFFFFFFF'`. */
+    innerColor?: string
+    /** Outline color (RRGGBBAA hex string). Default: `'000000FF'`. */
+    outerColor?: string
+    /** Outline thickness in pixels. Default: `1`. */
+    width?: number
+}
 
+class OutlineRenderer extends LayerRenderer<OutlineRendererParams> {
+
+    private _innerColor: string
+    private _outerColor: string
+    private _outlineWidth: number
     private _uboBuffer: GPUBuffer
     private _inputBuffer: GPUBuffer
     private _tempBuffer: GPUBuffer
@@ -10,32 +23,22 @@ class OutlineRenderer extends LayerRenderer {
     private _computePipeline: GPUComputePipeline
 
     /**
-     * @param {number} width 
-     * @param {number} height 
+     * @param {number} width
+     * @param {number} height
+     * @param {OutlineRendererParams} params Optional defaults for colors and outline thickness.
      */
-
-    constructor(width: number, height: number) {
+    constructor(width: number, height: number, params?: OutlineRendererParams) {
         super("OutlineRenderer", width, height)
+        this._innerColor   = params?.innerColor ?? 'FFFFFFFF'
+        this._outerColor   = params?.outerColor ?? '000000FF'
+        this._outlineWidth = params?.width      ?? 1
     }
 
     init(): Promise<void> {
 
         return new Promise((resolve, reject) => {
 
-            if (typeof navigator === 'undefined' || !navigator.gpu) {
-                reject(new Error(`${this.name}: WebGPU is not available in this environment (navigator.gpu is undefined)`))
-                return
-            }
-
-            navigator.gpu.requestAdapter().then( adapter => {
-                if (!adapter) {
-                    reject(new Error(`${this.name}: no compatible GPU adapter found (requestAdapter() returned null)`))
-                    return
-                }
-
-                this._adapter = adapter
-            
-                adapter.requestDevice().then( device => {
+            Renderer.requestSharedDevice().then( device => {
                     this._device = device
 
                     this._shaderModule = device.createShaderModule({
@@ -119,18 +122,13 @@ class OutlineRenderer extends LayerRenderer {
 
                     console.log('OutlineRenderer:init()')
 
-                    this._shaderModule.getCompilationInfo()?.then(i => {
-                        if (i.messages.length > 0 ) {
-                            console.warn("OutlineRenderer:compilationInfo() ", i.messages)
-                        }
+                    this._validateShader(reject).then(valid => {
+                        if (!valid) return
+                        this._createResources()
+                        this.renderFrame = this._doRendering
+                        resolve()
                     })
-
-                    this._createResources()
-
-                    this.renderFrame = this._doRendering
-                    resolve()
                 }).catch(reject)
-            }).catch(reject)
        })
     
     }
@@ -224,19 +222,23 @@ class OutlineRenderer extends LayerRenderer {
      * Reuses the GPU resources created in init() : only per-frame data
      * (pixels + uniforms) is uploaded each call.
      * @param {ImageData} frameData 
-     * @param {Options} options
+     * @param {OutlineRendererParams} options
      * @returns {Promise<ImageData>}
      */
-    private _doRendering(frameData: ImageData, options?: Options): Promise<ImageData> {
+    private _doRendering(frameData: ImageData, options?: OutlineRendererParams): Promise<ImageData> {
 
         // Upload frame pixels into the persistent input buffer
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
-        // Write values to uniform buffer object
+        // Write values to uniform buffer object — per-call options override constructor defaults
+        const innerColor   = options?.innerColor   ?? this._innerColor
+        const outerColor   = options?.outerColor   ?? this._outerColor
+        const outlineWidth = options?.width        ?? this._outlineWidth
+
         const uniformData = [
-            Utils.hexColorToInt(Utils.rgba2abgr(options.get('innerColor'))),
-            Utils.hexColorToInt(Utils.rgba2abgr(options.get('outerColor'))),
-            options.get('width')
+            Utils.hexColorToInt(Utils.rgba2abgr(innerColor)),
+            Utils.hexColorToInt(Utils.rgba2abgr(outerColor)),
+            outlineWidth
         ]
         const uniformTypedArray = new Int32Array(uniformData)
         this._device.queue.writeBuffer(this._uboBuffer, 0, uniformTypedArray.buffer)

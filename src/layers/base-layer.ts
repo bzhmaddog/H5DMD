@@ -1,20 +1,13 @@
 import {Easing, type EasingFunction, OffscreenBuffer, Options} from "../utils"
 import {ChangeAlphaRenderer, LayerRenderer} from "../renderers"
-import {LayerRendererDictionary} from "../interfaces";
-
-enum LayerType {
-	Image,
-	Canvas,
-	Text,
-	Video,
-	Animation,
-	Sprites
-}
+import {LayerRendererDictionary, RendererEntry} from "../interfaces";
 
 interface RenderQueueItem {
     id: string,
-    instance: LayerRenderer,
-    params?: Options
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    instance: LayerRenderer<any>,
+    params?: Record<string, unknown>,
+    active: boolean
 }
 
 abstract class BaseLayer {
@@ -26,26 +19,26 @@ abstract class BaseLayer {
     private _id: string
     private _loaded: boolean = false
     private _outputBuffer: OffscreenBuffer
-    private _layerType: LayerType
     private _renderNextFrame: () => void
 
-    private _loadedListener?: (layer: BaseLayer) => void
-    private _updatedListener?: (layer: BaseLayer) => void
+    private _loadedListener?: (layer: BaseLayer) => void | Promise<void>
+    private _updatedListener?: (layer: BaseLayer) => void | Promise<void>
     private _availableRenderers: LayerRendererDictionary
     private _defaultRenderQueue: RenderQueueItem[]
     private _renderQueue: RenderQueueItem[]
+    /** Set to true once all renderer init() promises have resolved. */
+    private _renderersReady: boolean = false
+    /** Prevents starting more than one requestAnimationFrame render loop at a time. */
+    private _loopRunning: boolean = false
 
     constructor(
         id: string,
-        layerType: LayerType,
         width: number,
         height: number,
         options?: Options,
-        renderers?: LayerRendererDictionary,
-        loadedListener?: (layer: BaseLayer) => void,
-        updatedListener?: (layer: BaseLayer) => void
+        loadedListener?: (layer: BaseLayer) => void | Promise<void>,
+        updatedListener?: (layer: BaseLayer) => void | Promise<void>
     ) {
-        this._layerType = layerType
         this._id = id
 
         this._contentBuffer = new OffscreenBuffer(width, height, true)
@@ -55,50 +48,191 @@ abstract class BaseLayer {
         this._updatedListener = updatedListener
         this._defaultRenderQueue = []
         this._renderQueue = []
-        this._availableRenderers = Object.assign({
-            'opacity' : new ChangeAlphaRenderer(width, height)
-        }, renderers)
+        this._availableRenderers = {
+            'opacity': new ChangeAlphaRenderer(width, height)
+        }
 
         this._options = new Options({visible: true, groups: ['default'], opacity: 1, renderers: []}).merge(options)
 
-        this._renderNextFrame = function() { console.log(`Layer [${this._id}] : Rendering ended`) }
+        this._renderNextFrame = function() {}
 
-        const rendererPromises: Promise<void>[] = []
+        const rendererEntries: Array<RendererEntry> = this._options.get('renderers') ?? []
 
-        // Build array of promises
-        Object.keys(this._availableRenderers).forEach(id => {
-            rendererPromises.push(this._availableRenderers[id].init())
-        })
-
-
-        Promise.all<void>(rendererPromises).then(() => {
-            console.log(`Layer[${id}] : Renderers init done`)
-        }).catch(err => {
-            console.error(`Layer[${id}] : Renderer init failed`, err)
-        })
-
-        if (this._options.get('renderers').length > 0) {
-            // Build default render queue to save some time in renderFrame
-            // Since this should not change after creation
-            for (let i = 0; i < this._options.get('renderers').length; i++) {
-                const r = this._options.get('renderers')[i]
-
-                if (typeof this._availableRenderers[r] !== 'undefined') {
-                    this._defaultRenderQueue.push({
-                        id : r,
-                        instance : this._availableRenderers[r]
-                    })
-                } else {
-                    console.log(`Renderer "${r}" is not in the list of available renderers`)
-                }
+        // Register renderer instances into _availableRenderers
+        for (const entry of rendererEntries) {
+            if ('instance' in entry) {
+                // RendererInstanceEntry: use the pre-created instance as-is
+                this._availableRenderers[entry.id] = entry.instance
+            } else {
+                // RendererClassEntry: instantiate with this layer's dimensions so
+                // the renderer's buffers always match the frames it will process
+                this._availableRenderers[entry.id] = new entry.rendererClass(width, height, entry.params)
             }
         }
+
+        // Collect renderer ids alongside their init promises so we can identify
+        // which ones failed if allSettled reports a rejection.
+        const rendererIds = Object.keys(this._availableRenderers)
+        const rendererPromises = rendererIds.map(rid => this._availableRenderers[rid].init())
+
+        // Use allSettled so a single renderer failure (e.g. the built-in opacity
+        // renderer losing a GPU resource race) does not prevent the user-defined
+        // renderers from being queued.
+        Promise.allSettled(rendererPromises).then(results => {
+
+            // Log any individual failures and remove those renderers so they are
+            // not added to the queue in a broken state.
+            results.forEach((result, i) => {
+                if (result.status === 'rejected') {
+                    console.error(`Layer[${id}] : Renderer "${rendererIds[i]}" init failed`, result.reason)
+                    delete this._availableRenderers[rendererIds[i]]
+                }
+            })
+
+            console.log(`Layer[${id}] : Renderers init done`)
+
+            // Build default render queue for successfully initialised renderers
+            for (const entry of rendererEntries) {
+                if (entry.active !== false && this._availableRenderers[entry.id]) {
+                    this._defaultRenderQueue.push({
+                        id: entry.id,
+                        instance: this._availableRenderers[entry.id],
+                        active: true
+                    })
+                }
+            }
+
+            this._renderersReady = true
+
+            // If _layerLoaded already fired (the 1ms setTimeout beat init), kick off
+            // the render loop and fire the deferred loaded listener.
+            if (this.isLoaded()) {
+                if (this.isVisible() && this.haveRenderer()) {
+                    this._renderNextFrame = this._requestAnimationFrame
+                    this._requestAnimationFrame()
+                }
+                this._fireLoadedListener()
+            }
+        })
+    }
+
+    /**
+     * Add a renderer to this layer. It's constructed with the layer's own width/height,
+     * so callers pass only the class and its config - never dimensions.
+     *
+     * @example
+     *   const shaky = await layer.addRenderer('shaky', ShakyRenderer, { mode: 'decay' })
+     *   shaky.triggerShake()
+     *
+     * @param id             unique id for this renderer within the layer
+     * @param rendererClass  the renderer class (not an instance)
+     * @param params         optional config forwarded to the renderer constructor
+     * @param active         if true (default) the renderer is added to the render queue
+     * @returns the constructed, initialised renderer instance
+     */
+    async addRenderer<T extends LayerRenderer, P = unknown>(
+        id: string,
+        rendererClass: new (width: number, height: number, params?: P) => T,
+        params?: P,
+        active: boolean = true
+    ): Promise<T> {
+        if (this._availableRenderers[id]) {
+            throw new Error(`Renderer with id "${id}" already exists in the list of available renderers`)
+        }
+
+        // Build with THIS layer's dimensions so the renderer's buffers and shader index
+        // math always match the frames it will be handed - this is what lets callers
+        // skip passing width/height.
+        const renderer = new rendererClass(this.width, this.height, params)
+        this._availableRenderers[id] = renderer
+
+        // Renderers set up their GPU device asynchronously and no-op until init()
+        // resolves, so wire into the queue only once it can actually run.
+        try {
+            await renderer.init()
+        } catch (err) {
+            // Roll back so a failed init doesn't leave a dead renderer registered.
+            delete this._availableRenderers[id]
+            throw err
+        }
+
+        if (active) {
+            // Default queue, NOT _renderQueue: _renderFrame rebuilds _renderQueue from
+            // _defaultRenderQueue each frame, so a transient push would vanish next tick.
+            this._defaultRenderQueue.push({ id, instance: renderer, active: true })
+            // The layer may not have been looping if it had no renderers before.
+            if (this.isVisible()) {
+                this._renderNextFrame = this._requestAnimationFrame
+                this._requestAnimationFrame()
+            }
+        } else {
+            // Register in queue as inactive so activateRenderer() can find it
+            // at its original insertion position.
+            this._defaultRenderQueue.push({ id, instance: renderer, active: false })
+        }
+
+        return renderer
+    }
+
+    /**
+     * Remove a renderer from this layer. If it was in the render queue, it will be removed from there too.
+     * @param id Renderer id to remove. If not found, this is a no-op.
+     */
+    removeRenderer(id: string) {
+        if (this._availableRenderers[id]) {
+            delete this._availableRenderers[id]
+            this._defaultRenderQueue = this._defaultRenderQueue.filter(r => r.id !== id)
+            this._renderQueue = this._renderQueue.filter(r => r.id !== id)
+        }
+    }
+
+    /**
+     * Pause a renderer without destroying it. The instance is kept and can be
+     * re-enabled with {@link activateRenderer}. Order in the queue is preserved.
+     * @param id Renderer id to deactivate. No-op if not found or already inactive.
+     */
+    deactivateRenderer(id: string) {
+        const item = this._defaultRenderQueue.find(r => r.id === id)
+        if (item) item.active = false
+    }
+
+    /**
+     * Re-enable a previously deactivated renderer, restoring it at its original
+     * position in the queue. The renderer must have been registered via the
+     * constructor `renderers` dict or {@link addRenderer}.
+     * @param id Renderer id to activate.
+     * @throws if the renderer is not registered on this layer.
+     */
+    activateRenderer(id: string) {
+        if (!this._availableRenderers[id]) {
+            throw new Error(`Renderer "${id}" is not registered on layer "${this._id}"`)
+        }
+        const item = this._defaultRenderQueue.find(r => r.id === id)
+        if (item) {
+            item.active = true
+        } else {
+            // Renderer was registered with active:false — append it now
+            this._defaultRenderQueue.push({ id, instance: this._availableRenderers[id], active: true })
+        }
+        if (this.isVisible()) {
+            this._renderNextFrame = this._requestAnimationFrame
+            this._requestAnimationFrame()
+        }
+    }
+
+    /**
+     * Returns true if the renderer is registered and currently active.
+     */
+    isRendererActive(id: string): boolean {
+        return this._defaultRenderQueue.some(r => r.id === id && r.active)
     }
 
     /**
      * Request rendering of layer frame
      */
     private _requestAnimationFrame() {
+        if (this._loopRunning) return
+        this._loopRunning = true
         requestAnimationFrame(this._renderFrame.bind(this))
     }
 
@@ -106,16 +240,18 @@ abstract class BaseLayer {
      * Start rendering process
      */
     private _renderFrame() {
+        this._loopRunning = false
 
-        // clone renderers array
-        this._renderQueue = [...this._defaultRenderQueue]
+        // Clone only active renderers into the working queue for this frame
+        this._renderQueue = this._defaultRenderQueue.filter(r => r.active)
 
         // If opacity is below 1 add opacity renderer as the last in the queue
         if (this._options.get('opacity') < 1) {
             this._renderQueue.push({
                 id : 'opacity',
                 instance : this._availableRenderers['opacity'],
-                params: new Options({ opacity : parseFloat(this._options.get('opacity'))})
+                params: { opacity: parseFloat(this._options.get('opacity')) },
+                active: true
             })
         }
 
@@ -140,6 +276,10 @@ abstract class BaseLayer {
             // Apply 'filter' to provided content with current renderer then process next renderer in queue
             renderer?.instance.renderFrame(frameImageData, renderer.params).then((outputData: ImageData) => {
                 this._processRenderQueue(outputData)
+            }).catch(err => {
+                console.error(`Layer[${this._id}] : Renderer "${renderer?.id}" failed`, err)
+                // Restart loop so a single GPU error doesn't permanently stop rendering
+                this._requestAnimationFrame()
             })
         // no more renderer in queue then draw final image and start queue process again	
         } else {
@@ -149,10 +289,26 @@ abstract class BaseLayer {
 
             // Put final frame data into output buffer and start process again (if needed)
             createImageBitmap(frameImageData).then(bitmap => {
+                // Background behind content
+                const bgColor: string | undefined = this._options.get('backgroundColor')
+                if (bgColor) {
+                    const bgOpacity: number = this._options.get('backgroundOpacity') ?? 1
+                    this._outputBuffer.context.globalAlpha = bgOpacity
+                    this._outputBuffer.context.fillStyle = bgColor
+                    this._outputBuffer.context.fillRect(0, 0, this._outputBuffer.width, this._outputBuffer.height)
+                    this._outputBuffer.context.globalAlpha = 1
+                }
                 // Put final layer data in the output buffer
                 this._outputBuffer.context.drawImage(bitmap, 0, 0)
-                // Release the bitmap now that it has been copied into the buffer
                 bitmap.close()
+                // Border over content
+                const borderColor: string | undefined = this._options.get('borderColor')
+                const borderWidth: number = this._options.get('borderWidth') ?? 0
+                if (borderColor && borderWidth > 0) {
+                    this._outputBuffer.context.strokeStyle = borderColor
+                    this._outputBuffer.context.lineWidth = borderWidth
+                    this._outputBuffer.context.strokeRect(borderWidth / 2, borderWidth / 2, this._outputBuffer.width - borderWidth, this._outputBuffer.height - borderWidth)
+                }
                 // request next frame rendering
                 this._renderNextFrame()
             })
@@ -176,8 +332,23 @@ abstract class BaseLayer {
 
             this._outputBuffer.clear()
             createImageBitmap(frameImageData).then(bitmap => {
+                const bgColor: string | undefined = this._options.get('backgroundColor')
+                if (bgColor) {
+                    const bgOpacity: number = this._options.get('backgroundOpacity') ?? 1
+                    this._outputBuffer.context.globalAlpha = bgOpacity
+                    this._outputBuffer.context.fillStyle = bgColor
+                    this._outputBuffer.context.fillRect(0, 0, this._outputBuffer.width, this._outputBuffer.height)
+                    this._outputBuffer.context.globalAlpha = 1
+                }
                 this._outputBuffer.context.drawImage(bitmap, 0, 0)
                 bitmap.close()
+                const borderColor: string | undefined = this._options.get('borderColor')
+                const borderWidth: number = this._options.get('borderWidth') ?? 0
+                if (borderColor && borderWidth > 0) {
+                    this._outputBuffer.context.strokeStyle = borderColor
+                    this._outputBuffer.context.lineWidth = borderWidth
+                    this._outputBuffer.context.strokeRect(borderWidth / 2, borderWidth / 2, this._outputBuffer.width - borderWidth, this._outputBuffer.height - borderWidth)
+                }
             })
         }
 
@@ -187,7 +358,20 @@ abstract class BaseLayer {
 			this._requestAnimationFrame()
 		}
 
-        // Call callback if there is one
+        // Fire the loaded callback only once renderers are also ready.
+        // If renderer init hasn't resolved yet, the callback is deferred to
+        // Promise.all.then() via _fireLoadedListener().
+        if (this._renderersReady) {
+            this._fireLoadedListener()
+        }
+    }
+
+    /**
+     * Fires the loaded listener exactly once, after both content and all renderer
+     * init() calls are complete. Called from _layerLoaded (if renderers are already
+     * ready) or from the Promise.all.then() callback (if _layerLoaded fired first).
+     */
+    private _fireLoadedListener() {
         if (typeof this._loadedListener === 'function') {
             this._loadedListener(this)
         }
@@ -250,7 +434,7 @@ abstract class BaseLayer {
      * Stop rendering of the layer
      */
     protected _stopRendering() {
-        this._renderNextFrame = function() {console.log(`Rendering stopped : ${this._id}`)}
+        this._renderNextFrame = function() {console.log(`Layer [${this._id}] : Rendering stopped`)}
     }
 
     /**
@@ -267,8 +451,36 @@ abstract class BaseLayer {
      * Return if the layer have renderer in the queue
      * @returns boolean
      */
+    /** Set the background fill color for this layer and trigger a redraw. Pass `undefined` to clear. */
+    setBackgroundColor(color: string | undefined) {
+        this._options.set('backgroundColor', color)
+        if (this.isVisible() && !this.haveRenderer()) this._renderFrame()
+    }
+    get backgroundColor(): string | undefined { return this._options.get('backgroundColor') }
+
+    /** Set the background fill opacity (0–1) and trigger a redraw. */
+    setBackgroundOpacity(opacity: number) {
+        this._options.set('backgroundOpacity', Math.max(0, Math.min(1, opacity)))
+        if (this.isVisible() && !this.haveRenderer()) this._renderFrame()
+    }
+    get backgroundOpacity(): number { return this._options.get('backgroundOpacity') ?? 1 }
+
+    /** Set the border stroke color and trigger a redraw. */
+    setBorderColor(color: string) {
+        this._options.set('borderColor', color)
+        if (this.isVisible() && !this.haveRenderer()) this._renderFrame()
+    }
+    get borderColor(): string | undefined { return this._options.get('borderColor') }
+
+    /** Set the border stroke width in pixels and trigger a redraw. */
+    setBorderWidth(width: number) {
+        this._options.set('borderWidth', width)
+        if (this.isVisible() && !this.haveRenderer()) this._renderFrame()
+    }
+    get borderWidth(): number { return this._options.get('borderWidth') ?? 0 }
+
     haveRenderer() {
-        return this._defaultRenderQueue.length > 0
+        return this._defaultRenderQueue.some(r => r.active)
     }
 
     setVisibility(isVisible: boolean) {
@@ -284,7 +496,7 @@ abstract class BaseLayer {
             this._requestAnimationFrame()
         // Otherwise stop the rendering loop
         } else {
-            this._renderNextFrame = function() { console.log('End of rendering :' + this._id) }
+            this._renderNextFrame = function() { console.log(`Layer [${this._id}] : Stop rendering`) }
         }
     }
 
@@ -412,10 +624,6 @@ abstract class BaseLayer {
         return this._outputBuffer.canvas
     }
 
-    get layerType(): LayerType {
-        return this._layerType
-    }
-
     get groups(): string[] {
         return this._options.get('groups') || ['default']
     }
@@ -426,4 +634,4 @@ abstract class BaseLayer {
 
 }
 
-export { BaseLayer, LayerType }
+export { BaseLayer }

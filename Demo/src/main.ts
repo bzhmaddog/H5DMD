@@ -1,8 +1,7 @@
 import './style.scss';
 import {
     Dmd,
-    DotShape,
-    ChromaKeyRenderer
+    DotShape
 } from "h5dmd";
 import {setupLayers} from "./layers";
 import {buildControlPanel} from "./controls";
@@ -22,17 +21,15 @@ document.addEventListener('DOMContentLoaded', function () {
     if ("gpu" in navigator) {
 
         const output = document.getElementById('output') as HTMLCanvasElement;
-        const dmd = new Dmd(output, 2, 1, DotShape.Square, 14, 1, true);
-
-        const chromaKey = new ChromaKeyRenderer(213, 130, [0, 0, 0], 9);
+        const dmd = new Dmd(output, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: true });
 
         // Init Dmd then
-        Promise.all([dmd.init(), chromaKey.init()]).then(() => {
+        Promise.all([dmd.init()]).then(() => {
             // Start rendering dmd
             dmd.run();
 
             // Add all demo layers, then build the control panel for them
-            setupLayers(dmd, imagesPath, chromaKey);
+            setupLayers(dmd, imagesPath);
             buildControlPanel(dmd);
 
         }); // Dmd.init()

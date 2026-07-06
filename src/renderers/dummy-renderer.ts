@@ -1,4 +1,17 @@
+import {Renderer} from "./renderer"
 import {LayerRenderer} from "./layer-renderer"
+
+/**
+ * Example params interface — copy and adapt this when creating a new renderer.
+ * Every renderer that accepts configuration must use a single optional params
+ * object as the third constructor argument (never positional extra arguments).
+ */
+interface DummyRendererParams {
+    /** Example boolean option. Default: `false`. */
+    exampleOption?: boolean
+    /** Example numeric option. Default: `0`. */
+    exampleValue?: number
+}
 
 class DummyRenderer extends LayerRenderer {
 
@@ -7,33 +20,27 @@ class DummyRenderer extends LayerRenderer {
     private _bindGroup: GPUBindGroup
     private _computePipeline: GPUComputePipeline
 
-    /**
-     * @param {number} width 
-     * @param {number} height 
-     */
+    // Example: store params values as private fields
+    private _exampleOption: boolean
+    private _exampleValue: number
 
-    constructor(width: number, height: number) {
+    /**
+     * @param {number} width
+     * @param {number} height
+     * @param {DummyRendererParams} params Optional configuration (example — replace with real params).
+     */
+    constructor(width: number, height: number, params?: DummyRendererParams) {
         super("DummyRenderer", width, height)
+        // Example: read params with defaults
+        this._exampleOption = params?.exampleOption ?? false
+        this._exampleValue  = params?.exampleValue  ?? 0
     }
 
     init(): Promise<void> {
 
         return new Promise((resolve, reject) => {
 
-            if (typeof navigator === 'undefined' || !navigator.gpu) {
-                reject(new Error(`${this.name}: WebGPU is not available in this environment (navigator.gpu is undefined)`))
-                return
-            }
-
-            navigator.gpu.requestAdapter().then( adapter => {
-                if (!adapter) {
-                    reject(new Error(`${this.name}: no compatible GPU adapter found (requestAdapter() returned null)`))
-                    return
-                }
-
-                this._adapter = adapter
-            
-                adapter.requestDevice().then( device => {
+            Renderer.requestSharedDevice().then( device => {
                     this._device = device
 
                     this._shaderModule = device.createShaderModule({
@@ -57,18 +64,13 @@ class DummyRenderer extends LayerRenderer {
 
                     console.error('DummyRenderer:init() : Are you sure you wanted to use this renderer ?')
 
-                    this._shaderModule.getCompilationInfo()?.then(i => {
-                        if (i.messages.length > 0 ) {
-                            console.warn("DummyRenderer:compilationInfo() ", i.messages)
-                        }
+                    this._validateShader(reject).then(valid => {
+                        if (!valid) return
+                        this._createResources()
+                        this.renderFrame = this._doRendering
+                        resolve()
                     })
-
-                    this._createResources()
-
-                    this.renderFrame = this._doRendering
-                    resolve()
                 }).catch(reject)
-            }).catch(reject)
        })
     
     }

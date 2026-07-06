@@ -6,7 +6,7 @@
 import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
 import {setupVitestCanvasMock} from 'vitest-canvas-mock'
 
-import {CanvasLayer, LayerType} from '../src/layers'
+import {CanvasLayer} from '../src/layers'
 import {ChangeAlphaRenderer} from '../src/renderers'
 import {Options} from '../src/utils'
 
@@ -78,7 +78,7 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const spy = drawSpy(layer)
 
-        layer.drawBitmap(img(40, 40), new Options({fit: false, width: 30, height: 8}))
+        layer.drawBitmap(img(40, 40), new Options({fit: 'none', width: 30, height: 8}))
 
         expect(spy).toHaveBeenCalledWith(expect.anything(), 0, 0, 30, 8)
     })
@@ -87,7 +87,7 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const spy = drawSpy(layer)
 
-        layer.drawBitmap(img(40, 40), new Options({fit: false, width: '50%', height: '50%'}))
+        layer.drawBitmap(img(40, 40), new Options({fit: 'none', width: '50%', height: '50%'}))
 
         // 50% of 64 = 32, 50% of 16 = 8
         expect(spy).toHaveBeenCalledWith(expect.anything(), 0, 0, 32, 8)
@@ -98,7 +98,7 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         const spy = drawSpy(layer)
 
         layer.drawBitmap(img(40, 40), new Options({
-            fit: false, width: 20, height: 8, hAlign: 'right', vAlign: 'bottom'
+            fit: 'none', width: 20, height: 8, hAlign: 'right', vAlign: 'bottom'
         }))
 
         const call = spy.mock.calls[0]
@@ -111,7 +111,7 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const spy = drawSpy(layer)
 
-        layer.drawBitmap(img(10, 10), new Options({fit: false, width: 10, height: 10, left: '25%', top: '50%'}))
+        layer.drawBitmap(img(10, 10), new Options({fit: 'none', width: 10, height: 10, left: '25%', top: '50%'}))
 
         const call = spy.mock.calls[0]
         expect(call[1]).toBe(16) // 25% of 64
@@ -122,7 +122,7 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const spy = drawSpy(layer)
 
-        layer.drawBitmap(img(40, 20), new Options({fit: false, keepAspectRatio: true, width: 20}))
+        layer.drawBitmap(img(40, 20), new Options({fit: 'none', keepAspectRatio: true, width: 20}))
 
         // h = round(width(20) * imgHeight(20) / imgWidth(40)) = 10
         const call = spy.mock.calls[0]
@@ -134,7 +134,7 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const spy = drawSpy(layer)
 
-        layer.drawBitmap(img(40, 20), new Options({fit: false, keepAspectRatio: true, height: 10}))
+        layer.drawBitmap(img(40, 20), new Options({fit: 'none', keepAspectRatio: true, height: 10}))
 
         // w = round(height(10) * imgWidth(40) / imgHeight(20)) = 20
         const call = spy.mock.calls[0]
@@ -148,7 +148,7 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
         layer.drawBitmap(img(40, 40), new Options({
-            fit: false, width: 10, height: 10, hAlign: 'bogus', vAlign: 'bogus'
+            fit: 'none', width: 10, height: 10, hAlign: 'bogus', vAlign: 'bogus'
         }))
 
         expect(warn).toHaveBeenCalled()
@@ -171,9 +171,8 @@ describe('CanvasLayer inherited BaseLayer behaviour', () => {
         vi.unstubAllGlobals()
     })
 
-    test('reports its layer type, id and dimensions', () => {
+    test('reports its id and dimensions', () => {
         const layer = new CanvasLayer('hud', 64, 16)
-        expect(layer.layerType).toBe(LayerType.Canvas)
         expect(layer.id).toBe('hud')
         expect(layer.width).toBe(64)
         expect(layer.height).toBe(16)

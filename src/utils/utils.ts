@@ -76,6 +76,29 @@ class Utils {
 		.then(blobs => Promise.all(blobs.map(blob => createImageBitmap(blob))))
     }
 
+    /**
+     * Convert an array of `ImageBitmap` objects to raw RGBA pixel arrays.
+     * Useful for preparing noise or animation frames for GPU renderers.
+     *
+     * @example
+     * const bitmaps = await Utils.loadImagesOrdered(urls)
+     * const frames  = Utils.bitmapsToPixelData(bitmaps, layer.width, layer.height)
+     */
+    static bitmapsToPixelData(bitmaps: ImageBitmap[], width: number, height: number): Uint8ClampedArray[] {
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
+
+        if (!ctx) throw new Error('Utils.bitmapsToPixelData: could not acquire a 2D context')
+
+        return bitmaps.map(bitmap => {
+            ctx.clearRect(0, 0, width, height)
+            ctx.drawImage(bitmap, 0, 0)
+            return ctx.getImageData(0, 0, width, height).data as Uint8ClampedArray
+        })
+    }
+
 
 	/**
      * Fetch image from server with an index used to determine position

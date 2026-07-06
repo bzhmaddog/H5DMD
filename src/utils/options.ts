@@ -1,12 +1,17 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type OptionsObject = { [key: string]: string | number | boolean | any[] }
+type OptionsObject = Record<string, any>
 
 /**
- * Improve Map by adding a merge feature
+ * Improve Map by adding a merge feature and optional compile-time key/value typing.
+ *
+ * @template T Shape of the options object. When omitted the class behaves like
+ *             the original untyped `Options`.
  */
-class Options extends Map {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+class Options<T extends OptionsObject = OptionsObject> extends Map {
 
-    constructor(o?: Options | OptionsObject) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    constructor(o?: Options<any> | OptionsObject) {
         super()
 
         if (o) {
@@ -18,8 +23,9 @@ class Options extends Map {
      * Merge provided Options or object into current Options without altering current instance
      * @returns a new Options object
      */
-    merge(o?: Options | OptionsObject): Options {
-        const newOptions = new Options(this)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    merge(o?: Options<any> | OptionsObject): Options<T> {
+        const newOptions = new Options<T>(this)
 
         if (o) {
             this._merge(o, newOptions)
@@ -29,9 +35,25 @@ class Options extends Map {
     }
 
     /**
-     * Merge input into specified output
+     * Retrieve a typed value by key.
      */
-    private _merge(input: Options | OptionsObject, output: Options) {
+    get<K extends keyof T & string>(key: K): T[K] {
+        return super.get(key) as T[K]
+    }
+
+    /**
+     * Store a typed value by key.
+     */
+    set<K extends keyof T & string>(key: K, value: T[K]): this {
+        return super.set(key, value)
+    }
+
+    /**
+     * Merge input into specified output.
+     * Uses the raw Map setter to avoid the typed-override constraint.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private _merge(input: Options<any> | OptionsObject, output: Map<string, any>) {
         if (input instanceof Options) {
             for (const [k, v] of input.entries()) {
                 output.set(k, this._cloneValue(v))
@@ -59,4 +81,4 @@ class Options extends Map {
     }
 }
 
-export {Options}
+export {Options, OptionsObject}

@@ -1,13 +1,39 @@
 import {Easing, OffscreenBuffer, Options, type EasingFunction} from './utils'
 import {DmdRenderer, LayerRenderer} from './renderers'
-import {AnimationLayer, BaseLayer, CanvasLayer, LayerType, SpritesLayer, TextLayer, VideoLayer} from './layers'
+import {AnimationLayer, BaseLayer, CanvasLayer, SpritesLayer, TextLayer, VideoLayer} from './layers'
 import {DotShape} from "./enums"
-import {DmdOptions, Layer, LayerDimensions, LayerRendererDictionary} from "./interfaces"
+import {AnimationLayerOptions, CanvasLayerOptions, DmdOptions, Layer, LayerPosition, LayerRendererDictionary, SpritesLayerOptions, TextLayerOptions, VideoLayerOptions} from "./interfaces"
 
 
 interface LayerDictionary {
     [index: string]: BaseLayer
 }
+
+type LayerAddOptions =
+    | Partial<CanvasLayerOptions>
+    | Partial<VideoLayerOptions>
+    | Partial<AnimationLayerOptions>
+    | Partial<SpritesLayerOptions>
+    | Partial<TextLayerOptions>
+    | Options
+
+type LayerOptionsByInstance<T extends BaseLayer> =
+    T extends CanvasLayer ? Partial<CanvasLayerOptions> | Options :
+    T extends VideoLayer ? Partial<VideoLayerOptions> | Options :
+    T extends AnimationLayer ? Partial<AnimationLayerOptions> | Options :
+    T extends SpritesLayer ? Partial<SpritesLayerOptions> | Options :
+    T extends TextLayer ? Partial<TextLayerOptions> | Options :
+    LayerAddOptions
+
+type LayerPlayListenerByInstance<T extends BaseLayer> =
+    T extends VideoLayer ? (layer: VideoLayer) => void :
+    T extends AnimationLayer ? (layer: AnimationLayer) => void :
+    never
+
+type LayerPauseListenerByInstance<T extends BaseLayer> = LayerPlayListenerByInstance<T>
+
+type LayerStopListenerByInstance<T extends BaseLayer> =
+    T extends AnimationLayer ? (layer: AnimationLayer) => void : never
 
 export class Dmd {
 
@@ -15,7 +41,7 @@ export class Dmd {
      * H5DMD library version. Single source of truth for the version string
      * (must be bumped together with package.json on release).
      */
-    static readonly version: string = '1.3.0'
+    static readonly version: string = '2.0.0'
 
     private _outputCanvas: HTMLCanvasElement
     private _layers: LayerDictionary
@@ -23,7 +49,8 @@ export class Dmd {
     private _outputWidth: number
     private _outputHeight: number
     private _frameBuffer: OffscreenBuffer
-    private _fpsBox?: HTMLDivElement
+    private _fpsCanvas?: HTMLCanvasElement
+    private _fpsCtx?: CanvasRenderingContext2D
     private _showFPS: boolean
     private _zIndex: number
     private _renderer: DmdRenderer
@@ -40,44 +67,19 @@ export class Dmd {
     private _maxFPS: number
     private _fpsSamples: number[]
 
-    /**
-     * @deprecated Use the `DmdOptions` object constructor instead.
-     * @param {HTMLCanvasElement} outputCanvas DOM element where the Dmd will be rendered
-     * @param {number} dotSize Horizontal width of the virtual pixels (ex: 1 dot will be 4 pixels wide)
-     * @param {number} dotSpace number of 'black' pixels between each column (vertical lines between dots)
-     * @param {string} dotShape Shape of the dots (square, circle or diamond)
-     * @param {number} backgroundBrightness brightness of the background (below the dots)
-     * @param {number} brightness brightness of the dots
-     * @param {boolean} showFPS show FPS count or not
-     */
-    constructor(outputCanvas: HTMLCanvasElement, dotSize: number, dotSpace: number, dotShape: DotShape, backgroundBrightness: number, brightness: number, showFPS: boolean)
-    constructor(options: DmdOptions)
-    constructor(
-        outputCanvasOrOptions: HTMLCanvasElement | DmdOptions,
-        dotSize?: number,
-        dotSpace?: number,
-        dotShape?: DotShape,
-        backgroundBrightness?: number,
-        brightness?: number,
-        showFPS?: boolean
-    ) {
-        let outputCanvas: HTMLCanvasElement
-        if (outputCanvasOrOptions instanceof HTMLCanvasElement) {
-            outputCanvas = outputCanvasOrOptions
-        } else {
-            const opts = outputCanvasOrOptions
-            outputCanvas = opts.outputCanvas
-            dotSize = opts.dotSize
-            dotSpace = opts.dotSpace
-            dotShape = opts.dotShape
-            backgroundBrightness = opts.backgroundBrightness
-            brightness = opts.brightness
-            showFPS = opts.showFPS
-        }
+    constructor(canvas: HTMLCanvasElement, options: DmdOptions) {
+        const opts = options
+        const outputCanvas = canvas
+        const dotSize = opts.dotSize
+        const dotSpace = opts.dotSpace
+        const dotShape = opts.dotShape
+        const backgroundBrightness = opts.backgroundBrightness
+        const brightness = opts.brightness
+        const showFPS = opts.showFPS
 
         this._outputCanvas = outputCanvas
 
-        this._outputWidth = Math.floor(this._outputCanvas.width / (dotSize! + dotSpace!))
+        this._outputWidth = Math.floor(this._outputCanvas.width / (dotSize + dotSpace))
         this._outputHeight = Math.floor(this._outputCanvas.height / (dotSize + dotSpace))
         this._frameBuffer = new OffscreenBuffer(this._outputWidth, this._outputHeight, true)
         this._zIndex = 1
@@ -98,10 +100,10 @@ export class Dmd {
 
         console.log(`Creating a ${this._outputWidth}x${this._outputHeight} DMD on a ${this._outputCanvas.width}x${this._outputCanvas.height} canvas`)
 
-        this._renderer = new DmdRenderer(this._outputWidth, this._outputHeight, this._outputCanvas.width, this._outputCanvas.height, dotSize!, dotSpace!, dotShape ?? DotShape.Square, backgroundBrightness!, brightness!, this._outputCanvas)
+        this._renderer = new DmdRenderer(this._outputWidth, this._outputHeight, this._outputCanvas.width, this._outputCanvas.height, dotSize, dotSpace, dotShape ?? DotShape.Square, backgroundBrightness, brightness, this._outputCanvas)
 
-        if (!(outputCanvasOrOptions instanceof HTMLCanvasElement) && outputCanvasOrOptions.color !== undefined) {
-            const color = outputCanvasOrOptions.color
+        if (opts.color !== undefined) {
+            const color = opts.color
             let r: number, g: number, b: number
             if (typeof color === 'string') {
                 const hex = color.replace('#', '')
@@ -115,12 +117,12 @@ export class Dmd {
             this._renderer.setMonochromeColor(r, g, b)
         }
 
-        if (!(outputCanvasOrOptions instanceof HTMLCanvasElement) && outputCanvasOrOptions.monoLevels !== undefined) {
-            this._renderer.setMonoLevels(outputCanvasOrOptions.monoLevels)
+        if (opts.monoLevels !== undefined) {
+            this._renderer.setMonoLevels(opts.monoLevels)
         }
 
-        if (!(outputCanvasOrOptions instanceof HTMLCanvasElement) && outputCanvasOrOptions.offDotColor !== undefined) {
-            const c = outputCanvasOrOptions.offDotColor
+        if (opts.offDotColor !== undefined) {
+            const c = opts.offDotColor
             let r: number, g: number, b: number
             if (typeof c === 'string') {
                 const hex = c.replace('#', '')
@@ -143,9 +145,9 @@ export class Dmd {
         this._initDone = false
 
         // If needed create and show the fps div in the top right corner of the screen
-        this._showFPS = showFPS!
+        this._showFPS = showFPS
         if (showFPS) {
-            this._createFpsBox()
+            this._createFpsOverlay()
         }
 
         // Reset layers
@@ -178,9 +180,9 @@ export class Dmd {
         this._isRunning = true
         this._lastRenderTime = window.performance.now()
 
-        // (Re)create the FPS box if it was removed by a previous stop()
-        if (this._showFPS && !this._fpsBox) {
-            this._createFpsBox()
+        // (Re)create the FPS overlay if it was removed by a previous stop()
+        if (this._showFPS && !this._fpsCanvas) {
+            this._createFpsOverlay()
         }
 
         this._renderNextFrame = this.requestNextFrame
@@ -196,8 +198,8 @@ export class Dmd {
             console.log("Dmd render stopped")
         }
 
-        // Remove the FPS box from the DOM so a discarded Dmd leaves nothing behind
-        this._removeFpsBox()
+        // Remove the FPS overlay from the DOM so a discarded Dmd leaves nothing behind
+        this._removeFpsOverlay()
     }
 
     /**
@@ -228,9 +230,6 @@ export class Dmd {
             this._lastRenderTime = now
 
             // Smoothed FPS : rolling average of frame time over the last frames.
-            // Using ONE smoothed value for the live readout AND for min/max keeps
-            // them consistent (min <= FPS <= max always holds) and stops the number
-            // flickering frame-to-frame.
             this._fpsSamples.push(delta)
             if (this._fpsSamples.length > 60) {
                 this._fpsSamples.shift()
@@ -238,8 +237,7 @@ export class Dmd {
             const meanDelta = this._fpsSamples.reduce((sum, d) => sum + d, 0) / this._fpsSamples.length
             this._fps = Math.round(1000 / meanDelta)
 
-            // Track min/max on the same smoothed value, once the window has filled
-            // enough to represent steady-state (ignores the slow warmup frames).
+            // Track min/max once the window has enough samples for steady-state.
             if (this._fpsSamples.length >= 30) {
                 if (this._fps < this._minFPS) {
                     this._minFPS = this._fps
@@ -258,38 +256,33 @@ export class Dmd {
     }
 
     /**
-     * Create the on-screen FPS box and enable FPS rendering.
+     * Create the on-screen FPS canvas overlay and enable FPS rendering.
      */
-    private _createFpsBox() {
-        // Dom element to output fps value
-        this._fpsBox = document.createElement('div')
-        this._fpsBox.style.position = 'absolute'
-        this._fpsBox.style.right = '8px'
-        this._fpsBox.style.top = '8px'
-        this._fpsBox.style.zIndex = '99999' // zIndex is typed as string; verify no numeric operations depend on it
-        this._fpsBox.style.color = '#00ff66'
-        this._fpsBox.style.background = 'rgba(0, 0, 0, 0.8)'
-        this._fpsBox.style.padding = '6px 10px'
-        this._fpsBox.style.minWidth = '132px'
-        this._fpsBox.style.textAlign = 'left'
-        this._fpsBox.style.font = '12px/1.5 "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace'
-        this._fpsBox.style.borderRadius = '4px'
-        this._fpsBox.style.whiteSpace = 'pre'
-        this._fpsBox.style.pointerEvents = 'none'
-        this._fpsBox.style.userSelect = 'none'
+    private _createFpsOverlay() {
+        this._fpsCanvas = document.createElement('canvas')
+        this._fpsCanvas.width = this._outputCanvas.width
+        this._fpsCanvas.height = this._outputCanvas.height
+        this._fpsCanvas.style.position = 'absolute'
+        this._fpsCanvas.style.top = this._outputCanvas.offsetTop + 'px'
+        this._fpsCanvas.style.left = this._outputCanvas.offsetLeft + 'px'
+        this._fpsCanvas.style.pointerEvents = 'none'
+        this._fpsCanvas.style.zIndex = '99999'
 
-        document.body.appendChild(this._fpsBox)
+        this._fpsCtx = this._fpsCanvas.getContext('2d')!
+        const parent = this._outputCanvas.parentElement ?? document.body
+        parent.appendChild(this._fpsCanvas)
 
-        this._renderFPS = this.__renderFPS // Enable fps rendering on top of dmd
+        this._renderFPS = this.__renderFPS
     }
 
     /**
-     * Remove the on-screen FPS box from the DOM and disable FPS rendering.
+     * Remove the FPS overlay from the DOM and disable FPS rendering.
      */
-    private _removeFpsBox() {
-        if (this._fpsBox) {
-            this._fpsBox.remove()
-            this._fpsBox = undefined
+    private _removeFpsOverlay() {
+        if (this._fpsCanvas) {
+            this._fpsCanvas.remove()
+            this._fpsCanvas = undefined
+            this._fpsCtx = undefined
         }
 
         this._renderFPS = function () {
@@ -297,16 +290,27 @@ export class Dmd {
     }
 
     /**
-     * Update FPS output div with current fps value
+     * Draw FPS values on the overlay canvas
      */
     private __renderFPS() {
+        const ctx = this._fpsCtx!
+        const w = this._fpsCanvas!.width
         const pad = (n: number) => String(n).padStart(3, ' ')
         const seeded = this._fpsSamples.length >= 30
         const min = seeded ? pad(this._minFPS) : '  -'
         const max = seeded ? pad(this._maxFPS) : '  -'
-        this._fpsBox!.textContent =
-            `FPS ${pad(this._fps)}\n` +
-            `min ${min}   max ${max}`
+        const text1 = `FPS ${pad(this._fps)}`
+        const text2 = `min ${min}  max ${max}`
+
+        ctx.clearRect(0, 0, w, this._fpsCanvas!.height)
+
+        ctx.font = '12px "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace'
+        ctx.textAlign = 'right'
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'
+        ctx.fillRect(w - 142, 4, 138, 36)
+        ctx.fillStyle = '#00ff66'
+        ctx.fillText(text1, w - 12, 20)
+        ctx.fillText(text2, w - 12, 34)
     }
 
     /**
@@ -391,111 +395,97 @@ export class Dmd {
         this._renderer.setBrightness(b)
     }
 
-    addCanvasLayer(
+    addLayer<T extends BaseLayer>(
+        layerClass: new (...args: never[]) => T,
         id: string,
-        layerDimensions: LayerDimensions,
-        options: Options,
-        renderers?: LayerRendererDictionary,
-        layerLoadedListener?: (layer: CanvasLayer) => void,
-        layerUpdatedListener?: (layer: CanvasLayer) => void,
-    ): CanvasLayer {
-        return this._addLayer<CanvasLayer>(
-            LayerType.Canvas,
-            id,
-            layerDimensions,
-            options,
-            renderers,
-            layerLoadedListener,
-            layerUpdatedListener
-        )
-    }
+        options?: LayerOptionsByInstance<T>,
+        layerLoadedListener?: (layer: T) => void | Promise<void>,
+        layerUpdatedListener?: (layer: T) => void | Promise<void>,
+        layerOnPlayListener?: LayerPlayListenerByInstance<T>,
+        layerOnPauseListener?: LayerPauseListenerByInstance<T>,
+        layerOnStopListener?: LayerStopListenerByInstance<T>,
+    ): T {
+        if (typeof this._layers[id] !== 'undefined') {
+            throw new Error(`Layer [${id}] already exists`);
+        }
 
-    addVideoLayer(
-        id: string,
-        layerDimensions: LayerDimensions,
-        options: Options,
-        renderers?: LayerRendererDictionary,
-        layerLoadedListener?: (layer: VideoLayer) => void,
-        layerUpdatedListener?: (layer: VideoLayer) => void,
-        layerOnPlayListener?: (layer: VideoLayer) => void,
-        layerOnPauseListener?: (layer: VideoLayer) => void
-        // Why no _layerOnStopListener ?
-    ): VideoLayer {
-        return this._addLayer<VideoLayer>(
-            LayerType.Video,
-            id,
-            layerDimensions,
-            options,
-            renderers,
-            layerLoadedListener,
-            layerUpdatedListener,
-            layerOnPlayListener,
-            layerOnPauseListener
-        )
-    }
+        // Make sure we have an Options object from now on
+        const opts = new Options((options ?? {}) as Record<string, unknown>)
 
-    addAnimationLayer(
-        id: string,
-        layerDimensions: LayerDimensions,
-        options: Options,
-        renderers?: LayerRendererDictionary,
-        layerLoadedListener?: (layer: AnimationLayer) => void,
-        layerUpdatedListener?: (layer: AnimationLayer) => void,
-        layerOnPlayListener?: (layer: AnimationLayer) => void,
-        layerOnPauseListener?: (layer: AnimationLayer) => void,
-        layerOnStopListener?: (layer: AnimationLayer) => void
-    ): AnimationLayer {
-        return this._addLayer<AnimationLayer>(
-            LayerType.Animation,
-            id,
-            layerDimensions,
-            options,
-            renderers,
-            layerLoadedListener,
-            layerUpdatedListener,
-            layerOnPlayListener,
-            layerOnPauseListener,
-            layerOnStopListener
-        )
-    }
+        const layerWidth = opts.get('width') || this._outputWidth
+        const layerHeight = opts.get('height') || this._outputHeight
 
-    addSpritesLayer(
-        id: string,
-        layerDimensions: LayerDimensions,
-        options: Options,
-        renderers?: LayerRendererDictionary,
-        layerLoadedListener?: (layer: SpritesLayer) => void,
-        layerUpdatedListener?: (layer: SpritesLayer) => void,
-    ): SpritesLayer {
-        return this._addLayer<SpritesLayer>(
-            LayerType.Sprites,
-            id,
-            layerDimensions,
-            options,
-            renderers,
-            layerLoadedListener,
-            layerUpdatedListener,
-        )
-    }
+        const pos: LayerPosition = opts.get('position') || {}
+        let layerTop = pos.top || 0
+        let layerLeft = pos.left || 0
 
+        if (typeof pos.hAlign === 'string') {
+            switch (pos.hAlign) {
+                case "left":
+                    layerLeft = pos.hOffset || 0
+                    break
+                case "center":
+                    layerLeft = (this._outputWidth - layerWidth) / 2 + (pos.hOffset || 0)
+                    break
+                case "right":
+                    layerLeft = this._outputWidth - layerWidth + (pos.hOffset || 0)
+            }
+        }
 
-    addTextLayer(
-        id: string,
-        layerDimensions: LayerDimensions,
-        options: Options,
-        renderers?: LayerRendererDictionary,
-        layerLoadedListener?: (layer: TextLayer) => void,
-        layerUpdatedListener?: (layer: TextLayer) => void,
-    ): TextLayer {
-        return this._addLayer<TextLayer>(
-            LayerType.Text,
-            id,
-            layerDimensions,
-            options,
-            renderers,
-            layerLoadedListener,
-            layerUpdatedListener,
-        )
+        if (typeof pos.vAlign === 'string') {
+            switch (pos.vAlign) {
+                case 'top':
+                    layerTop = pos.vOffset || 0
+                    break
+                case 'middle':
+                    layerTop = (this._outputHeight - layerHeight) / 2 + (pos.vOffset || 0)
+                    break
+                case 'bottom':
+                    layerTop = this._outputHeight - layerHeight + (pos.vOffset || 0)
+            }
+        }
+
+        // Cast typed callbacks to (layer: BaseLayer) for the layer constructors
+        const onLoaded  = layerLoadedListener  as unknown as ((layer: BaseLayer) => void | Promise<void>) | undefined
+        const onUpdated = layerUpdatedListener as unknown as ((layer: BaseLayer) => void | Promise<void>) | undefined
+        const onPlay    = layerOnPlayListener  as unknown as ((layer: BaseLayer) => void) | undefined
+        const onPause   = layerOnPauseListener as unknown as ((layer: BaseLayer) => void) | undefined
+        const onStop    = layerOnStopListener  as unknown as ((layer: BaseLayer) => void) | undefined
+
+        let layer
+
+        const cls = layerClass as unknown
+        if (cls === CanvasLayer) {
+            layer = new CanvasLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated)
+        } else if (cls === VideoLayer) {
+            layer = new VideoLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated, onPlay, onPause)
+        } else if (cls === AnimationLayer) {
+            layer = new AnimationLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated, onPlay, onPause, onStop)
+        } else if (cls === SpritesLayer) {
+            layer = new SpritesLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated)
+        } else if (cls === TextLayer) {
+            layer = new TextLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated)
+        } else {
+            throw new TypeError('Unsupported layer class')
+        }
+
+        this._layers[id] = layer as BaseLayer
+
+        let zIndex = this._zIndex
+
+        if (opts.has('zIndex')) {
+            zIndex = opts.get('zIndex')
+        } else {
+            this._zIndex++
+        }
+
+        // Add new layer to sorted array
+        this._sortedLayers.push({id: id, zIndex: zIndex, top: layerTop, left: layerLeft})
+
+        // Sort by zIndex inc
+        this.sortLayers()
+
+        return layer as unknown as T
     }
 
     /**
@@ -846,119 +836,18 @@ export class Dmd {
     }
 
     /**
-     * Create a new layer object and add it to the list of layers
-     * @param {LayerType} type : mandatory
-     * @param {string} id : mandatory
-     * @param {LayerDimensions} _layerDimensions : optional
-     * @param {object} _options
-     * @param {LayerRendererDictionary} _layerRenderers : optional
-     * @param {function} _layerLoadedListener : optional
-     * @param {function} _layerUpdatedListener : optional
-     * @param {function} _layerOnPlayListener : optional
-     * @param {function} _layerOnPauseListener : optional
-     * @param {function} _layerOnStopListener : optional
-     * @see BaseLayer for available options
-     * @return layer
+     * Show or hide the FPS overlay at runtime.
      */
-    private _addLayer<T extends BaseLayer>(
-        type: LayerType,
-        id: string,
-        _layerDimensions: LayerDimensions,
-        _options: Options,
-        _layerRenderers?: LayerRendererDictionary,
-        _layerLoadedListener?: (layer: T) => void,
-        _layerUpdatedListener?: (layer: T) => void,
-        _layerOnPlayListener?: (layer: T) => void,
-        _layerOnPauseListener?: (layer: T) => void,
-        _layerOnStopListener?: (layer: T) => void,
-    ): T {
+    get showFPS(): boolean {
+        return this._showFPS
+    }
 
-        if (typeof this._layers[id] !== 'undefined') {
-            throw new Error(`Layer [${id}] already exists`);
+    set showFPS(visible: boolean) {
+        this._showFPS = visible
+        if (visible && !this._fpsCanvas) {
+            this._createFpsOverlay()
+        } else if (!visible && this._fpsCanvas) {
+            this._removeFpsOverlay()
         }
-
-        // This method is called by child layer creator which can be called from javascript directly so
-        // make sure we have an Options object from now on
-        const options = new Options(_options)
-        const layerWidth = _layerDimensions.width || this._outputWidth
-        const layerHeight = _layerDimensions.height || this._outputHeight
-
-        let layerTop = _layerDimensions.top || 0
-        let layerLeft = _layerDimensions.left || 0
-
-        if (typeof _layerDimensions.hAlign === 'string') {
-            switch (_layerDimensions.hAlign) {
-                case "left":
-                    layerLeft = _layerDimensions.hOffset || 0
-                    break
-                case "center":
-                    layerLeft = (this._outputWidth - layerWidth) / 2 + (_layerDimensions.hOffset || 0) - 1
-                    break
-                case "right":
-                    layerLeft = this._outputWidth - layerWidth + (_layerDimensions.hOffset || 0) - 1
-            }
-        }
-
-        if (typeof _layerDimensions.vAlign === 'string') {
-            switch (_layerDimensions.vAlign) {
-                case 'top':
-                    layerTop = _layerDimensions.vOffset || 0
-                    break
-                case 'middle':
-                    layerTop = (this._outputHeight - layerHeight) / 2 + (_layerDimensions.vOffset || 0) - 1
-                    break
-                case 'bottom':
-                    layerTop = this._outputHeight - layerHeight + (_layerDimensions.vOffset || 0) - 1
-            }
-        }
-
-
-        // Cast typed callbacks to (layer: BaseLayer) for the layer constructors
-        const onLoaded  = _layerLoadedListener  as ((layer: BaseLayer) => void) | undefined
-        const onUpdated = _layerUpdatedListener as ((layer: BaseLayer) => void) | undefined
-        const onPlay    = _layerOnPlayListener  as ((layer: BaseLayer) => void) | undefined
-        const onPause   = _layerOnPauseListener as ((layer: BaseLayer) => void) | undefined
-        const onStop    = _layerOnStopListener  as ((layer: BaseLayer) => void) | undefined
-
-        let layer
-
-        switch (type) {
-            case LayerType.Canvas:
-                layer = new CanvasLayer(id, layerWidth, layerHeight, options, _layerRenderers, onLoaded, onUpdated)
-                break
-            case LayerType.Video:
-                layer = new VideoLayer(id, layerWidth, layerHeight, options, _layerRenderers, onLoaded, onUpdated, onPlay, onPause)
-                break
-            case LayerType.Animation:
-                layer = new AnimationLayer(id, layerWidth, layerHeight, options, _layerRenderers, onLoaded, onUpdated, onPlay, onPause, onStop)
-                break
-            case LayerType.Sprites:
-                layer = new SpritesLayer(id, layerWidth, layerHeight, options, _layerRenderers, onLoaded, onUpdated)
-                break
-            case LayerType.Text:
-                layer = new TextLayer(id, layerWidth, layerHeight, options, _layerRenderers, onLoaded, onUpdated)
-                break
-            default:
-                throw new TypeError(`Invalid layer type : ${type}`)
-        }
-
-        this._layers[id] = layer as BaseLayer // use getType() to retrieve the type later
-
-        let zIndex = this._zIndex
-
-        if (options.has('zIndex')) {
-            zIndex = options.get('zIndex')
-        } else {
-            this._zIndex++
-        }
-
-        // Add new layer to sorted array
-        this._sortedLayers.push({id: id, zIndex: zIndex, top: layerTop, left: layerLeft})
-
-        // Sort by zIndex inc
-        this.sortLayers()
-
-        return layer as unknown as T
-
     }
 }
