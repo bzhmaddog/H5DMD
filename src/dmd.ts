@@ -41,7 +41,7 @@ export class Dmd {
      * H5DMD library version. Single source of truth for the version string
      * (must be bumped together with package.json on release).
      */
-    static readonly version: string = '1.3.0'
+    static readonly version: string = '2.0.0'
 
     private _outputCanvas: HTMLCanvasElement
     private _layers: LayerDictionary
