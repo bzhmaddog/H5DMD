@@ -79,7 +79,7 @@ class OutlineRenderer extends LayerRenderer<OutlineRendererParams> {
 
                                     var innerColorFound = false;
                                     
-                                    if (global_id.x > 0u && global_id.x < ${this._width - 1}u && global_id.y > 0u && global_id.y < ${this._height - 1}u) {
+                                    if (global_id.x >= lineWidth && global_id.x < ${this._width}u - lineWidth && global_id.y >= lineWidth && global_id.y < ${this._height}u - lineWidth) {
                                         let topPixel = index - lineSize * lineWidth;
                                         let bottomPixel = index + lineSize * lineWidth;
                                         let leftPixel = index - lineWidth;

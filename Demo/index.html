@@ -8,14 +8,17 @@
 
 </head>
 <body>
-<canvas id="output" width="1280" height="390"></canvas>
-<div id="version">H5DMD version: <span id="version_value">?</span></div>
+<div id="landing">
+    <h1>H5DMD Demo</h1>
+    <div id="version">H5DMD version: <span id="version_value">?</span></div>
 
-<div id="layer-controls">
-    <div id="tab-bar"></div>
-    <div id="tab-panels"></div>
+    <nav id="demo-nav">
+        <a href="simple.html">Simple demo &rarr;</a>
+        <a href="advanced.html">Advanced: Layer Groups &rarr;</a>
+        <a href="scoreboard.html">Pinball Scoreboard &rarr;</a>
+    </nav>
 </div>
 
-<script type="module" src="/src/main.ts"></script>
+<script type="module" src="/src/landing.ts"></script>
 </body>
 </html>

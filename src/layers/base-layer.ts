@@ -52,7 +52,7 @@ abstract class BaseLayer {
             'opacity': new ChangeAlphaRenderer(width, height)
         }
 
-        this._options = new Options({visible: true, groups: ['default'], opacity: 1, renderers: []}).merge(options)
+        this._options = new Options({visible: true, opacity: 1, renderers: []}).merge(options)
 
         this._renderNextFrame = function() {}
 
@@ -242,6 +242,10 @@ abstract class BaseLayer {
     private _renderFrame() {
         this._loopRunning = false
 
+        // Hook for subclasses (e.g. LayerGroup) that need to refresh _contentBuffer from
+        // an external source right before it's read. No-op by default.
+        this._prepareFrame()
+
         // Clone only active renderers into the working queue for this frame
         this._renderQueue = this._defaultRenderQueue.filter(r => r.active)
 
@@ -316,8 +320,16 @@ abstract class BaseLayer {
     }
 
     /**
+     * Hook called immediately before `_contentBuffer` is read for a render pass (from
+     * `_renderFrame()` and from `_layerLoaded()`'s single-render path). No-op by default;
+     * overridden by layers whose content is derived from an external source right before
+     * each render (e.g. LayerGroup recompositing its children).
+     */
+    protected _prepareFrame(): void {}
+
+    /**
      * Layer is loaded : Start rendering and call the callback if needed
-     * @param {boolean} startRenderingLoop 
+     * @param {boolean} startRenderingLoop
      */
     protected _layerLoaded(startRenderingLoop: boolean = false) {
 
@@ -327,6 +339,8 @@ abstract class BaseLayer {
 
         // If no renderer in the queue then just render the frame data once
         if (this._defaultRenderQueue.length === 0 && this._options.get('opacity') === 1) {
+            this._prepareFrame()
+
             // Put content data in output buffer
             const frameImageData = this._contentBuffer.context.getImageData(0, 0, this._outputBuffer.width, this._outputBuffer.height)
 
@@ -622,10 +636,6 @@ abstract class BaseLayer {
      */
     get canvas(): HTMLCanvasElement {
         return this._outputBuffer.canvas
-    }
-
-    get groups(): string[] {
-        return this._options.get('groups') || ['default']
     }
 
     get options(): Options {

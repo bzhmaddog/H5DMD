@@ -3,13 +3,14 @@ import {
     Dmd,
     DotShape
 } from "h5dmd";
-import {setupLayers} from "./layers";
-import {buildControlPanel} from "./controls";
+import {setupScoreboardLayers} from "./scoreboard-layers";
+import {buildScoreboardControlPanel} from "./scoreboard-controls";
 
 // When dom is loaded create the objects and bind the events
 document.addEventListener('DOMContentLoaded', function () {
 
-    const imagesPath = document.baseURI.replace('simple.html', '') + 'images';
+    const imagesPath = document.baseURI.replace('scoreboard.html', '') + 'images';
+
 
     // Display the H5DMD library version
     const versionElement = document.getElementById('version_value');
@@ -28,9 +29,10 @@ document.addEventListener('DOMContentLoaded', function () {
             // Start rendering dmd
             dmd.run();
 
-            // Add all demo layers, then build the control panel for them
-            setupLayers(dmd, imagesPath);
-            buildControlPanel(dmd);
+            // Add the scoreboard LayerGroups, then build its control panel
+            setupScoreboardLayers(dmd, imagesPath).then(() => {
+                buildScoreboardControlPanel(dmd);
+            });
 
         }); // Dmd.init()
 

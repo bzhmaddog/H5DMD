@@ -1,13 +1,9 @@
 import {Easing, OffscreenBuffer, Options, type EasingFunction} from './utils'
 import {DmdRenderer, LayerRenderer} from './renderers'
-import {AnimationLayer, BaseLayer, CanvasLayer, SpritesLayer, TextLayer, VideoLayer} from './layers'
+import {AnimationLayer, BaseLayer, CanvasLayer, LayerGroup, SpritesLayer, TextLayer, VideoLayer} from './layers'
+import {compositeSortedLayers, createLayerInstance, resolveLayerPosition, type LayerDictionary} from './layers/layer-factory'
 import {DotShape} from "./enums"
-import {AnimationLayerOptions, CanvasLayerOptions, DmdOptions, Layer, LayerPosition, LayerRendererDictionary, SpritesLayerOptions, TextLayerOptions, VideoLayerOptions} from "./interfaces"
-
-
-interface LayerDictionary {
-    [index: string]: BaseLayer
-}
+import {AnimationLayerOptions, CanvasLayerOptions, DmdOptions, Layer, LayerGroupOptions, LayerPosition, LayerRendererDictionary, SpritesLayerOptions, TextLayerOptions, VideoLayerOptions} from "./interfaces"
 
 type LayerAddOptions =
     | Partial<CanvasLayerOptions>
@@ -15,6 +11,7 @@ type LayerAddOptions =
     | Partial<AnimationLayerOptions>
     | Partial<SpritesLayerOptions>
     | Partial<TextLayerOptions>
+    | Partial<LayerGroupOptions>
     | Options
 
 type LayerOptionsByInstance<T extends BaseLayer> =
@@ -23,6 +20,7 @@ type LayerOptionsByInstance<T extends BaseLayer> =
     T extends AnimationLayer ? Partial<AnimationLayerOptions> | Options :
     T extends SpritesLayer ? Partial<SpritesLayerOptions> | Options :
     T extends TextLayer ? Partial<TextLayerOptions> | Options :
+    T extends LayerGroup ? Partial<LayerGroupOptions> | Options :
     LayerAddOptions
 
 type LayerPlayListenerByInstance<T extends BaseLayer> =
@@ -211,13 +209,7 @@ export class Dmd {
         this._frameBuffer.context.fillRect(0, 0, this._outputWidth, this._outputHeight)
 
         // Draw each visible layer on top of previous one to create the final screen
-        this._sortedLayers.forEach(l => {
-            const layer = this._layers[l.id]
-
-            if (layer.isVisible() && layer.isLoaded()) {
-                this._frameBuffer.context.drawImage(layer.canvas, l.left, l.top)
-            }
-        })
+        compositeSortedLayers(this._sortedLayers, this._layers, this._frameBuffer)
 
         // Get data from the merged layers content
         const frameImageData = this._frameBuffer.context.getImageData(0, 0, this._frameBuffer.width, this._frameBuffer.height)
@@ -416,34 +408,7 @@ export class Dmd {
         const layerHeight = opts.get('height') || this._outputHeight
 
         const pos: LayerPosition = opts.get('position') || {}
-        let layerTop = pos.top || 0
-        let layerLeft = pos.left || 0
-
-        if (typeof pos.hAlign === 'string') {
-            switch (pos.hAlign) {
-                case "left":
-                    layerLeft = pos.hOffset || 0
-                    break
-                case "center":
-                    layerLeft = (this._outputWidth - layerWidth) / 2 + (pos.hOffset || 0)
-                    break
-                case "right":
-                    layerLeft = this._outputWidth - layerWidth + (pos.hOffset || 0)
-            }
-        }
-
-        if (typeof pos.vAlign === 'string') {
-            switch (pos.vAlign) {
-                case 'top':
-                    layerTop = pos.vOffset || 0
-                    break
-                case 'middle':
-                    layerTop = (this._outputHeight - layerHeight) / 2 + (pos.vOffset || 0)
-                    break
-                case 'bottom':
-                    layerTop = this._outputHeight - layerHeight + (pos.vOffset || 0)
-            }
-        }
+        const {top: layerTop, left: layerLeft} = resolveLayerPosition(id, pos, layerWidth, layerHeight, this._outputWidth, this._outputHeight, this._sortedLayers, this._layers)
 
         // Cast typed callbacks to (layer: BaseLayer) for the layer constructors
         const onLoaded  = layerLoadedListener  as unknown as ((layer: BaseLayer) => void | Promise<void>) | undefined
@@ -452,22 +417,7 @@ export class Dmd {
         const onPause   = layerOnPauseListener as unknown as ((layer: BaseLayer) => void) | undefined
         const onStop    = layerOnStopListener  as unknown as ((layer: BaseLayer) => void) | undefined
 
-        let layer
-
-        const cls = layerClass as unknown
-        if (cls === CanvasLayer) {
-            layer = new CanvasLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated)
-        } else if (cls === VideoLayer) {
-            layer = new VideoLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated, onPlay, onPause)
-        } else if (cls === AnimationLayer) {
-            layer = new AnimationLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated, onPlay, onPause, onStop)
-        } else if (cls === SpritesLayer) {
-            layer = new SpritesLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated)
-        } else if (cls === TextLayer) {
-            layer = new TextLayer(id, layerWidth, layerHeight, opts, onLoaded, onUpdated)
-        } else {
-            throw new TypeError('Unsupported layer class')
-        }
+        const layer = createLayerInstance(layerClass, id, layerWidth, layerHeight, opts, onLoaded, onUpdated, onPlay, onPause, onStop)
 
         this._layers[id] = layer as BaseLayer
 
@@ -569,19 +519,6 @@ export class Dmd {
         const layer = this._layers[id]
         return layer.fadeOut(duration, easing).then(() => {
             layer.setVisibility(false)
-        })
-    }
-
-    /**
-     * Show/hid group of layers
-     * @param {string} name
-     * @param {boolean} state
-     */
-    setLayerGroupVisibility(name: string, state: boolean) {
-        Object.keys(this._layers).forEach(key => {
-            if (this._layers[key].groups.includes(name)) {
-                this._layers[key].setVisibility(!!state)
-            }
         })
     }
 

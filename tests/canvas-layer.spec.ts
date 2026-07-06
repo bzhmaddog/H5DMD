@@ -179,9 +179,8 @@ describe('CanvasLayer inherited BaseLayer behaviour', () => {
         expect(layer.canvas).toBeInstanceOf(HTMLCanvasElement)
     })
 
-    test('defaults to the "default" group and exposes its options', () => {
+    test('exposes its options', () => {
         const layer = new CanvasLayer('c', 64, 16)
-        expect(layer.groups).toEqual(['default'])
         expect(layer.options).toBeInstanceOf(Options)
     })
 
