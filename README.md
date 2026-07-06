@@ -44,7 +44,7 @@ If it doesn't load check the developer console for errors
 ```ts
 import {
     CanvasLayer, ChromaKeyRenderer, Dmd, DmdOptions, DotShape, Easing,
-    rendererEntry, ShakyRenderer,
+    LayerGroup, rendererEntry, ShakyRenderer, TextLayer,
 } from "h5dmd";
 
 const canvas = document.getElementById("output") as HTMLCanvasElement;
@@ -90,6 +90,38 @@ dmd.addLayer(CanvasLayer, "shaky", {}, async (layer) => {
     await layer.addRenderer("shake", ShakyRenderer, { intensity: 2, speed: 8, mode: "sine" });
     layer.setDrawFunction(({ fillColor }) => fillColor("#FF0000"));
     layer.draw();
+});
+
+// LayerGroup is a "virtual" layer: it can be dimensioned, positioned, given renderers,
+// a background color/opacity and shown/hidden like any other layer, but it cannot draw
+// content itself - instead it composites a set of child layers (which may themselves be
+// LayerGroups, nested arbitrarily deep).
+const hud = dmd.addLayer(LayerGroup, "hud", {
+    width: 80,
+    height: 20,
+    position: {hAlign: "right", vAlign: "top"},
+    backgroundColor: "#000000",
+    backgroundOpacity: 0.5,
+});
+hud.addLayer(TextLayer, "score", {text: "0", position: {left: 2, top: 2}});
+hud.addLayer(CanvasLayer, "icon", {position: {left: 60, top: 2}}, (layer) => {
+    layer.fillColor("#FFFFFF");
+});
+
+// Hiding a group cascades to its children (pausing e.g. a child VideoLayer's playback) and
+// restores each child's own prior visibility when the group is shown again.
+hud.setVisibility(false);
+hud.setVisibility(true);
+
+// Position a layer relative to a sibling instead of the container, via hAlign/vAlign:
+// 'constraint' and a *To*Of field naming both the relationship and the target (a sibling's
+// id, already added to the same container, or 'parent' - the container itself, the default).
+hud.addLayer(TextLayer, "label", {
+    text: "SCORE",
+    position: {
+        hAlign: "constraint", leftToRightOf: "icon", // my left edge, against icon's right edge
+        vAlign: "constraint", topToTopOf: "icon",    // my top edge, against icon's top edge
+    },
 });
 
 // Fade a layer in/out (operates on layer opacity)

@@ -125,3 +125,76 @@ input[type='text'] {
     border-radius: 4px;
     padding: 4px 6px;
 }
+
+#version a {
+    color: $accent;
+}
+
+#landing {
+    font: 14px sans-serif;
+    color: white;
+    padding: 24px;
+
+    h1 {
+        color: $accent;
+    }
+}
+
+#demo-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+
+    a {
+        color: $accent;
+        font-size: 16px;
+    }
+}
+
+#advanced-controls {
+    font: 13px sans-serif;
+    max-width: 900px;
+    // Sections are appended in the same order as the quadrants they control appear on the
+    // DMD (top-left, top-right, bottom-left, bottom-right), so a plain 2-column grid lays
+    // them out to visually match: [video-panel][hud] / [sandbox][info].
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+#scoreboard-controls {
+    font: 13px sans-serif;
+    max-width: 900px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+.adv-section {
+    border: 1px solid $border;
+    // Overridden per-section (inline) to the matching quadrant's color.
+    border-left: 4px solid $border;
+    background: $bg-dark;
+    border-radius: 4px;
+    padding: 12px;
+
+    h3 {
+        color: $accent;
+        margin: 0 0 8px;
+        font-size: 14px;
+    }
+
+    button {
+        cursor: pointer;
+        background: #222;
+        color: #fff;
+        border: 1px solid $border-light;
+        border-radius: 4px;
+        padding: 4px 10px;
+
+        &:hover:not(:disabled) {
+            background: #333;
+        }
+    }
+}

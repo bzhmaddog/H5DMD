@@ -1,6 +1,6 @@
 /**
- * Unit tests for the Dmd public API: layer add/get/remove, visibility (single and
- * group), custom renderer registration, reset, brightness and the read-only
+ * Unit tests for the Dmd public API: layer add/get/remove, visibility,
+ * custom renderer registration, reset, brightness and the read-only
  * accessors, plus the _addLayer alignment / zIndex bookkeeping, and the dot
  * shape/size/space runtime setters and their getters.
  */
@@ -96,19 +96,6 @@ describe('Dmd public API', () => {
         dmd.setLayerVisibility('x', false)
 
         expect(layer.isVisible()).toBe(false)
-    })
-
-    test('setLayerGroupVisibility toggles every layer in the group', () => {
-        const dmd = makeDmd()
-        const a = dmd.addLayer(CanvasLayer, 'a', new Options({groups: ['hud']}))
-        const b = dmd.addLayer(CanvasLayer, 'b', new Options({groups: ['hud']}))
-        const c = dmd.addLayer(CanvasLayer, 'c', new Options({groups: ['other']}))
-
-        dmd.setLayerGroupVisibility('hud', false)
-
-        expect(a.isVisible()).toBe(false)
-        expect(b.isVisible()).toBe(false)
-        expect(c.isVisible()).toBe(true)
     })
 
     test('addRenderer accepts a valid renderer and rejects duplicates / invalid objects', () => {

@@ -8,6 +8,19 @@ class TextLayer extends BaseLayer {
 
     private _text: string
     private _textBuffer: OffscreenBuffer
+    /**
+     * Smallest font size (in px) a previous adjustWidth pass has shrunk to, when
+     * adjustDirection is 'shrink'. Reset by setFontSize()/setAdjustDirection()/disabling
+     * adjustWidth.
+     */
+    private _minAdjustedFontSize?: number
+    /**
+     * Largest font size (in px) a previous adjustWidth pass has settled on, when
+     * adjustDirection is 'expand'. Reset the same way as _minAdjustedFontSize.
+     */
+    private _maxAdjustedFontSize?: number
+    /** Font size value as originally configured at construction, for resetFontSize(). */
+    private _originalFontSize: string | number
 
     constructor(
         id: string,
@@ -32,6 +45,7 @@ class TextLayer extends BaseLayer {
             strokeWidth: 0,
             strokeColor: Colors.Black,
             adjustWidth: false,
+            adjustDirection: 'both',
             outlineWidth: 0,
             outlineColor: Colors.Black,
             antialiasing: true,
@@ -65,6 +79,8 @@ class TextLayer extends BaseLayer {
         this._textBuffer = new OffscreenBuffer(this.width, this.height)
 
         this._text = ""
+
+        this._originalFontSize = layerOptions.get('fontSize')
 
         setTimeout(this._layerLoaded.bind(this), 1)
 
@@ -155,6 +171,13 @@ class TextLayer extends BaseLayer {
             // from the slider is always the starting (maximum) size.
             if (options.get('adjustWidth')) {
                 const minFontSize = 1
+                const direction = options.get('adjustDirection') ?? 'both'
+
+                // 'shrink': never start above a size a previous, wider text already shrank
+                // to - otherwise a later, narrower text would let the font grow back.
+                if (direction === 'shrink' && this._minAdjustedFontSize !== undefined && fontSize > this._minAdjustedFontSize) {
+                    fontSize = this._minAdjustedFontSize
+                }
 
                 this._textBuffer.context.font = options.get('fontStyle') + ' ' + fontSize + fontUnit + ' ' + options.get('fontFamily')
                 m = this._textBuffer.context.measureText(this._text)
@@ -163,6 +186,20 @@ class TextLayer extends BaseLayer {
                     fontSize -= 1
                     this._textBuffer.context.font = options.get('fontStyle') + ' ' + fontSize + fontUnit + ' ' + options.get('fontFamily')
                     m = this._textBuffer.context.measureText(this._text)
+                }
+
+                // 'expand': never end up below a size a previous text already settled on -
+                // accepts the text may now overflow rather than shrinking back down.
+                if (direction === 'expand' && this._maxAdjustedFontSize !== undefined && fontSize < this._maxAdjustedFontSize) {
+                    fontSize = this._maxAdjustedFontSize
+                    this._textBuffer.context.font = options.get('fontStyle') + ' ' + fontSize + fontUnit + ' ' + options.get('fontFamily')
+                    m = this._textBuffer.context.measureText(this._text)
+                }
+
+                if (direction === 'shrink') {
+                    this._minAdjustedFontSize = fontSize
+                } else if (direction === 'expand') {
+                    this._maxAdjustedFontSize = this._maxAdjustedFontSize === undefined ? fontSize : Math.max(this._maxAdjustedFontSize, fontSize)
                 }
             } else {
                 this._textBuffer.context.font = options.get('fontStyle') + " " + fontSize + fontUnit + ' ' + options.get('fontFamily')
@@ -187,15 +224,22 @@ class TextLayer extends BaseLayer {
             }
 
             if (typeof options.get('hAlign') === 'string') {
+                // Reserve room for the outline's horizontal expansion so it isn't clipped by
+                // the canvas edge - without this, text placed flush against either edge (the
+                // common case for 'left'/'right', and for 'right' whenever the text is wide
+                // enough to overflow the layer) has its outline (and, for some fonts, the
+                // glyph ink itself past what measureText() reports) cut off at that edge.
+                const outlineMargin = options.get('outlineWidth') ?? 0
+
                 switch (options.get('hAlign')) {
                     case 'left':
-                        left = 0
+                        left = outlineMargin
                         break
                     case 'center':
                         left = (this.width / 2) - (m.width / 2)
                         break
                     case 'right':
-                        left = this.width - m.width
+                        left = this.width - m.width - outlineMargin
                 }
             }
 
@@ -418,6 +462,23 @@ class TextLayer extends BaseLayer {
      */
     setFontSize(size: number) {
         this._options.set('fontSize', size)
+        // An explicit resize becomes the new baseline resetFontSize() returns to, and
+        // declares a new ceiling/floor - forget any adjustWidth memory.
+        this._originalFontSize = size
+        this._minAdjustedFontSize = undefined
+        this._maxAdjustedFontSize = undefined
+        this._drawText().then(() => this._layerUpdated())
+    }
+
+    /**
+     * Reset the font size back to the value originally configured when this layer was
+     * created, undoing any setFontSize() calls and any adjustWidth shrink/grow memory, then
+     * redraw.
+     */
+    resetFontSize() {
+        this._options.set('fontSize', this._originalFontSize)
+        this._minAdjustedFontSize = undefined
+        this._maxAdjustedFontSize = undefined
         this._drawText().then(() => this._layerUpdated())
     }
 
@@ -452,9 +513,37 @@ class TextLayer extends BaseLayer {
         }
 
         this._options.set('adjustWidth', enabled)
+        if (!enabled) {
+            // Shrink/grow memory only applies while adjustWidth is active - clear it so a
+            // later re-enable starts fresh instead of being capped by a stale size.
+            this._minAdjustedFontSize = undefined
+            this._maxAdjustedFontSize = undefined
+        }
         this._drawText().then(() => {
             this._layerUpdated()
         })
+    }
+
+    /**
+     * Set how the adjustWidth-computed font size can change across setText() calls, then
+     * redraw. See {@link TextLayerOptions.adjustDirection} for the meaning of each value.
+     * Resets any previously remembered shrink/grow size.
+     * @param {'shrink' | 'expand' | 'both'} direction
+     */
+    setAdjustDirection(direction: 'shrink' | 'expand' | 'both') {
+        this._options.set('adjustDirection', direction)
+        this._minAdjustedFontSize = undefined
+        this._maxAdjustedFontSize = undefined
+        this._drawText().then(() => {
+            this._layerUpdated()
+        })
+    }
+
+    /**
+     * Current adjustWidth direction mode.
+     */
+    get adjustDirection(): 'shrink' | 'expand' | 'both' {
+        return this._options.get('adjustDirection') ?? 'both'
     }
 
     /**
