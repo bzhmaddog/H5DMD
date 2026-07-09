@@ -1,4 +1,4 @@
-import {Colors, Dmd, LayerGroup, TextLayer, NoiseEffectRenderer, rendererEntry, ShakyRenderer, Utils} from "h5dmd";
+import {Colors, Dmd, LayerGroup, TextLayer, CanvasLayer, NoiseEffectRenderer, rendererEntry, ShakyRenderer, Utils} from "h5dmd";
 
 /**
  * Build a pinball-style scoreboard out of three independent top-level LayerGroups: the
@@ -46,43 +46,51 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
         hAlign: 'right',
         vAlign: 'middle',
         fontFamily: 'Dusty',
-        hOffset: 8, // Fix Dusty font issue
+        hOffset: 14, // Fix Dusty font issue
         fontSize: 90,
         adjustWidth: true,
         adjustDirection: 'shrink',
         color: Colors.White,
         outlineWidth: 2,
-        outlineColor: Colors.Blue,
+        outlineColor: Colors.Blue
     });
 
     // ---------------------------------------------------------------------
     // Player indicator (bottom-left) - "P" label + player number
     // ---------------------------------------------------------------------
     const player = dmd.addLayer(LayerGroup, 'player', {
-        width: 40,
+        width: 35,
         height: 18,
-        position: {left: 4, vAlign: 'bottom', vOffset: -4},
+        position: {left: 4, vAlign: 'bottom'}
     });
 
-    player.addLayer(TextLayer, 'label', {
-        width: 14,
-        height: 18,
-        position: {top: 0, left: 0},
-        text: 'P:',
-        fontSize: 90,
-        color: Colors.White,
-    });
+    player.addLayer(
+        CanvasLayer,
+        'icon',
+        {
+            width: 18,
+            height: 18,
+            position: {top: 0, left: 0},
+        },
+        async (layer) => {
+            const bgURI = `${imagesPath}/scott-face.webp`;
+            const bitmap = await fetch(bgURI).then(r => r.blob()).then(createImageBitmap);
+            layer.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap));
+            layer.draw();
+        }
+    );
 
     player.addLayer(TextLayer, 'number', {
         width: 10,
         height: 18,
         position: {
-            hAlign: 'constraint', leftToRightOf: 'label',
-            vAlign: 'constraint', topToTopOf: 'label',
-            hOffset: 1,
+            hAlign: 'constraint', leftToRightOf: 'icon',
+            vAlign: 'constraint', topToTopOf: 'icon',
+            hOffset: 1, vOffset: 1
         },
         text: '1',
-        fontSize: 90,
+        fontSize: 100,
+        adjustWidth: true,
         color: Colors.Yellow,
         renderers: [
             rendererEntry('shake', ShakyRenderer, {intensity: 1, speed: 12, mode: 'random'}, false)
@@ -90,33 +98,40 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
     });
 
     // ---------------------------------------------------------------------
-    // Ball indicator (bottom-right) - "BALL" label + ball number
+    // Ball indicator (bottom-right) - "B" label + ball number
     // ---------------------------------------------------------------------
     const ball = dmd.addLayer(LayerGroup, 'ball', {
-        width: 50,
-        height: 18,
-        position: {hAlign: 'right', vAlign: 'bottom', vOffset: -4}
+        width: 35,
+        height: 20,
+        position: {hAlign: 'right', vAlign: 'bottom'}
     });
 
-    ball.addLayer(TextLayer, 'label', {
-        width: 34,
-        height: 20,
-        position: {top: 0, left: 0},
-        text: 'Ball:',
-        fontSize: 90,
-        color: Colors.White,
-        hAlign: 'right',
-    });
+    ball.addLayer(
+        CanvasLayer,
+        'icon',
+        {
+            width: 18,
+            height: 18,
+            position: {top: 1, left: 2}
+        },
+        async (layer) => {
+            const bgURI = `${imagesPath}/ball.webp`;
+            const bitmap = await fetch(bgURI).then(r => r.blob()).then(createImageBitmap);
+            layer.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap));
+            layer.draw();
+        }
+    );
 
     ball.addLayer(TextLayer, 'number', {
         width: 10,
         height: 20,
         position: {
-            hAlign: 'constraint', leftToRightOf: 'label', hOffset: 2,
-            vAlign: 'constraint', topToTopOf: 'label',
+            hAlign: 'constraint', leftToRightOf: 'icon',
+            vAlign: 'constraint', topToTopOf: 'icon',
+            hOffset: 2, vOffset: -1
         },
         text: '1',
-        fontSize: 100,
+        fontSize: 70,
         color: Colors.Yellow,
         hAlign: 'left',
         renderers: [

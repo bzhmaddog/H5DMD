@@ -155,14 +155,39 @@ class TextLayer extends BaseLayer {
             let fontSize = options.get('fontSize')
             let fontUnit = options.get('fontUnit')
 
-            // Convert % fontSize to pixels proportional to the layer height.
-            // Reserve space for the outline on both sides and a 2px safety margin
-            // so glyphs with tall ascenders/descenders are never clipped.
+            // Convert % fontSize to pixels so it maps to an actual fraction of the layer
+            // height. Everything here is done in INK-HEIGHT units (px of real rendered glyph
+            // ink) until the final divide, because font size and ink height are NOT the same
+            // number - a given font renders its ink at only some fraction of its font-size em
+            // box, and that fraction is font-specific.
+            //
+            // 1. targetInk: the ink height we want. Start from the requested % of the layer
+            //    height, capped at the full layer height (so a >100% request can't overflow),
+            //    then reserve the outline: it expands the glyph by outlineW on every edge, so
+            //    the total inked footprint is (ink + 2×outlineW). Subtracting 2×outlineW here
+            //    makes glyph+outline together span the requested % - and at 100% exactly fill
+            //    the layer - instead of the outline pushing the footprint past it. Everything
+            //    is in ink-height units (NOT font size - clamping the font size directly, as an
+            //    earlier version did, mixes the two units and caps the result far too low).
+            // 2. glyphHeightRatio: ink height per 1px of font size for THIS exact string,
+            //    measured via actualBoundingBoxAscent/Descent (the real ink span of these
+            //    specific glyphs, not the font's abstract design box, which sits inside more
+            //    padding than any real text uses). Ties "100%" to what actually gets drawn.
+            //    Falls back to the old 80%-of-em approximation if bounding box metrics aren't
+            //    available (e.g. jsdom/canvas-mock in tests, or ancient browsers).
+            // 3. fontSize = targetInk / ratio: the font size whose ink equals targetInk.
             if (fontUnit === '%') {
                 fontUnit = 'px'
                 const outlineW = options.get('outlineWidth') ?? 0
-                const verticalHeadroom = this.height - outlineW * 2 - 2
-                fontSize = Math.min((fontSize * this.height) / 80, verticalHeadroom)
+                const targetInk = Math.max(1, Math.min((fontSize * this.height) / 100, this.height) - outlineW * 2)
+
+                const referenceSize = 100
+                this._textBuffer.context.font = options.get('fontStyle') + ' ' + referenceSize + 'px ' + options.get('fontFamily')
+                const refMetrics = this._textBuffer.context.measureText(this._text)
+                const measuredInkHeight = refMetrics.actualBoundingBoxAscent + refMetrics.actualBoundingBoxDescent
+                const glyphHeightRatio = measuredInkHeight > 0 ? measuredInkHeight / referenceSize : 0.8
+
+                fontSize = targetInk / glyphHeightRatio
             }
 
 
@@ -173,6 +198,15 @@ class TextLayer extends BaseLayer {
                 const minFontSize = 1
                 const direction = options.get('adjustDirection') ?? 'both'
 
+                // Only reserve the outline's horizontal expansion (outlineW on each edge),
+                // mirroring the vertical reservation the height calc above already makes. A
+                // flat safety margin was used here before, but on small layers it was a large
+                // fraction of the width and shrank text whose real footprint fit - now that the
+                // height calc yields a correctly-sized (larger) font, the glyph advance lands
+                // close enough to the edge that the flat margin triggered a spurious shrink.
+                const outlineW = options.get('outlineWidth') ?? 0
+                const availableWidth = this.width - outlineW * 2
+
                 // 'shrink': never start above a size a previous, wider text already shrank
                 // to - otherwise a later, narrower text would let the font grow back.
                 if (direction === 'shrink' && this._minAdjustedFontSize !== undefined && fontSize > this._minAdjustedFontSize) {
@@ -182,7 +216,7 @@ class TextLayer extends BaseLayer {
                 this._textBuffer.context.font = options.get('fontStyle') + ' ' + fontSize + fontUnit + ' ' + options.get('fontFamily')
                 m = this._textBuffer.context.measureText(this._text)
 
-                while (m.width > this.width - 5 && fontSize > minFontSize) {
+                while (m.width > availableWidth && fontSize > minFontSize) {
                     fontSize -= 1
                     this._textBuffer.context.font = options.get('fontStyle') + ' ' + fontSize + fontUnit + ' ' + options.get('fontFamily')
                     m = this._textBuffer.context.measureText(this._text)
@@ -206,9 +240,18 @@ class TextLayer extends BaseLayer {
                 m = this._textBuffer.context.measureText(this._text)
             }
 
-            // https://stackoverflow.com/questions/1134586/how-can-you-find-the-height-of-text-on-an-html-canvas
-            // Approximation of line height since api doesn't provide native method
-            const textHeight = this._textBuffer.context.measureText('M').width
+            // Real ascent/descent of the text as actually drawn (whatever font size/family
+            // it ended up at above), relative to the y anchor point implied by the configured
+            // textBaseline - e.g. with the default 'top' baseline, ascent is how far the ink's
+            // top sits below that anchor (usually > 0, since 'top' aligns to the top of the
+            // em square, not the glyph ink) and descent is how far the ink's bottom sits below
+            // it. ink-top = y - ascent, ink-bottom = y + descent, for whatever y ends up passed
+            // to fillText/strokeText - true regardless of textBaseline, which only changes what
+            // "y" means. Used below to align actual glyph ink to the layer's edges/center,
+            // instead of the em-square (which includes internal font leading above/below the
+            // ink and so, uncompensated, leaves the text short of the requested top/bottom/height).
+            const ascent = m.actualBoundingBoxAscent
+            const descent = m.actualBoundingBoxDescent
 
 
             // Convert % to pixels/dots
@@ -246,13 +289,13 @@ class TextLayer extends BaseLayer {
             if (typeof options.get('vAlign') === 'string') {
                 switch (options.get('vAlign')) {
                     case 'top':
-                        top = 0
+                        top = ascent
                         break
                     case 'middle':
-                        top = (this.height / 2) - (textHeight / 2)
+                        top = (this.height / 2) + (ascent - descent) / 2
                         break
                     case 'bottom':
-                        top = this.height - textHeight
+                        top = this.height - descent
                         break
                 }
             }

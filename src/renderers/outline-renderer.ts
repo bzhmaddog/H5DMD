@@ -78,30 +78,26 @@ class OutlineRenderer extends LayerRenderer<OutlineRendererParams> {
                                 if (pixelColor != innerColor) {
 
                                     var innerColorFound = false;
-                                    
-                                    if (global_id.x >= lineWidth && global_id.x < ${this._width}u - lineWidth && global_id.y >= lineWidth && global_id.y < ${this._height}u - lineWidth) {
-                                        let topPixel = index - lineSize * lineWidth;
-                                        let bottomPixel = index + lineSize * lineWidth;
-                                        let leftPixel = index - lineWidth;
-                                        let rightPixel = index + lineWidth;
-                                        let topLeftPixel = topPixel - lineWidth;
-                                        let topRightPixel = topPixel + lineWidth;
-                                        let bottomLeftPixel = bottomPixel - lineWidth;
-                                        let bottomRightPixel = bottomPixel + lineWidth;
 
-                                        if (
-                                            inputPixels.rgba[topPixel] == innerColor ||
-                                            inputPixels.rgba[rightPixel] == innerColor ||
-                                            inputPixels.rgba[bottomPixel] == innerColor ||
-                                            inputPixels.rgba[leftPixel] == innerColor ||
-                                            inputPixels.rgba[topLeftPixel] == innerColor ||
-                                            inputPixels.rgba[topRightPixel] == innerColor ||
-                                            inputPixels.rgba[bottomLeftPixel] == innerColor ||
-                                            inputPixels.rgba[bottomRightPixel] == innerColor
-                                        ) {
-                                            innerColorFound = true;
-                                        }
-                                    }
+                                    // Guard each neighbour read individually instead of skipping the whole
+                                    // check when the pixel is within lineWidth of an edge. A blanket guard
+                                    // meant outline pixels in the outermost lineWidth rows/cols were never
+                                    // written, so an outline hugging the buffer edge (e.g. text sized to fill
+                                    // the layer height) was clipped along that edge. WGSL '&&' short-circuits,
+                                    // so a read is only evaluated when its direction is in bounds - no OOB access.
+                                    let canUp    = global_id.y >= lineWidth;
+                                    let canDown  = global_id.y + lineWidth < ${this._height}u;
+                                    let canLeft  = global_id.x >= lineWidth;
+                                    let canRight = global_id.x + lineWidth < ${this._width}u;
+
+                                    if (canUp    && inputPixels.rgba[index - lineSize * lineWidth] == innerColor)          { innerColorFound = true; }
+                                    if (canDown  && inputPixels.rgba[index + lineSize * lineWidth] == innerColor)          { innerColorFound = true; }
+                                    if (canLeft  && inputPixels.rgba[index - lineWidth] == innerColor)                     { innerColorFound = true; }
+                                    if (canRight && inputPixels.rgba[index + lineWidth] == innerColor)                     { innerColorFound = true; }
+                                    if (canUp   && canLeft  && inputPixels.rgba[index - lineSize * lineWidth - lineWidth] == innerColor) { innerColorFound = true; }
+                                    if (canUp   && canRight && inputPixels.rgba[index - lineSize * lineWidth + lineWidth] == innerColor) { innerColorFound = true; }
+                                    if (canDown && canLeft  && inputPixels.rgba[index + lineSize * lineWidth - lineWidth] == innerColor) { innerColorFound = true; }
+                                    if (canDown && canRight && inputPixels.rgba[index + lineSize * lineWidth + lineWidth] == innerColor) { innerColorFound = true; }
 
 
                                     if (innerColorFound) {
