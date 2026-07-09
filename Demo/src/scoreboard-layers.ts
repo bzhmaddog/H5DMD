@@ -46,7 +46,7 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
         hAlign: 'right',
         vAlign: 'middle',
         fontFamily: 'Dusty',
-        hOffset: 14, // Fix Dusty font issue
+        hOffset: 8, // Fix Dusty font issue
         fontSize: 90,
         adjustWidth: true,
         adjustDirection: 'shrink',
