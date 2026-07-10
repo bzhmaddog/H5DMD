@@ -3,7 +3,7 @@ import {
     ChromaKeyRenderer,
     Colors,
     Dmd,
-    LayerGroup,
+    LayerPosition,
     rendererEntry,
     ShakyRenderer,
     TextLayer,
@@ -25,10 +25,17 @@ const QUADRANT_HEIGHT = 65;
 
 export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
 
+    // Register the custom HUD font. Registering alone is enough (no await needed):
+    // TextLayer waits for a registered-but-unloaded font itself (document.fonts.load)
+    // before measuring/drawing. Without this the family is unknown to the browser and
+    // the label silently renders with the fallback font.
+    const fontsPath = imagesPath.replace(/images$/, 'fonts');
+    document.fonts.add(new FontFace('Dusty', `url(${fontsPath}/Dusty.otf)`));
+
     // ---------------------------------------------------------------------
     // Video panel (top-left, red) - hiding the group pauses the child video's playback
     // ---------------------------------------------------------------------
-    const videoPanel = dmd.addLayer(LayerGroup, 'video-panel', {
+    const videoPanel = dmd.addLayerGroup('video-panel', {
         width: QUADRANT_WIDTH,
         height: QUADRANT_HEIGHT,
         position: {top: 0, left: 0},
@@ -69,7 +76,7 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
     // HUD (top-right, green) — background/opacity, a group-level renderer, and a
     // nested subgroup
     // ---------------------------------------------------------------------
-    const hud = dmd.addLayer(LayerGroup, 'hud', {
+    const hud = dmd.addLayerGroup('hud', {
         width: QUADRANT_WIDTH,
         height: QUADRANT_HEIGHT,
         position: {top: 0, left: QUADRANT_WIDTH},
@@ -84,16 +91,18 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
     });
 
     hud.addLayer(TextLayer, 'label', {
-        width: 60,
-        height: 12,
-        position: {top: 2, left: 4},
         text: 'HUD',
         fontSize: 90,
+        fontFamily: 'Dusty',
+        hOffset: 1,
+        vAlign: 'middle',
         color: Colors.White,
+        outlineWidth: 2,
+        outlineColor: Colors.Yellow,
     });
 
     // Nested LayerGroup - the 3-level case (Dmd -> hud -> badge -> leaf layers).
-    const badge = hud.addLayer(LayerGroup, 'badge', {
+    const badge = hud.addLayerGroup('badge', {
         width: 60,
         height: 22,
         position: {top: 15, left: 4},
@@ -123,7 +132,7 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
     // Sandbox (bottom-left, yellow) - seeded with a row of boxes; the control panel
     // drives addLayer/removeLayer/moveLayer on it live.
     // ---------------------------------------------------------------------
-    const sandbox = dmd.addLayer(LayerGroup, 'sandbox', {
+    const sandbox = dmd.addLayerGroup('sandbox', {
         width: QUADRANT_WIDTH,
         height: QUADRANT_HEIGHT,
         position: {top: QUADRANT_HEIGHT, left: 0},
@@ -146,7 +155,7 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
     // Info (bottom-right, blue) - a minimal group: just dimensioned/positioned with a
     // background, no interactive controls needed to make the point.
     // ---------------------------------------------------------------------
-    const info = dmd.addLayer(LayerGroup, 'info', {
+    const info = dmd.addLayerGroup('info', {
         width: QUADRANT_WIDTH,
         height: QUADRANT_HEIGHT,
         position: {top: QUADRANT_HEIGHT, left: QUADRANT_WIDTH},
@@ -161,5 +170,36 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
         fontSize: 80,
         adjustWidth: true,
         color: Colors.White,
+    });
+
+    // ---------------------------------------------------------------------
+    // Constraint marker - a small top-level layer the "Constraints" control panel
+    // section repositions live against 'parent' or any of the four groups above.
+    // Starts centered with no constraint (the selects' default).
+    // ---------------------------------------------------------------------
+    addConstraintMarker(dmd, {
+        hAlign: 'center',
+        vAlign: 'middle',
+    });
+}
+
+export const CONSTRAINT_MARKER_ID = 'constraint-marker';
+
+/**
+ * (Re)create the marker layer driven by the constraint playground section of the control
+ * panel. Constraints are resolved once at addLayer() time, so the panel removes the layer
+ * and calls this again with the newly selected `*To*Of` fields.
+ */
+export function addConstraintMarker(dmd: Dmd, position: LayerPosition): void {
+    dmd.addLayer(TextLayer, CONSTRAINT_MARKER_ID, {
+        width: 44,
+        height: 12,
+        position,
+        text: 'marker',
+        fontSize: 60,
+        color: Colors.Black,
+        backgroundColor: Colors.White,
+        borderWidth: 1,
+        borderColor: Colors.Red
     });
 }

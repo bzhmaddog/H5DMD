@@ -108,6 +108,25 @@ describe('ChangeAlphaRenderer', () => {
         const input = makeImageData()
         expect(await r.renderFrame(input)).toBe(input)
     })
+
+    test('a busy drop after a completed frame returns the last PROCESSED frame, not the input', async () => {
+        const r = new ChangeAlphaRenderer(W, H)
+        await r.init()
+
+        // One successful pass populates the last-readback cache (and flips the
+        // double-buffer index to 1).
+        const firstOut = await r.renderFrame(makeImageData(), new Options({ opacity: 0.5 }))
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(r as any)._outputBuffers[1].mapState = 'mapped'
+        const input = makeImageData()
+        const out = await r.renderFrame(input, new Options({ opacity: 0.4 }))
+
+        // Returning the raw input here would flash the layer at full opacity in the
+        // middle of a fade - the stale processed frame is the correct fallback.
+        expect(out).not.toBe(input)
+        expect(out).toBe(firstOut)
+    })
 })
 
 // ---------------------------------------------------------------------------

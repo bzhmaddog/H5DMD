@@ -24,7 +24,7 @@ export interface LayerPosition {
     vOffset?: number
 
     /**
-     * Only read when `hAlign` is `'constraint'`. Exactly one of the six `*To*Of` fields
+     * Only read when `hAlign` is `'constraint'`. Exactly one of the nine `*To*Of` fields
      * below should be set; its value is either a sibling layer's id (a layer already added
      * to the same container - the Dmd, or the same parent LayerGroup) or the literal
      * `'parent'` for the container itself. If the referenced id doesn't exist, falls back
@@ -43,9 +43,15 @@ export interface LayerPosition {
     rightToRightOf?: string
     /** My right edge aligns to the target's horizontal center. */
     rightToCenterOf?: string
+    /** My horizontal center aligns to the target's left edge. */
+    hCenterToLeftOf?: string
+    /** My horizontal center aligns to the target's horizontal center. */
+    hCenterToCenterOf?: string
+    /** My horizontal center aligns to the target's right edge. */
+    hCenterToRightOf?: string
 
     /**
-     * Only read when `vAlign` is `'constraint'`. Exactly one of the six `*To*Of` fields
+     * Only read when `vAlign` is `'constraint'`. Exactly one of the nine `*To*Of` fields
      * below should be set; same target semantics as the horizontal fields above.
      *
      * My top edge aligns to the target's top edge.
@@ -61,6 +67,12 @@ export interface LayerPosition {
     bottomToBottomOf?: string
     /** My bottom edge aligns to the target's vertical center. */
     bottomToCenterOf?: string
+    /** My vertical center aligns to the target's top edge. */
+    vCenterToTopOf?: string
+    /** My vertical center aligns to the target's vertical center. */
+    vCenterToCenterOf?: string
+    /** My vertical center aligns to the target's bottom edge. */
+    vCenterToBottomOf?: string
 }
 
 /**

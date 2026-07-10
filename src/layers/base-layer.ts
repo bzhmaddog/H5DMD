@@ -288,11 +288,14 @@ abstract class BaseLayer {
         // no more renderer in queue then draw final image and start queue process again	
         } else {
 
-            // Erase current output buffer content
-            this._outputBuffer.clear()
-
             // Put final frame data into output buffer and start process again (if needed)
             createImageBitmap(frameImageData).then(bitmap => {
+                // Clear + repaint in ONE synchronous block: the output canvas is read at
+                // arbitrary times by parent compositors (Dmd's loop, a LayerGroup's
+                // recomposite), so it must never be observable cleared-but-not-repainted -
+                // clearing before this async callback left a blank window that showed up
+                // as flicker.
+                this._outputBuffer.clear()
                 // Background behind content
                 const bgColor: string | undefined = this._options.get('backgroundColor')
                 if (bgColor) {
@@ -344,8 +347,9 @@ abstract class BaseLayer {
             // Put content data in output buffer
             const frameImageData = this._contentBuffer.context.getImageData(0, 0, this._outputBuffer.width, this._outputBuffer.height)
 
-            this._outputBuffer.clear()
             createImageBitmap(frameImageData).then(bitmap => {
+                // Clear + repaint in one synchronous block - see _processRenderQueue.
+                this._outputBuffer.clear()
                 const bgColor: string | undefined = this._options.get('backgroundColor')
                 if (bgColor) {
                     const bgOpacity: number = this._options.get('backgroundOpacity') ?? 1

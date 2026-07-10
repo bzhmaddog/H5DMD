@@ -197,4 +197,12 @@ input[type='text'] {
             background: #333;
         }
     }
+
+    select {
+        background: #222;
+        color: #fff;
+        border: 1px solid $border-light;
+        border-radius: 4px;
+        padding: 4px 6px;
+    }
 }

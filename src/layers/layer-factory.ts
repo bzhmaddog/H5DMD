@@ -16,8 +16,8 @@ export interface LayerDictionary {
     [index: string]: BaseLayer
 }
 
-const H_CONSTRAINT_KEYS = ['leftToLeftOf', 'leftToRightOf', 'leftToCenterOf', 'rightToLeftOf', 'rightToRightOf', 'rightToCenterOf'] as const
-const V_CONSTRAINT_KEYS = ['topToTopOf', 'topToBottomOf', 'topToCenterOf', 'bottomToTopOf', 'bottomToBottomOf', 'bottomToCenterOf'] as const
+const H_CONSTRAINT_KEYS = ['leftToLeftOf', 'leftToRightOf', 'leftToCenterOf', 'rightToLeftOf', 'rightToRightOf', 'rightToCenterOf', 'hCenterToLeftOf', 'hCenterToCenterOf', 'hCenterToRightOf'] as const
+const V_CONSTRAINT_KEYS = ['topToTopOf', 'topToBottomOf', 'topToCenterOf', 'bottomToTopOf', 'bottomToBottomOf', 'bottomToCenterOf', 'vCenterToTopOf', 'vCenterToCenterOf', 'vCenterToBottomOf'] as const
 
 interface TargetBox {
     left: number
@@ -123,6 +123,15 @@ export function resolveLayerPosition(
                             break
                         case 'rightToCenterOf':
                             left = target.left + target.width / 2 - layerWidth + (pos.hOffset || 0)
+                            break
+                        case 'hCenterToLeftOf':
+                            left = target.left - layerWidth / 2 + (pos.hOffset || 0)
+                            break
+                        case 'hCenterToCenterOf':
+                            left = target.left + (target.width - layerWidth) / 2 + (pos.hOffset || 0)
+                            break
+                        case 'hCenterToRightOf':
+                            left = target.left + target.width - layerWidth / 2 + (pos.hOffset || 0)
                     }
                 }
             }
@@ -162,6 +171,15 @@ export function resolveLayerPosition(
                             break
                         case 'bottomToCenterOf':
                             top = target.top + target.height / 2 - layerHeight + (pos.vOffset || 0)
+                            break
+                        case 'vCenterToTopOf':
+                            top = target.top - layerHeight / 2 + (pos.vOffset || 0)
+                            break
+                        case 'vCenterToCenterOf':
+                            top = target.top + (target.height - layerHeight) / 2 + (pos.vOffset || 0)
+                            break
+                        case 'vCenterToBottomOf':
+                            top = target.top + target.height - layerHeight / 2 + (pos.vOffset || 0)
                     }
                 }
             }

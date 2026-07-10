@@ -104,13 +104,57 @@ class TextLayer extends BaseLayer {
     }
 
     /**
-     * Draw text onto canvas
-     * @param _options 
+     * A promise resolving when the configured font family finishes loading, or `null`
+     * when there is nothing to wait for (font already loaded, unknown/system family,
+     * or FontFaceSet not implemented - e.g. jsdom in tests).
+     *
+     * Canvas measureText()/fillText() silently fall back to a default font while a
+     * custom font is still loading - and, unlike DOM text, don't reliably trigger the
+     * @font-face download themselves - so measuring without waiting would size the
+     * text for the wrong font's glyphs (and never re-measure once the real font
+     * arrives). document.fonts.load() both starts the download if needed and resolves
+     * when the font is usable; a failed download resolves anyway (drawing with the
+     * canvas fallback font beats never drawing at all).
      */
-    private _drawText(_options?: Options) {
+    private _pendingFontLoad(options: Options): Promise<unknown> | null {
+        const fonts = typeof document !== 'undefined' ? document.fonts : undefined
+        if (typeof fonts?.load !== 'function') {
+            return null
+        }
+
+        const fontSpec = `${options.get('fontStyle')} 100px ${options.get('fontFamily')}`
+        try {
+            if (typeof fonts.check === 'function' && fonts.check(fontSpec, this._text)) {
+                return null
+            }
+            return fonts.load(fontSpec, this._text).catch((): void => undefined)
+        } catch {
+            // Invalid font spec: load() would only throw the same - draw as-is.
+            return null
+        }
+    }
+
+    /**
+     * Draw text onto canvas. Synchronous up to the actual draw unless the configured
+     * font is still loading, in which case drawing is deferred until it's usable.
+     * @param _options
+     */
+    private _drawText(_options?: Options): Promise<void> {
 
         // merge passed options with default options set during layer creation
         const options = new Options(this._options).merge(_options)
+
+        // The font must be loaded before any measureText below, or the %-fontSize and
+        // alignment math runs against the fallback font's metrics.
+        const pendingFont = this._pendingFontLoad(options)
+        if (pendingFont) {
+            return pendingFont.then(() => this._renderText(options))
+        }
+
+        return this._renderText(options)
+    }
+
+    private _renderText(options: Options): Promise<void> {
 
         return new Promise<void>(resolve => {
 

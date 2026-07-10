@@ -387,7 +387,70 @@ export class Dmd {
         this._renderer.setBrightness(b)
     }
 
+    /**
+     * Add a {@link LayerGroup} to the DMD. The dedicated entry point for groups: a group
+     * has no content of its own, so it takes none of the loaded/updated/playback listeners
+     * leaf layers accept - those slots are internal plumbing a group uses to stay in sync
+     * with its children.
+     * @param {string} id
+     * @param options group options (dimensions, position, background, renderers, ...)
+     */
+    addLayerGroup(id: string, options?: Partial<LayerGroupOptions> | Options): LayerGroup {
+        return this._addLayer(LayerGroup, id, options as LayerOptionsByInstance<LayerGroup>)
+    }
+
+    /**
+     * @deprecated Adding a LayerGroup through addLayer is deprecated and will be removed
+     * in the next major version - use {@link addLayerGroup} instead.
+     */
+    addLayer(
+        layerClass: typeof LayerGroup,
+        id: string,
+        options?: Partial<LayerGroupOptions> | Options,
+        layerLoadedListener?: (layer: LayerGroup) => void | Promise<void>,
+        layerUpdatedListener?: (layer: LayerGroup) => void | Promise<void>,
+    ): LayerGroup
+    /**
+     * Add a new layer to the Dmd. The layer is created and added to the internal layers
+     * dictionary, and its position in the rendering order is determined by its zIndex
+     * (or the order of addition if zIndex is not specified).
+     * @param layerClass concrete {@link BaseLayer} subclass to instantiate
+     * @param id unique layer id within the Dmd
+     * @param options layer options (dimensions, position, class-specific settings, ...)
+     * @param layerLoadedListener called once the layer's content is loaded
+     * @param layerUpdatedListener called whenever the layer redraws its content
+     * @param layerOnPlayListener video/animation layers only: called on play
+     * @param layerOnPauseListener video/animation layers only: called on pause
+     * @param layerOnStopListener animation layers only: called on stop
+     * @returns the created layer instance
+     */
     addLayer<T extends BaseLayer>(
+        layerClass: new (...args: never[]) => T,
+        id: string,
+        options?: LayerOptionsByInstance<T>,
+        layerLoadedListener?: (layer: T) => void | Promise<void>,
+        layerUpdatedListener?: (layer: T) => void | Promise<void>,
+        layerOnPlayListener?: LayerPlayListenerByInstance<T>,
+        layerOnPauseListener?: LayerPauseListenerByInstance<T>,
+        layerOnStopListener?: LayerStopListenerByInstance<T>,
+    ): T
+    addLayer<T extends BaseLayer>(
+        layerClass: new (...args: never[]) => T,
+        id: string,
+        options?: LayerOptionsByInstance<T>,
+        layerLoadedListener?: (layer: T) => void | Promise<void>,
+        layerUpdatedListener?: (layer: T) => void | Promise<void>,
+        layerOnPlayListener?: LayerPlayListenerByInstance<T>,
+        layerOnPauseListener?: LayerPauseListenerByInstance<T>,
+        layerOnStopListener?: LayerStopListenerByInstance<T>,
+    ): T {
+        if ((layerClass as unknown) === LayerGroup) {
+            console.warn(`Dmd.addLayer(LayerGroup, '${id}', ...) is deprecated and will be removed in the next major version - use Dmd.addLayerGroup('${id}', options) instead`)
+        }
+        return this._addLayer(layerClass, id, options, layerLoadedListener, layerUpdatedListener, layerOnPlayListener, layerOnPauseListener, layerOnStopListener)
+    }
+
+    private _addLayer<T extends BaseLayer>(
         layerClass: new (...args: never[]) => T,
         id: string,
         options?: LayerOptionsByInstance<T>,

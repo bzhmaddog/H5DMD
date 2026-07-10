@@ -1,4 +1,5 @@
-import {CanvasLayer, Colors, Dmd, LayerGroup, TextLayer, VideoLayer} from "h5dmd";
+import {CanvasLayer, Colors, Dmd, LayerGroup, LayerPosition, TextLayer, VideoLayer} from "h5dmd";
+import {addConstraintMarker, CONSTRAINT_MARKER_ID} from "./advanced-layers";
 
 // Small DOM helpers (duplicated from Demo/src/controls.ts on purpose - this page is a
 // self-contained showcase and not worth wiring into that file's larger tab machinery).
@@ -19,6 +20,17 @@ const labelEl = (text: string) => {
     const l = document.createElement('label');
     l.textContent = text;
     return l;
+};
+const selectEl = (options: readonly string[], onChange: () => void) => {
+    const s = document.createElement('select');
+    options.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o;
+        opt.textContent = o;
+        s.appendChild(opt);
+    });
+    s.addEventListener('change', onChange);
+    return s;
 };
 
 /**
@@ -207,4 +219,42 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
     infoText.type = 'text';
     infoText.value = infoCaption.text;
     row(infoSection, infoText, btn('Set caption', () => { if (infoText.value) infoCaption.setText(infoText.value); }));
+
+    // -----------------------------------------------------------------
+    // Constraints playground (the white "marker" layer)
+    // -----------------------------------------------------------------
+    const constraintSection = section('Constraints', Colors.White, 'Repositions the "marker" layer against the container or any of the four groups. Constraints resolve at addLayer() time, so each change removes and re-adds the layer.');
+    constraintSection.style.gridColumn = '1 / -1';
+
+    const H_CONSTRAINTS = ['none', 'leftToLeftOf', 'leftToRightOf', 'leftToCenterOf', 'rightToLeftOf', 'rightToRightOf', 'rightToCenterOf', 'hCenterToLeftOf', 'hCenterToCenterOf', 'hCenterToRightOf'] as const;
+    const V_CONSTRAINTS = ['none', 'topToTopOf', 'topToBottomOf', 'topToCenterOf', 'bottomToTopOf', 'bottomToBottomOf', 'bottomToCenterOf', 'vCenterToTopOf', 'vCenterToCenterOf', 'vCenterToBottomOf'] as const;
+    const TARGETS = ['parent', 'video-panel', 'hud', 'sandbox', 'info'] as const;
+
+    // 'none' centers that axis instead - must match the initial marker position in
+    // setupAdvancedLayers (the selects default to 'none'/'none': centered, no constraint).
+    const applyConstraints = () => {
+        const position: LayerPosition = {hAlign: 'center', vAlign: 'middle'};
+        if (hConstraint.value !== 'none') {
+            position.hAlign = 'constraint';
+            position[hConstraint.value as Exclude<typeof H_CONSTRAINTS[number], 'none'>] = hTarget.value;
+        }
+        if (vConstraint.value !== 'none') {
+            position.vAlign = 'constraint';
+            position[vConstraint.value as Exclude<typeof V_CONSTRAINTS[number], 'none'>] = vTarget.value;
+        }
+        hTarget.disabled = hConstraint.value === 'none';
+        vTarget.disabled = vConstraint.value === 'none';
+        dmd.removeLayer(CONSTRAINT_MARKER_ID);
+        addConstraintMarker(dmd, position);
+    };
+
+    const hConstraint = selectEl(H_CONSTRAINTS, applyConstraints);
+    const hTarget = selectEl(TARGETS, applyConstraints);
+    const vConstraint = selectEl(V_CONSTRAINTS, applyConstraints);
+    const vTarget = selectEl(TARGETS, applyConstraints);
+    hTarget.disabled = true;
+    vTarget.disabled = true;
+
+    row(constraintSection, labelEl('Horizontal'), hConstraint, labelEl('of'), hTarget);
+    row(constraintSection, labelEl('Vertical'), vConstraint, labelEl('of'), vTarget);
 }

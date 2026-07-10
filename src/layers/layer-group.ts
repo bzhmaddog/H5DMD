@@ -103,11 +103,58 @@ class LayerGroup extends BaseLayer {
     }
 
     /**
+     * Add a nested {@link LayerGroup} as a child of this group. The dedicated entry point
+     * for groups - see {@link Dmd.addLayerGroup} for why groups take no listeners.
+     * @param {string} id
+     * @param options group options (dimensions, position, background, renderers, ...)
+     */
+    addLayerGroup(id: string, options?: Partial<LayerGroupOptions> | Options): LayerGroup {
+        return this._addChildLayer(LayerGroup, id, options as LayerOptionsByInstance<LayerGroup>)
+    }
+
+    /**
+     * @deprecated Adding a LayerGroup through addLayer is deprecated and will be removed
+     * in the next major version - use {@link addLayerGroup} instead.
+     */
+    addLayer(
+        layerClass: typeof LayerGroup,
+        id: string,
+        options?: Partial<LayerGroupOptions> | Options,
+        layerLoadedListener?: (layer: LayerGroup) => void | Promise<void>,
+        layerUpdatedListener?: (layer: LayerGroup) => void | Promise<void>,
+    ): LayerGroup
+    /**
      * Add a child layer to this group. Mirrors {@link Dmd.addLayer} — same factory, same
      * position-resolution logic, but relative to this group's own width/height rather than
-     * the Dmd's. The layer class may itself be LayerGroup, enabling nested groups.
+     * the Dmd's.
      */
     addLayer<T extends BaseLayer>(
+        layerClass: new (...args: never[]) => T,
+        id: string,
+        options?: LayerOptionsByInstance<T>,
+        layerLoadedListener?: (layer: T) => void | Promise<void>,
+        layerUpdatedListener?: (layer: T) => void | Promise<void>,
+        layerOnPlayListener?: LayerPlayListenerByInstance<T>,
+        layerOnPauseListener?: LayerPauseListenerByInstance<T>,
+        layerOnStopListener?: LayerStopListenerByInstance<T>,
+    ): T
+    addLayer<T extends BaseLayer>(
+        layerClass: new (...args: never[]) => T,
+        id: string,
+        options?: LayerOptionsByInstance<T>,
+        layerLoadedListener?: (layer: T) => void | Promise<void>,
+        layerUpdatedListener?: (layer: T) => void | Promise<void>,
+        layerOnPlayListener?: LayerPlayListenerByInstance<T>,
+        layerOnPauseListener?: LayerPauseListenerByInstance<T>,
+        layerOnStopListener?: LayerStopListenerByInstance<T>,
+    ): T {
+        if ((layerClass as unknown) === LayerGroup) {
+            console.warn(`LayerGroup[${this.id}].addLayer(LayerGroup, '${id}', ...) is deprecated and will be removed in the next major version - use addLayerGroup('${id}', options) instead`)
+        }
+        return this._addChildLayer(layerClass, id, options, layerLoadedListener, layerUpdatedListener, layerOnPlayListener, layerOnPauseListener, layerOnStopListener)
+    }
+
+    private _addChildLayer<T extends BaseLayer>(
         layerClass: new (...args: never[]) => T,
         id: string,
         options?: LayerOptionsByInstance<T>,
