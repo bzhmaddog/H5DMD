@@ -47,7 +47,12 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
 
     const scottSpriteSheetUrl: string = `${imagesPath}/scott2x.png`
 
-    dmd.addLayer(
+    // Background image + looping animation - the scene's backdrop, grouped so it can be
+    // shown/hidden/faded as one unit. The group spans the whole DMD (default dimensions),
+    // and so do the children unless they say otherwise.
+    const backdrop = dmd.addLayerGroup('backdrop');
+
+    backdrop.addLayer(
         CanvasLayer,
         'bg',
         {},
@@ -59,14 +64,12 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
             layer.draw();
         });
 
-
-    dmd.addLayer(
+    backdrop.addLayer(
         AnimationLayer,
         'animation',
         {
-            width: 426,
             height: 90,
-            position: { top: 20, left: 0 },
+            position: { top: 20 },
             duration: 800,
             autoplay: true,
             loop: true
@@ -77,16 +80,21 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
         });
 
 
-    dmd.addLayer(
+    // The two demo videos are alternatives sharing the same slot - grouped so the shared
+    // dimensions/position live on the group. Both start hidden; the control panel's
+    // per-child visibility toggles pick which one shows.
+    const videos = dmd.addLayerGroup('videos', {
+        width: 213,
+        height: 130,
+        position: { left: 110 },
+    });
+
+    videos.addLayer(
         VideoLayer,
         'video-transparent',
         {
-            width: 213,
-            height: 130,
-            position: { left: 110 },
             autoplay: true,
             loop: true,
-            stopOnHide: true,
             visible: false
         },
         (layer) => {
@@ -100,16 +108,12 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
             video.src = `${imagesPath}/transparent-video.webm`;
         });
 
-    dmd.addLayer(
+    videos.addLayer(
         VideoLayer,
         'video-chromakey',
         {
-            width: 213,
-            height: 130,
-            position: { left: 110 },
             autoplay: true,
             loop: true,
-            stopOnHide: true,
             visible: false,
             renderers: [
                 rendererEntry('chroma-key', ChromaKeyRenderer, { color: [0, 0, 0], threshold: 9 })
@@ -140,67 +144,24 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
         }
     );
 
-    dmd.addLayer(
+    // The two character-name captions, one per corner - grouped so they show/hide/fade
+    // as one unit. The group spans the whole DMD (default dimensions); each child aligns
+    // within it exactly as it previously aligned within the DMD.
+    const names = dmd.addLayerGroup('names');
+
+    names.addLayer(
         TextLayer,
         'text1',
         {
             width: 100,
             height: 17,
             text: "Scott Pilgrim",
-            left: 0,
-            top: 2,
             fontSize: 80,
             adjustWidth: true,
         }
     );
 
-    dmd.addLayer(
-        TextLayer,
-        'text2',
-        {
-            width: 90,
-            height: 52,
-            position: { hAlign: 'center', vAlign: 'middle', hOffset: -60 },
-            text: "VS",
-            fontFamily: 'Arial',
-            fontSize: 100,
-            hAlign: 'center',
-            vAlign: 'middle',
-            fontStyle: 'italic bold',
-            color: '#FFFFFF',
-            adjustWidth: true,
-        },
-        async (layer) => {
-            const bitmaps = await Utils.loadImagesOrdered(noiseUrls);
-            const noiseData = Utils.bitmapsToPixelData(bitmaps, layer.width, layer.height);
-            await layer.addRenderer('noise-effect', NoiseEffectRenderer, { duration: 200, noises: noiseData });
-        }
-    );
-
-    dmd.addLayer(
-        TextLayer,
-        'text3',
-        {
-            width: 90,
-            height: 52,
-            position: { hAlign: 'center', vAlign: 'middle', hOffset: -60 },
-            text: "VS",
-            fontFamily: 'Arial',
-            fontSize: 100,
-            hAlign: 'center',
-            vAlign: 'middle',
-            fontStyle: 'italic bold',
-            color: '#00000000',
-            strokeWidth: 2,
-            strokeColor: Colors.Red,
-            adjustWidth: true,
-        },
-        async (l) => {
-            await l.addRenderer('shaky-effect', ShakyRenderer, { intensity: 0.8, speed: 160, mode: "random" });
-        }
-    );
-
-    dmd.addLayer(
+    names.addLayer(
         TextLayer,
         'text4',
         {
@@ -210,6 +171,49 @@ export function setupLayers(dmd: Dmd, imagesPath: string): void {
             text: "Matthew Patel",
             fontSize: 80,
             adjustWidth: true
+        }
+    );
+
+    // The two "VS" text layers occupy the same spot and belong together - a LayerGroup
+    // positions them as one unit, so the shared alignment lives on the group instead of
+    // being duplicated on each layer. The children inherit the group's dimensions and
+    // rely on TextLayer defaults (Arial, centered white text) where they apply.
+    const vs = dmd.addLayerGroup('vs', {
+        width: 100,
+        height: 52,
+        position: { hAlign: 'center', vAlign: 'middle', hOffset: -60 },
+    });
+
+    vs.addLayer(
+        TextLayer,
+        'vsin',
+        {
+            text: "VS",
+            fontSize: 95,
+            fontStyle: 'italic bold',
+            adjustWidth: true,
+        },
+        async (layer) => {
+            const bitmaps = await Utils.loadImagesOrdered(noiseUrls);
+            const noiseData = Utils.bitmapsToPixelData(bitmaps, layer.width, layer.height);
+            await layer.addRenderer('noise-effect', NoiseEffectRenderer, { duration: 200, noises: noiseData });
+        }
+    );
+
+    vs.addLayer(
+        TextLayer,
+        'vsout',
+        {
+            text: "VS",
+            fontSize: 95,
+            fontStyle: 'italic bold',
+            color: '#00000000',
+            strokeWidth: 2,
+            strokeColor: Colors.Red,
+            adjustWidth: true
+        },
+        async (l) => {
+            await l.addRenderer('shaky-effect', ShakyRenderer, { intensity: 0.8, speed: 160, mode: "random" });
         }
     );
 

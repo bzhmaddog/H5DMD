@@ -22,11 +22,16 @@ span, li, label {
 #version {
     color: white;
     font: 13px sans-serif;
-    margin: 6px 0 10px;
+    margin: 6px 0 10px 5px;
 }
 
 #layer-controls {
     font: 13px sans-serif;
+    // Shrink to the content (widest of the tab bar / active panel) instead of
+    // stretching across the window; cap at the viewport so the tab bar can still wrap.
+    width: fit-content;
+    max-width: 100%;
+    margin-left: 5px;
 }
 
 #tab-bar {
@@ -104,6 +109,37 @@ span, li, label {
 
     label {
         min-width: 70px;
+    }
+}
+
+// One card per layer inside a tab panel (plus one for the common controls).
+.ctl-card {
+    border: 1px solid $border;
+    border-radius: 4px;
+    background: $bg-darker;
+    padding: 10px 12px 2px;
+    margin: 0 0 12px;
+
+    h4 {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: $accent;
+        font: bold 12px sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 0 0 10px;
+    }
+
+    .ctl-card-highlight {
+        cursor: crosshair;
+        font-size: 13px;
+        opacity: 0.5;
+        user-select: none;
+
+        &:hover {
+            opacity: 1;
+        }
     }
 }
 

@@ -51,7 +51,6 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
         // button in the control panel instead.
         autoplay: false,
         loop: true,
-        stopOnHide: true,
         renderers: [
             rendererEntry('chroma-key', ChromaKeyRenderer, {color: [0, 0, 0], threshold: 9})
         ],
