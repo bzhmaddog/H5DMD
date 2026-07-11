@@ -150,6 +150,40 @@ describe('SpritesLayer', () => {
         expect(sprite.isAnimating()).toBe(false)
     })
 
+    test('run() after stop() restarts the sprite', () => {
+        const layer = new SpritesLayer('s', 64, 16)
+        const sprite = new Sprite('r', sheet(), 0, 0)
+        sprite.addAnimation('walk', animations[0].animationParams)
+        sprite.enqueueSingle('walk', 1)
+        layer.addSprite('r', sprite, '0', '0')
+
+        layer.run('r')
+        layer.stop('r')
+        layer.run('r')
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((layer as any)._runningSprites).toBe(1)
+        expect(sprite.isAnimating()).toBe(true)
+    })
+
+    test('setVisibility(true) restarts the render loop while sprites are running', () => {
+        const layer = new SpritesLayer('s', 64, 16)
+        const sprite = new Sprite('r', sheet(), 0, 0)
+        sprite.addAnimation('walk', animations[0].animationParams)
+        sprite.enqueueSingle('walk', 1)
+        layer.addSprite('r', sprite, '0', '0')
+        layer.run('r')
+
+        layer.setVisibility(false)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const startSpy = vi.spyOn(layer as any, '_startRendering')
+        layer.setVisibility(true)
+
+        expect(startSpy).toHaveBeenCalled()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expect((layer as any)._isRenderLoopActive()).toBe(true)
+    })
+
     test('enqueueSequence forwards to the sprite', () => {
         const layer = new SpritesLayer('s', 64, 16)
         const sprite = new Sprite('q', sheet(), 0, 0)

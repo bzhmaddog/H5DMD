@@ -127,14 +127,40 @@ describe('Sprite', () => {
         expect(sprite.isAnimating()).toBe(true)
     })
 
-    test('stop() clears the queue and halts animation', () => {
+    test('stop() halts animation and preserves the queue so run() can restart it', () => {
         const sprite = new Sprite('s', fakeSheet(), 0, 0)
         sprite.addAnimation('walk', anim())
         sprite.enqueueSingle('walk', 1)
         sprite.run()
 
         sprite.stop()
-
         expect(sprite.isAnimating()).toBe(false)
+
+        sprite.run()
+        expect(sprite.isAnimating()).toBe(true)
+    })
+
+    test('stop() kills the in-flight animation frame chain without firing the end listener', () => {
+        const sprite = new Sprite('s', fakeSheet(), 0, 0)
+        sprite.addAnimation('walk', anim({nbFrames: 2, duration: 100}))
+        sprite.enqueueSingle('walk', 1)
+
+        const endListener = vi.fn()
+        sprite.setEndOfQueueListener(endListener)
+        sprite.run()
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const step = (t: number) => (sprite as any)._doAnimation(t)
+
+        step(0)
+        sprite.stop()
+        vi.mocked(requestAnimationFrame).mockClear()
+
+        // The rAF callback scheduled before stop() still fires: it must bail
+        // out without rescheduling or reporting an end of queue.
+        step(50)
+
+        expect(requestAnimationFrame).not.toHaveBeenCalled()
+        expect(endListener).not.toHaveBeenCalled()
     })
 })

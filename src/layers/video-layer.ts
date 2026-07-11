@@ -63,7 +63,9 @@ class VideoLayer extends BaseLayer {
 	}
 
     private _onVideoLoaded() {
-		this._contentBuffer.context.drawImage(this._video,0 , 0, this._options.get('width'), this._options.get('height'))
+		// this.width/this.height, NOT options: 'width'/'height' are optional options
+		// (the layer falls back to its container's dimensions), so they may be absent.
+		this._contentBuffer.context.drawImage(this._video, 0, 0, this.width, this.height)
 
 		if (this._options.get('autoplay') && this._options.get('visible')) {
 			this.play()
@@ -92,7 +94,7 @@ class VideoLayer extends BaseLayer {
 
 	private __renderFrame() {
 		this._contentBuffer.clear()
-		this._contentBuffer.context.drawImage(this._video, 0, 0, this._options.get('width'), this._options.get('height'))
+		this._contentBuffer.context.drawImage(this._video, 0, 0, this.width, this.height)
 		this.__renderNextFrame(this)
 	}
 

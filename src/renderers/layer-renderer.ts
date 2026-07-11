@@ -6,6 +6,8 @@ export abstract class LayerRenderer<O = never> extends Renderer {
     protected _bufferByteLength: number;
     private _outputBuffers: [GPUBuffer, GPUBuffer];
     private _activeOutputIndex: number;
+    /** Last successfully read-back frame, reused when both output buffers are busy. */
+    private _lastReadback?: ImageData;
 
     constructor(name: string, width: number, height: number) {
         super(name);
@@ -39,8 +41,13 @@ export abstract class LayerRenderer<O = never> extends Renderer {
 
     /**
      * Submit GPU work and read back the result using double-buffered output.
-     * Returns null if the current output buffer is still mapped (caller should
-     * return the unmodified frameData in that case).
+     *
+     * If the current output buffer is still mapped (a previous frame's readback is in
+     * flight), the frame is dropped: the LAST successfully processed frame is returned
+     * instead, so a busy tick repeats a slightly stale - but processed - image rather
+     * than leaking the unprocessed input upstream (e.g. a full-opacity frame flashing in
+     * the middle of an opacity fade). Returns null only when dropping before any frame
+     * has ever completed (caller should return the unmodified frameData in that case).
      *
      * Usage in _doRendering:
      *   const result = this._submitAndReadback(tempBuffer, commandEncoder);
@@ -49,7 +56,7 @@ export abstract class LayerRenderer<O = never> extends Renderer {
      *
      * @param {GPUBuffer} tempBuffer the storage buffer the compute shader wrote to
      * @param {GPUCommandEncoder} commandEncoder the encoder with the compute pass already ended
-     * @returns {Promise<ImageData> | null} null if the buffer is busy
+     * @returns {Promise<ImageData> | null} null if the buffer is busy and no frame has completed yet
      */
     protected _submitAndReadback(
         tempBuffer: GPUBuffer,
@@ -58,7 +65,7 @@ export abstract class LayerRenderer<O = never> extends Renderer {
         const outputBuffer = this._outputBuffers[this._activeOutputIndex];
 
         if (outputBuffer.mapState !== 'unmapped') {
-            return null;
+            return this._lastReadback ? Promise.resolve(this._lastReadback) : null;
         }
 
         this._activeOutputIndex = 1 - this._activeOutputIndex;
@@ -70,6 +77,7 @@ export abstract class LayerRenderer<O = never> extends Renderer {
             const pixelsBuffer = new Uint8Array(outputBuffer.getMappedRange());
             const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), this._width, this._height);
             outputBuffer.unmap();
+            this._lastReadback = imageData;
             return imageData;
         });
     }

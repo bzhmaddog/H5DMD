@@ -155,8 +155,8 @@ describe('LayerGroup', () => {
 
     test('3-level nesting composes recursively (Dmd -> group -> subgroup -> leaf)', () => {
         const dmd = makeDmd()
-        const group = dmd.addLayer(LayerGroup, 'group', new Options({width: 40, height: 20}))
-        const subgroup = group.addLayer(LayerGroup, 'subgroup', new Options({width: 20, height: 10, position: {top: 1, left: 2}}))
+        const group = dmd.addLayerGroup('group', new Options({width: 40, height: 20}))
+        const subgroup = group.addLayerGroup('subgroup', new Options({width: 20, height: 10, position: {top: 1, left: 2}}))
         const leaf = subgroup.addLayer(CanvasLayer, 'leaf', new Options({position: {top: 3, left: 4}}))
         markLoaded(leaf)
         markLoaded(subgroup)
@@ -213,11 +213,45 @@ describe('LayerGroup', () => {
         expect(bDestroy).toHaveBeenCalled()
     })
 
-    test('Dmd.addLayer(LayerGroup, ...) works at the top level', () => {
+    test('Dmd.addLayerGroup works at the top level, without a deprecation warning', () => {
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+        const dmd = makeDmd()
+        const group = dmd.addLayerGroup('g', new Options())
+
+        expect(group).toBeInstanceOf(LayerGroup)
+        expect(dmd.getLayer('g')).toBe(group)
+        expect(warnSpy).not.toHaveBeenCalled()
+        warnSpy.mockRestore()
+    })
+
+    test('deprecated Dmd.addLayer(LayerGroup, ...) still works but warns', () => {
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
         const dmd = makeDmd()
         const group = dmd.addLayer(LayerGroup, 'g', new Options())
 
         expect(group).toBeInstanceOf(LayerGroup)
         expect(dmd.getLayer('g')).toBe(group)
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('addLayerGroup'))
+        warnSpy.mockRestore()
+    })
+
+    test('deprecated LayerGroup.addLayer(LayerGroup, ...) still works but warns', () => {
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+        const group = new LayerGroup('g', 32, 16)
+        const nested = group.addLayer(LayerGroup, 'nested', new Options({width: 10, height: 10}))
+
+        expect(nested).toBeInstanceOf(LayerGroup)
+        expect(group.getLayer('nested')).toBe(nested)
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('addLayerGroup'))
+        warnSpy.mockRestore()
+    })
+
+    test('non-group layers via addLayer do not warn', () => {
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+        const group = new LayerGroup('g', 32, 16)
+        group.addLayer(CanvasLayer, 'leaf', new Options())
+
+        expect(warnSpy).not.toHaveBeenCalled()
+        warnSpy.mockRestore()
     })
 })

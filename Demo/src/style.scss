@@ -8,6 +8,10 @@ $border-light: #555;
     box-sizing: border-box;
 }
 
+canvas#output {
+    image-rendering: pixelated;
+}
+
 body {
     background: black;
     padding: 0;
@@ -22,11 +26,16 @@ span, li, label {
 #version {
     color: white;
     font: 13px sans-serif;
-    margin: 6px 0 10px;
+    margin: 6px 0 10px 5px;
 }
 
 #layer-controls {
     font: 13px sans-serif;
+    // Shrink to the content (widest of the tab bar / active panel) instead of
+    // stretching across the window; cap at the viewport so the tab bar can still wrap.
+    width: fit-content;
+    max-width: 100%;
+    margin-left: 5px;
 }
 
 #tab-bar {
@@ -107,6 +116,37 @@ span, li, label {
     }
 }
 
+// One card per layer inside a tab panel (plus one for the common controls).
+.ctl-card {
+    border: 1px solid $border;
+    border-radius: 4px;
+    background: $bg-darker;
+    padding: 10px 12px 2px;
+    margin: 0 0 12px;
+
+    h4 {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: $accent;
+        font: bold 12px sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 0 0 10px;
+    }
+
+    .ctl-card-highlight {
+        cursor: crosshair;
+        font-size: 13px;
+        opacity: 0.5;
+        user-select: none;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+}
+
 .ctl-tag {
     color: #fa0;
     font: bold 11px monospace;
@@ -116,6 +156,7 @@ span, li, label {
 .ctl-note {
     color: #888;
     font-size: 12px;
+    margin: 5px 0;
 }
 
 input[type='text'] {
@@ -152,7 +193,7 @@ input[type='text'] {
     }
 }
 
-#advanced-controls {
+#basic-controls {
     font: 13px sans-serif;
     max-width: 900px;
     // Sections are appended in the same order as the quadrants they control appear on the
@@ -196,5 +237,13 @@ input[type='text'] {
         &:hover:not(:disabled) {
             background: #333;
         }
+    }
+
+    select {
+        background: #222;
+        color: #fff;
+        border: 1px solid $border-light;
+        border-radius: 4px;
+        padding: 4px 6px;
     }
 }

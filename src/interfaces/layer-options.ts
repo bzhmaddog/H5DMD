@@ -24,7 +24,7 @@ export interface LayerPosition {
     vOffset?: number
 
     /**
-     * Only read when `hAlign` is `'constraint'`. Exactly one of the six `*To*Of` fields
+     * Only read when `hAlign` is `'constraint'`. Exactly one of the nine `*To*Of` fields
      * below should be set; its value is either a sibling layer's id (a layer already added
      * to the same container - the Dmd, or the same parent LayerGroup) or the literal
      * `'parent'` for the container itself. If the referenced id doesn't exist, falls back
@@ -43,9 +43,15 @@ export interface LayerPosition {
     rightToRightOf?: string
     /** My right edge aligns to the target's horizontal center. */
     rightToCenterOf?: string
+    /** My horizontal center aligns to the target's left edge. */
+    hCenterToLeftOf?: string
+    /** My horizontal center aligns to the target's horizontal center. */
+    hCenterToCenterOf?: string
+    /** My horizontal center aligns to the target's right edge. */
+    hCenterToRightOf?: string
 
     /**
-     * Only read when `vAlign` is `'constraint'`. Exactly one of the six `*To*Of` fields
+     * Only read when `vAlign` is `'constraint'`. Exactly one of the nine `*To*Of` fields
      * below should be set; same target semantics as the horizontal fields above.
      *
      * My top edge aligns to the target's top edge.
@@ -61,6 +67,12 @@ export interface LayerPosition {
     bottomToBottomOf?: string
     /** My bottom edge aligns to the target's vertical center. */
     bottomToCenterOf?: string
+    /** My vertical center aligns to the target's top edge. */
+    vCenterToTopOf?: string
+    /** My vertical center aligns to the target's vertical center. */
+    vCenterToCenterOf?: string
+    /** My vertical center aligns to the target's bottom edge. */
+    vCenterToBottomOf?: string
 }
 
 /**
@@ -164,6 +176,21 @@ export interface BitmapOptions {
     fit: 'contain' | 'cover' | 'none'
     /** Preserve the image aspect ratio when fitting. Default: `true`. */
     keepAspectRatio: boolean
+    /**
+     * Resampling used when the bitmap is scaled.
+     *
+     * Defaults to `false` (nearest-neighbour) because every pixel of a layer becomes one
+     * *dot* on the DMD: a smoothed downscale turns edges into intermediate values, which
+     * the dot grid renders as washed-out half-lit dots. Nearest-neighbour keeps each dot
+     * decisively on or off, which is what reads as "sharp" on a dot display.
+     *
+     * Pass `true` (or an explicit `'low' | 'medium' | 'high'` quality) to get the browser's
+     * smoothed resampling instead — occasionally what you want for a photographic image on
+     * a high-resolution DMD, where there are enough dots for the gradients to pay off.
+     *
+     * Default: `false`.
+     */
+    smoothing: boolean | 'low' | 'medium' | 'high'
     /** Target width in pixels or as a percentage string (used when `fit` is `'none'`). */
     width?: number | string
     /** Target height in pixels or as a percentage string (used when `fit` is `'none'`). */

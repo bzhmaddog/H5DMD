@@ -1,4 +1,5 @@
-import {CanvasLayer, Colors, Dmd, LayerGroup, TextLayer, VideoLayer} from "h5dmd";
+import {CanvasLayer, Colors, Dmd, LayerGroup, LayerPosition, TextLayer, VideoLayer} from "h5dmd";
+import {addConstraintMarker, CONSTRAINT_MARKER_ID} from "./layers";
 
 // Small DOM helpers (duplicated from Demo/src/controls.ts on purpose - this page is a
 // self-contained showcase and not worth wiring into that file's larger tab machinery).
@@ -20,18 +21,29 @@ const labelEl = (text: string) => {
     l.textContent = text;
     return l;
 };
+const selectEl = (options: readonly string[], onChange: () => void) => {
+    const s = document.createElement('select');
+    options.forEach(o => {
+        const opt = document.createElement('option');
+        opt.value = o;
+        opt.textContent = o;
+        s.appendChild(opt);
+    });
+    s.addEventListener('change', onChange);
+    return s;
+};
 
 /**
- * Build the focused (non-tabbed) control panel for the advanced/LayerGroup demo page.
- * Layer groups must already be added to the Dmd (via setupAdvancedLayers) before calling this.
+ * Build the focused (non-tabbed) control panel for the basic/LayerGroup demo page.
+ * Layer groups must already be added to the Dmd (via setupBasicLayers) before calling this.
  *
  * Sections are built in the same order as the quadrants they control appear on the DMD
- * (top-left, top-right, bottom-left, bottom-right) and #advanced-controls lays them out as
+ * (top-left, top-right, bottom-left, bottom-right) and #basic-controls lays them out as
  * a matching 2x2 CSS grid (see style.scss), each accented with its quadrant's color.
  */
-export function buildAdvancedControlPanel(dmd: Dmd): void {
+export function buildBasicControlPanel(dmd: Dmd): void {
 
-    const root = document.getElementById('advanced-controls') as HTMLDivElement;
+    const root = document.getElementById('basic-controls') as HTMLDivElement;
 
     const section = (title: string, accentColor: string, note?: string): HTMLElement => {
         const el = document.createElement('section');
@@ -182,7 +194,6 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
     // Info (bottom-right, blue)
     // -----------------------------------------------------------------
     const info = dmd.getLayer('info') as LayerGroup;
-    const infoCaption = info.getLayer('caption') as TextLayer;
 
     const infoSection = section('Info group', Colors.Blue, 'A minimal group: just dimensioned/positioned with a background and one child.');
 
@@ -203,8 +214,41 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
     infoBgOpacity.addEventListener('input', () => info.setBackgroundOpacity(parseFloat(infoBgOpacity.value)));
     row(infoSection, labelEl('Background opacity'), infoBgOpacity);
 
-    const infoText = document.createElement('input');
-    infoText.type = 'text';
-    infoText.value = infoCaption.text;
-    row(infoSection, infoText, btn('Set caption', () => { if (infoText.value) infoCaption.setText(infoText.value); }));
+    // -----------------------------------------------------------------
+    // Constraints playground (the white "marker" layer)
+    // -----------------------------------------------------------------
+    const constraintSection = section('Constraints', Colors.White, 'Repositions the "marker" layer against the container or any of the four groups. Constraints resolve at addLayer() time, so each change removes and re-adds the layer.');
+    constraintSection.style.gridColumn = '1 / -1';
+
+    const H_CONSTRAINTS = ['none', 'leftToLeftOf', 'leftToRightOf', 'leftToCenterOf', 'rightToLeftOf', 'rightToRightOf', 'rightToCenterOf', 'hCenterToLeftOf', 'hCenterToCenterOf', 'hCenterToRightOf'] as const;
+    const V_CONSTRAINTS = ['none', 'topToTopOf', 'topToBottomOf', 'topToCenterOf', 'bottomToTopOf', 'bottomToBottomOf', 'bottomToCenterOf', 'vCenterToTopOf', 'vCenterToCenterOf', 'vCenterToBottomOf'] as const;
+    const TARGETS = ['parent', 'video-panel', 'hud', 'sandbox', 'info'] as const;
+
+    // 'none' centers that axis instead - must match the initial marker position in
+    // setupBasicLayers (the selects default to 'none'/'none': centered, no constraint).
+    const applyConstraints = () => {
+        const position: LayerPosition = {hAlign: 'center', vAlign: 'middle'};
+        if (hConstraint.value !== 'none') {
+            position.hAlign = 'constraint';
+            position[hConstraint.value as Exclude<typeof H_CONSTRAINTS[number], 'none'>] = hTarget.value;
+        }
+        if (vConstraint.value !== 'none') {
+            position.vAlign = 'constraint';
+            position[vConstraint.value as Exclude<typeof V_CONSTRAINTS[number], 'none'>] = vTarget.value;
+        }
+        hTarget.disabled = hConstraint.value === 'none';
+        vTarget.disabled = vConstraint.value === 'none';
+        dmd.removeLayer(CONSTRAINT_MARKER_ID);
+        addConstraintMarker(dmd, position);
+    };
+
+    const hConstraint = selectEl(H_CONSTRAINTS, applyConstraints);
+    const hTarget = selectEl(TARGETS, applyConstraints);
+    const vConstraint = selectEl(V_CONSTRAINTS, applyConstraints);
+    const vTarget = selectEl(TARGETS, applyConstraints);
+    hTarget.disabled = true;
+    vTarget.disabled = true;
+
+    row(constraintSection, labelEl('Horizontal'), hConstraint, labelEl('of'), hTarget);
+    row(constraintSection, labelEl('Vertical'), vConstraint, labelEl('of'), vTarget);
 }

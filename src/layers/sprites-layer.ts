@@ -242,7 +242,7 @@ class SpritesLayer extends BaseLayer {
 
     /**
      * Stop sprite current animation
-     * @param {string} id 
+     * @param {string} id
      */
     stop(id: string) {
         if (typeof this._sprites[id] !== 'undefined') {
@@ -258,6 +258,23 @@ class SpritesLayer extends BaseLayer {
         if (this._runningSprites <= 0) {
             this._runningSprites = 0
             this.__renderNextFrame = function(){}
+            this._stopRendering()
+        }
+    }
+
+    /**
+     * This layer's render loop is driven by run()/stop(), not by having
+     * renderers, so BaseLayer.setVisibility(true) alone would leave the loop
+     * stopped and the output frozen when the layer is shown while sprites are
+     * running (they keep animating while hidden). Resume compositing on show.
+     */
+    setVisibility(isVisible: boolean) {
+        const becameVisible = isVisible && !this.isVisible()
+
+        super.setVisibility(isVisible)
+
+        if (becameVisible && this._runningSprites > 0) {
+            this._startRendering()
         }
     }
 

@@ -5,15 +5,18 @@ An interactive [Vite](https://vitejs.dev/) + TypeScript application that demonst
 and WebGPU.
 
 This is a Vite multi-page app (not an SPA): [index.html](index.html) is a small landing page
-that links out to three standalone demo pages, each with its own `Dmd` instance and canvas:
+that links out to three standalone demo pages. Each demo lives in **its own folder**, holding
+its HTML shell and all of its TypeScript, so one folder is one complete, self-contained
+example — each with its own `Dmd` instance and canvas:
 
-- **[simple.html](simple.html)** — the main demo. Renders a 256×78 dot display (on a
-  1280×390 canvas) and stacks several layer types on top of each other, with a tabbed
+- **[basic/](basic/)** — the gentlest starting point: a focused `LayerGroup` showcase with a
+  small, untabbed control panel (see [Basic demo: Layer Groups](#basic-demo-layer-groups)
+  below).
+- **[advanced/](advanced/)** — the big one. Renders a 256×78 dot display (on a
+  1280×390 canvas) and stacks every layer type on top of each other, with a tabbed
   control panel below the canvas to tweak every aspect of the display and each layer in
   real time.
-- **[advanced.html](advanced.html)** — showcases the `LayerGroup` feature (see
-  [Advanced demo: Layer Groups](#advanced-demo-layer-groups) below).
-- **[scoreboard.html](scoreboard.html)** — a pinball-style scoreboard built entirely out of
+- **[scoreboard/](scoreboard/)** — a pinball-style scoreboard built entirely out of
   `LayerGroup`s (see [Pinball scoreboard demo](#pinball-scoreboard-demo) below).
 
 ## Requirements
@@ -57,12 +60,12 @@ npm run preview
 ```
 
 Open the URL printed by `npm run dev` (typically http://localhost:5173) in a WebGPU-capable
-browser — that's the landing page; follow the links to `simple.html`, `advanced.html` or
-`scoreboard.html`.
+browser — that's the landing page; follow the links to `/basic/`, `/advanced/` or
+`/scoreboard/`.
 
-## What the demo shows
+## What the advanced demo shows
 
-The whole scene is built in [src/layers.ts](src/layers.ts) after `DOMContentLoaded`. It creates a
+The whole scene is built in [advanced/layers.ts](advanced/layers.ts) after `DOMContentLoaded`. It creates a
 `Dmd` bound to the `#output` canvas, calls `dmd.init()`, then `dmd.run()`, and adds layers:
 
 | Layer name        | Type             | Content                                          |
@@ -79,7 +82,7 @@ Image, video, and sprite assets are served from [public/images](public/images).
 
 ### Interactive controls
 
-A tabbed control panel below the canvas ([src/controls.ts](src/controls.ts)) exposes:
+A tabbed control panel below the canvas ([advanced/controls.ts](advanced/controls.ts)) exposes:
 
 - **Global (DMD)** tab:
   - Off-dot color picker
@@ -93,13 +96,13 @@ A tabbed control panel below the canvas ([src/controls.ts](src/controls.ts)) exp
 - **Layer-specific** controls: play/pause/stop for animation and video layers, text input and
   color picker for text layers, run/stop for sprite layers
 
-## Advanced demo: Layer Groups
+## Basic demo: Layer Groups
 
-[advanced.html](advanced.html) showcases `LayerGroup`, reachable from the landing page or via
-the link next to the version number on `simple.html`. It's built in
-[src/advanced-layers.ts](src/advanced-layers.ts) /
-[src/advanced-controls.ts](src/advanced-controls.ts) with a simpler, focused control panel
-(no tabs) instead of the main demo's full per-layer panel machinery. It adds three
+The [basic/](basic/) demo showcases `LayerGroup`, reachable from the landing page or via
+the link next to the version number on the advanced demo. It's built in
+[basic/layers.ts](basic/layers.ts) /
+[basic/controls.ts](basic/controls.ts) with a simpler, focused control panel
+(no tabs) instead of the advanced demo's full per-layer panel machinery. It adds three
 independent top-level `LayerGroup`s:
 
 The DMD is tiled into four quadrants (top-left/top-right/bottom-left/bottom-right), each
@@ -112,17 +115,17 @@ one group with a distinct translucent background color so its bounds are visible
 | `sandbox` (bottom-left, yellow) | `addLayer`/`removeLayer`/`getLayer` driven live from buttons (add a randomly placed/colored box, remove the last one added). |
 | `info` (bottom-right, blue)  | A minimal group: just dimensioned/positioned with a background and a single `TextLayer` child. |
 
-The control panel (`Demo/src/advanced-controls.ts`) lays its sections out in a 2×2 grid
+The control panel (`Demo/basic/controls.ts`) lays its sections out in a 2×2 grid
 matching the DMD's own quadrant layout, with each section's border tinted to match.
 
 ## Pinball scoreboard demo
 
-[scoreboard.html](scoreboard.html) is a second `LayerGroup` showcase, framed as a realistic
+The [scoreboard/](scoreboard/) demo is a second `LayerGroup` showcase, framed as a realistic
 use case rather than an abstract feature list: a pinball-style scoreboard where each visual
 element is a compound graphic made of several `TextLayer`s that need to move, show/hide, or
 fade together as a single unit — exactly the problem `LayerGroup` solves. Built in
-[src/scoreboard-layers.ts](src/scoreboard-layers.ts) /
-[src/scoreboard-controls.ts](src/scoreboard-controls.ts):
+[scoreboard/layers.ts](scoreboard/layers.ts) /
+[scoreboard/controls.ts](scoreboard/controls.ts):
 
 | Group    | Content                                    | Demonstrates |
 |----------|---------------------------------------------|--------------|
@@ -135,26 +138,33 @@ buttons (`+100`/`+1000`/`Reset` for the score, `Next player`/`Next ball` for the
 
 ## Project structure
 
+Each demo is a folder containing its own HTML shell and TypeScript. The three files in a demo
+folder always play the same roles: `main.ts` creates the `Dmd`, `layers.ts` builds the scene,
+`controls.ts` builds the control panel.
+
 ```
 Demo/
-├── index.html            # Landing page — links to simple.html, advanced.html, scoreboard.html
-├── simple.html           # HTML shell for the main demo — canvas and control panel mounts
-├── advanced.html         # HTML shell for the Layer Groups showcase page
-├── scoreboard.html       # HTML shell for the pinball scoreboard showcase page
+├── index.html            # Landing page — links to the three demo folders
 ├── vite.config.js        # Vite config (base '/H5DMD/', tsc-watch plugin, multi-page build)
 ├── tsconfig.json         # TypeScript (bundler resolution)
-├── src/
-│   ├── landing.ts             # Entry point for index.html (just displays the version)
-│   ├── main.ts                # Entry point for simple.html: creates Dmd, wires up layers and controls
-│   ├── layers.ts               # Builds and adds all demo layers to the Dmd instance
-│   ├── controls.ts             # Builds the tabbed control panel
-│   ├── advanced-main.ts        # Entry point for advanced.html
-│   ├── advanced-layers.ts      # Builds the video-panel/hud/sandbox/info LayerGroups
-│   ├── advanced-controls.ts    # Builds the showcase page's focused control panel
-│   ├── scoreboard-main.ts      # Entry point for scoreboard.html
-│   ├── scoreboard-layers.ts    # Builds the score/player/ball LayerGroups
-│   ├── scoreboard-controls.ts  # Builds the scoreboard page's focused control panel
-│   └── style.scss             # All demo styles (compiled by Vite via sass)
+├── basic/                # served at /basic/ — the LayerGroup showcase
+│   ├── index.html        # HTML shell — canvas and control panel mounts
+│   ├── main.ts           # Creates the Dmd, wires up layers and controls
+│   ├── layers.ts         # Builds the video-panel/hud/sandbox/info LayerGroups
+│   └── controls.ts       # The showcase page's focused (untabbed) control panel
+├── advanced/             # served at /advanced/ — every layer type, full panel
+│   ├── index.html
+│   ├── main.ts
+│   ├── layers.ts         # Builds and adds all demo layers to the Dmd instance
+│   └── controls.ts       # Builds the tabbed control panel
+├── scoreboard/           # served at /scoreboard/
+│   ├── index.html
+│   ├── main.ts
+│   ├── layers.ts         # Builds the score/player/ball LayerGroups
+│   └── controls.ts       # The scoreboard page's focused control panel
+├── src/                  # Shared across demos
+│   ├── landing.ts        # Entry point for index.html (just displays the version)
+│   └── style.scss        # All demo styles (compiled by Vite via sass)
 └── public/
-    └── images/          # Backgrounds, animations, noises, sprites, video
+    └── images/           # Backgrounds, animations, noises, sprites, video
 ```

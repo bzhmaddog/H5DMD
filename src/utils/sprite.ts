@@ -81,6 +81,14 @@ class Sprite {
      * Main render routine
      */
     private _doAnimation(t: number) {
+        // stop() may have been called between two frames: bail out so this
+        // rAF chain dies instead of animating a stopped sprite in the
+        // background (and firing the end-of-queue listener a second time
+        // when the current animation's loop count eventually runs out).
+        if (!this._isAnimating) {
+            return
+        }
+
         const now = t
         const previousFrameIndex = this._frameIndex
 
@@ -216,13 +224,16 @@ class Sprite {
     }
 
     /**
-     * Stop current animation
-     * TODO
+     * Stop the current animation. The pending queue is preserved so run()
+     * can restart it: a looping sequence re-queues its current animation as
+     * it plays, but a non-looping one has already shifted it out, so put it
+     * back at the head of the queue for the restart.
      */
     stop() {
+        if (this._isAnimating && this._animation && !this._loopSequence) {
+            this._queue.unshift(this._animation)
+        }
         this._isAnimating = false
-        this._loopSequence = false
-        this._queue = []
     }
 
     /**

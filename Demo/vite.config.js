@@ -18,9 +18,9 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 index: resolveEntry('./index.html'),
-                simple: resolveEntry('./simple.html'),
-                advanced: resolveEntry('./advanced.html'),
-                scoreboard: resolveEntry('./scoreboard.html'),
+                basic: resolveEntry('./basic/index.html'),
+                advanced: resolveEntry('./advanced/index.html'),
+                scoreboard: resolveEntry('./scoreboard/index.html'),
             }
         }
     }

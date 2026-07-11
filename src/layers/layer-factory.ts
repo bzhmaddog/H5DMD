@@ -16,8 +16,8 @@ export interface LayerDictionary {
     [index: string]: BaseLayer
 }
 
-const H_CONSTRAINT_KEYS = ['leftToLeftOf', 'leftToRightOf', 'leftToCenterOf', 'rightToLeftOf', 'rightToRightOf', 'rightToCenterOf'] as const
-const V_CONSTRAINT_KEYS = ['topToTopOf', 'topToBottomOf', 'topToCenterOf', 'bottomToTopOf', 'bottomToBottomOf', 'bottomToCenterOf'] as const
+const H_CONSTRAINT_KEYS = ['leftToLeftOf', 'leftToRightOf', 'leftToCenterOf', 'rightToLeftOf', 'rightToRightOf', 'rightToCenterOf', 'hCenterToLeftOf', 'hCenterToCenterOf', 'hCenterToRightOf'] as const
+const V_CONSTRAINT_KEYS = ['topToTopOf', 'topToBottomOf', 'topToCenterOf', 'bottomToTopOf', 'bottomToBottomOf', 'bottomToCenterOf', 'vCenterToTopOf', 'vCenterToCenterOf', 'vCenterToBottomOf'] as const
 
 interface TargetBox {
     left: number
@@ -123,6 +123,15 @@ export function resolveLayerPosition(
                             break
                         case 'rightToCenterOf':
                             left = target.left + target.width / 2 - layerWidth + (pos.hOffset || 0)
+                            break
+                        case 'hCenterToLeftOf':
+                            left = target.left - layerWidth / 2 + (pos.hOffset || 0)
+                            break
+                        case 'hCenterToCenterOf':
+                            left = target.left + (target.width - layerWidth) / 2 + (pos.hOffset || 0)
+                            break
+                        case 'hCenterToRightOf':
+                            left = target.left + target.width - layerWidth / 2 + (pos.hOffset || 0)
                     }
                 }
             }
@@ -162,13 +171,29 @@ export function resolveLayerPosition(
                             break
                         case 'bottomToCenterOf':
                             top = target.top + target.height / 2 - layerHeight + (pos.vOffset || 0)
+                            break
+                        case 'vCenterToTopOf':
+                            top = target.top - layerHeight / 2 + (pos.vOffset || 0)
+                            break
+                        case 'vCenterToCenterOf':
+                            top = target.top + (target.height - layerHeight) / 2 + (pos.vOffset || 0)
+                            break
+                        case 'vCenterToBottomOf':
+                            top = target.top + target.height - layerHeight / 2 + (pos.vOffset || 0)
                     }
                 }
             }
         }
     }
 
-    return {top, left}
+    // Round to whole dots. The centering branches above (`center`/`middle` and the six
+    // `*CenterTo*Of` constraints) all halve a difference, so they produce a fractional
+    // position whenever the layer and its container differ in parity (e.g. a 60-wide layer
+    // centered in a 213-wide group -> 76.5). A container composites its children with
+    // `drawImage(canvas, left, top)`, and drawImage at a fractional offset resamples the
+    // image bilinearly - which silently blurs the layer, and on a dot display every blurred
+    // edge becomes a half-lit dot. A layer's position is a dot index; it cannot be a half.
+    return {top: Math.round(top), left: Math.round(left)}
 }
 
 /**

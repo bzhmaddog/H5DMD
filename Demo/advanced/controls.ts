@@ -14,30 +14,30 @@ import {
     EasingFunction,
     SpritesLayer,
     VideoLayer,
-    TextLayer
+    TextLayer,
+    LayerGroup,
+    BaseLayer
 } from "h5dmd";
 
-type LayerKind = 'canvas' | 'animation' | 'video' | 'sprites' | 'text';
+type LayerKind = 'canvas' | 'animation' | 'video' | 'sprites' | 'text' | 'group';
 
 interface LayerDescriptor {
     id: string;
     label: string;
     kind: LayerKind;
     spriteId?: string;
+    /** For kind 'group': the children to expose per-child controls for. */
+    children?: Array<{id: string; kind: LayerKind}>;
     note?: string;
 }
 
 const layerDescriptors: LayerDescriptor[] = [
-    {id: 'bg', label: 'Background', kind: 'canvas'},
-    {id: 'animation', label: 'Animation', kind: 'animation'},
-    {id: 'video-transparent', label: 'Video (transparent)', kind: 'video'},
-    {id: 'video-chromakey', label: 'Video (chroma key)', kind: 'video'},
+    {id: 'backdrop', label: 'Backdrop', kind: 'group', children: [{id: 'bg', kind: 'canvas'}, {id: 'animation', kind: 'animation'}], note: 'Background image + looping animation in one LayerGroup: the common controls act on the group as a unit, each child’s controls are below.'},
+    {id: 'videos', label: 'Videos', kind: 'group', children: [{id: 'video-transparent', kind: 'video'}, {id: 'video-chromakey', kind: 'video'}], note: 'Two VideoLayers (transparent webm + chroma-keyed) sharing one slot in a LayerGroup. Both start hidden - use each child’s Visible toggle to pick one.'},
     {id: 'matthew', label: 'Matthew img', kind: 'canvas'},
     {id: 'sprite', label: 'Sprite', kind: 'sprites', spriteId: 'scott'},
-    {id: 'text1', label: 'Text: Scott', kind: 'text'},
-    {id: 'text2', label: 'Text: VS in', kind: 'text'},
-    {id: 'text3', label: 'Text: VS out', kind: 'text'},
-    {id: 'text4', label: 'Text: Matthew', kind: 'text'},
+    {id: 'names', label: 'Text: names', kind: 'group', children: [{id: 'text1', kind: 'text'}, {id: 'text4', kind: 'text'}], note: 'The "Scott Pilgrim" + "Matthew Patel" corner captions in one LayerGroup spanning the DMD: the common controls act on the group as a unit, each child’s text options are below.'},
+    {id: 'vs', label: 'Text: VS', kind: 'group', children: [{id: 'vsin', kind: 'text'}, {id: 'vsout', kind: 'text'}], note: 'Two stacked TextLayers ("in" fill + "out" stroke) in one LayerGroup: the common controls act on the group as a unit, each child’s text options are below.'},
     {id: 'svg-title', label: 'SVG Title', kind: 'canvas'},
     {id: 'big-text-demo', label: 'Text Demo', kind: 'text'},
 ];
@@ -69,7 +69,7 @@ function getEditableContent(state: EditorState): string {
  * Build the tabbed per-layer control panel for the given Dmd instance.
  * Layers must already be added to the Dmd before calling this.
  */
-export function buildControlPanel(dmd: Dmd): void {
+export function buildAdvancedControlPanel(dmd: Dmd): void {
 
     const tabBar = document.getElementById('tab-bar') as HTMLDivElement;
     const tabPanels = document.getElementById('tab-panels') as HTMLDivElement;
@@ -88,8 +88,9 @@ export function buildControlPanel(dmd: Dmd): void {
         const panel = document.createElement('div');
         panel.className = 'tab-panel';
         build(panel);
-        const index = tabs.length;
-        button.addEventListener('click', () => activateTab(index));
+        // Resolve the index at click time: tabs are reordered by drag & drop, so a
+        // captured index would go stale.
+        button.addEventListener('click', () => activateTab(tabs.findIndex(t => t.button === button)));
         tabBar.appendChild(button);
         tabPanels.appendChild(panel);
         tabs.push({button, panel, layerId});
@@ -125,34 +126,40 @@ export function buildControlPanel(dmd: Dmd): void {
         }
     };
 
-    const reorderLayerTabs = (draggedId: string, targetId: string, afterTarget = false) => {
-        const layerTabs = tabs.filter(t => t.layerId);
-        const draggedIdx = layerTabs.findIndex(t => t.layerId === draggedId);
-        let targetIdx = layerTabs.findIndex(t => t.layerId === targetId);
-        if (draggedIdx === -1 || targetIdx === -1) return;
-
-        // Reorder the layer tabs in the main tabs array
+    /**
+     * Re-sort the layer tabs (and their panels) to match the Dmd's current rendering
+     * order, so the tab bar always reads bottom-most layer first. Global tabs keep
+     * their position ahead of the layer tabs.
+     */
+    const syncTabOrderToLayers = () => {
+        const order = dmd.layerIds;
         const globalTabs = tabs.filter(t => !t.layerId);
-        const moved = layerTabs.splice(draggedIdx, 1)[0];
-        // Adjust target index after removal
-        if (draggedIdx < targetIdx) targetIdx--;
-        if (afterTarget) targetIdx++;
-        layerTabs.splice(targetIdx, 0, moved);
+        const layerTabs = tabs.filter(t => t.layerId)
+            .sort((a, b) => order.indexOf(a.layerId!) - order.indexOf(b.layerId!));
 
-        // Rebuild tabs array
         tabs.length = 0;
         tabs.push(...globalTabs, ...layerTabs);
-
-        // Rebuild DOM order for buttons and panels
-        tabs.forEach((t, i) => {
+        tabs.forEach(t => {
             tabBar.appendChild(t.button);
             tabPanels.appendChild(t.panel);
-            // Re-bind click to new index
-            t.button.onclick = () => activateTab(i);
         });
+    };
 
-        // Update Dmd layer order
-        dmd.moveLayer(draggedId, targetIdx);
+    const reorderLayerTabs = (draggedId: string, targetId: string, afterTarget = false) => {
+        // Indices must be resolved against the Dmd's rendering order, not the tab
+        // order: moveLayer() takes an index into that order, and the two only agree
+        // because syncTabOrderToLayers() keeps the tab bar a projection of it.
+        const order = dmd.layerIds;
+        const fromIdx = order.indexOf(draggedId);
+        let toIdx = order.indexOf(targetId);
+        if (fromIdx === -1 || toIdx === -1 || draggedId === targetId) return;
+
+        // moveLayer() inserts into the array with the dragged layer already removed
+        if (fromIdx < toIdx) toIdx--;
+        if (afterTarget) toIdx++;
+
+        dmd.moveLayer(draggedId, toIdx);
+        syncTabOrderToLayers();
 
         // Keep active tab visually active
         const activeIdx = tabs.findIndex(t => t.panel.classList.contains('active'));
@@ -190,6 +197,38 @@ export function buildControlPanel(dmd: Dmd): void {
         l.textContent = text;
         return l;
     };
+    // Card container: controls are grouped into one card per layer, plus one for the
+    // common (whole-layer/whole-group) controls. When a layer is passed, the card title
+    // gets a 🎯 icon that outlines that layer on the DMD while hovered (saving and
+    // restoring any border the layer already had).
+    const card = (panel: HTMLElement, title: string, highlightLayer?: BaseLayer) => {
+        const c = document.createElement('div');
+        c.className = 'ctl-card';
+        const h = document.createElement('h4');
+        h.textContent = title;
+        if (highlightLayer) {
+            const icon = document.createElement('span');
+            icon.className = 'ctl-card-highlight';
+            icon.textContent = '🎯';
+            icon.title = 'Hover to outline this layer on the DMD';
+            let prevColor: string | undefined;
+            let prevWidth = 0;
+            icon.addEventListener('mouseenter', () => {
+                prevColor = highlightLayer.borderColor;
+                prevWidth = highlightLayer.borderWidth;
+                highlightLayer.setBorderColor('#FF00FF');
+                highlightLayer.setBorderWidth(1);
+            });
+            icon.addEventListener('mouseleave', () => {
+                highlightLayer.setBorderWidth(prevWidth);
+                if (prevColor) highlightLayer.setBorderColor(prevColor);
+            });
+            h.appendChild(icon);
+        }
+        c.appendChild(h);
+        panel.appendChild(c);
+        return c;
+    };
     const easingOptions: { label: string; fn: EasingFunction }[] = [
         { label: 'Ease out sine', fn: Easing.easeOutSine },
         { label: 'Ease in sine',  fn: Easing.easeInSine },
@@ -214,7 +253,7 @@ export function buildControlPanel(dmd: Dmd): void {
         return { select, getEasing };
     };
 
-    const durationSlider = (initial: number = 1000) => {
+    const durationSlider = (initial: number = 300) => {
         const value = document.createElement('span');
         value.textContent = `${initial} ms`;
         const slider = document.createElement('input');
@@ -440,7 +479,7 @@ export function buildControlPanel(dmd: Dmd): void {
         row(panel, labelEl('Dot Shape'), shapeSelect, shapeCanvas);
 
         const dmdEasing = easingSelect();
-        const dmdDuration = durationSlider(1000);
+        const dmdDuration = durationSlider();
         const dmdFadeOutBtn = btn('Fade out', () => {
             dmdFadeOutBtn.disabled = true;
             dmdFadeInBtn.disabled = true;
@@ -580,6 +619,192 @@ export function buildControlPanel(dmd: Dmd): void {
         syncBrightness();
     });
 
+    // Shared TextLayer controls (text, color, adjustWidth, outline, font) — used by the
+    // 'text' tabs and by each child of a grouped-text tab.
+    const textLayerControls = (panel: HTMLDivElement, text: TextLayer) => {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'New text…';
+        input.value = text.text;
+        row(panel,
+            input,
+            btn('Set text', () => { if (input.value) text.setText(input.value); })
+        );
+
+        const colorInput = document.createElement('input');
+        colorInput.type = 'color';
+        colorInput.value = '#ffffff';
+        colorInput.addEventListener('input', () => {
+            text.setTextColor(colorInput.value);
+        });
+        row(panel, labelEl('Color'), colorInput);
+
+        const adjustCheckbox = document.createElement('input');
+        adjustCheckbox.type = 'checkbox';
+        adjustCheckbox.checked = text.adjustWidth;
+        adjustCheckbox.addEventListener('change', () => {
+            text.setAdjustWidth(adjustCheckbox.checked);
+        });
+        const adjustLabel = document.createElement('label');
+        adjustLabel.append(adjustCheckbox, ' Adjust width');
+        row(panel, adjustLabel);
+
+        const outlineValue = document.createElement('span');
+        const outlineSlider = document.createElement('input');
+        outlineSlider.type = 'range';
+        outlineSlider.min = '0';
+        outlineSlider.max = '10';
+        outlineSlider.step = '1';
+        outlineSlider.value = String(text.outlineWidth);
+        outlineValue.textContent = outlineSlider.value;
+        outlineSlider.addEventListener('input', () => {
+            outlineValue.textContent = outlineSlider.value;
+            text.setOutlineWidth(parseInt(outlineSlider.value));
+        });
+        row(panel, labelEl('Outline width'), outlineSlider, outlineValue);
+
+        const outlineColorInput = document.createElement('input');
+        outlineColorInput.type = 'color';
+        // Initialise from the layer's current outlineColor (strip alpha if present)
+        outlineColorInput.value = (text.outlineColor.startsWith('#') ? text.outlineColor : '#' + text.outlineColor).slice(0, 7);
+        outlineColorInput.addEventListener('input', () => {
+            text.setOutlineColor(outlineColorInput.value);
+        });
+        row(panel, labelEl('Outline color'), outlineColorInput);
+
+        const fontSizeValue = document.createElement('span');
+        const fontSizeSlider = document.createElement('input');
+        fontSizeSlider.type = 'range';
+        fontSizeSlider.min = '0';
+        fontSizeSlider.max = '100';
+        fontSizeSlider.step = '1';
+        fontSizeSlider.value = String(text.fontSize);
+        fontSizeValue.textContent = `${fontSizeSlider.value}%`;
+        fontSizeSlider.addEventListener('input', () => {
+            fontSizeValue.textContent = `${fontSizeSlider.value}%`;
+            text.setFontSize(parseInt(fontSizeSlider.value));
+        });
+        row(panel, labelEl('Font size'), fontSizeSlider, fontSizeValue);
+
+        const fonts = ['Arial', 'Arial Black', 'Verdana', 'Helvetica', 'Tahoma',
+            'Trebuchet MS', 'Impact', 'Georgia', 'Times New Roman',
+            'Courier New', 'Lucida Console', 'monospace', 'serif', 'sans-serif',
+        ];
+        const fontSelect = document.createElement('select');
+        fontSelect.style.cssText = 'background:#222;color:#fff;border:1px solid #555;border-radius:4px;padding:4px 6px;';
+        fonts.forEach(f => {
+            const o = document.createElement('option');
+            o.value = f;
+            o.textContent = f;
+            o.style.fontFamily = f;
+            if (f === text.fontFamily) o.selected = true;
+            fontSelect.appendChild(o);
+        });
+        fontSelect.addEventListener('change', () => text.setFontFamily(fontSelect.value));
+        row(panel, labelEl('Font'), fontSelect);
+    };
+
+    // Shared AnimationLayer controls (play/pause/stop, frame stepping) — used by the
+    // 'animation' tabs and by animation children of a group tab.
+    const animationLayerControls = (panel: HTMLDivElement, anim: AnimationLayer) => {
+        const frameInfo = document.createElement('span');
+        frameInfo.className = 'ctl-note';
+        const showFrame = () => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            frameInfo.textContent = `frame: ${(anim as any)._frameIndex}`;
+        };
+        showFrame();
+        row(panel,
+            btn('Play', () => anim.play(true)),
+            btn('Pause', () => { anim.pause(); showFrame(); }),
+            btn('Stop', () => { anim.stop(); showFrame(); })
+        );
+        row(panel,
+            btn('◀ Prev frame', () => { anim.previousFrame(); showFrame(); }),
+            btn('Next frame ▶', () => { anim.nextFrame(); showFrame(); }),
+            frameInfo
+        );
+    };
+
+    // Draw-function editor for the background CanvasLayer — used by the backdrop group tab.
+    const bgDrawEditor = (panel: HTMLDivElement, canvas: CanvasLayer) => {
+        const textArea = document.createElement('div');
+
+        // Same appearance as the original layer content but built with canvas operations
+        const editor = new EditorView({
+            doc: "function({fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap}) { //🔒\n" +
+            "  // `imagesPath` is in scope — it points at the demo's images folder. //🔒 \n" +
+            "  fillColor('#0C98F4'); //Fill the whole canvas\n" +
+            "  drawRect(0,17,426,96,'#FF0000'); //Draw a rectangle\n" +
+            "  // drawLine(0, 126, 426, 126, '#00FF00'); //Draw a line\n" +
+            "  // fillGradient(['#FF0000','#00FF00','#0000FF'], 'horizontal'); //Fill a gradient\n" +
+            "  // drawGradientRect(10, 10, 50, 20, ['#FF0000','#0000FF']); //Gradient rect\n" +
+            "  // fetch(`${imagesPath}/bg-2.png`)\n" +
+            "  //  .then(response => response.blob())\n" +
+            "  //  .then(blob => createImageBitmap(blob))\n" +
+            "  //  .then(bitmap => {\n" +
+            "  //    drawBitmap(bitmap); //Draw a bitmap\n" +
+            "  //  });\n" +
+            "} //🔒",
+            extensions: [
+                basicSetup,
+                javascript({ typescript: true }),
+                oneDark,
+                readOnlyRangesExtension(getReadOnlyRanges)
+            ],
+            parent: textArea
+        })
+
+        textArea.style.width = '100%';
+
+        const error = document.createElement('div');
+        error.className = 'ctl-note';
+        error.style.color = '#f66';
+        error.style.display = 'none';
+        const showError = (label: string, e: unknown) => {
+            error.textContent = `${label}: ${e instanceof Error ? e.message : String(e)}`;
+            error.style.display = '';
+            console.error(`${label}:`, e);
+        };
+
+        const applyDrawFunction = () => {
+            // The edited code is compiled with new Function(), so it can't read import.meta
+            // itself — inline the resolved path as a literal instead.
+            const imagesPath = `${import.meta.env.BASE_URL}images`;
+            const source = `const imagesPath = ${JSON.stringify(imagesPath)};\n`
+                + getEditableContent(editor.state);
+
+            // Compile once per Draw, not once per redraw: the draw function is called on
+            // every canvas refresh and new Function() is a parse each time.
+            let compiled: (...args: unknown[]) => void;
+            try {
+                compiled = new Function(
+                    'fillColor', 'fillGradient', 'drawGradientRect', 'drawRect', 'drawLine', 'drawBitmap', source
+                ) as (...args: unknown[]) => void;
+            } catch (e) {
+                showError('Syntax error', e);
+                return;
+            }
+            error.style.display = 'none';
+
+            canvas.setDrawFunction(({fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap}) => {
+                try {
+                    compiled(fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap);
+                } catch (e) {
+                    showError('Draw function error', e);
+                }
+            });
+            canvas.draw();
+        };
+
+        row(panel, textArea);
+        row(panel,
+            btn('Draw', applyDrawFunction),
+            btn('Clear', () => canvas.clear())
+        );
+        row(panel, error);
+    };
+
     // One tab per layer — common controls (visibility, opacity) + specific ones
     layerDescriptors.forEach((desc) => {
         addTab(`${desc.label} [${desc.kind}]`, (panel) => {
@@ -596,6 +821,10 @@ export function buildControlPanel(dmd: Dmd): void {
                 panel.appendChild(labelEl(`Layer "${desc.id}" not found`));
                 return;
             }
+
+            // Common controls (visibility/opacity/fade) get their own card; for a group
+            // tab they act on the group as a unit.
+            const commonCard = card(panel, desc.kind === 'group' ? `Group: ${desc.id}` : 'Common', layer);
 
             // Common — fade / opacity sync helpers (declared early so event handlers can reference them)
             const fadeInBtn = document.createElement('button');
@@ -635,7 +864,7 @@ export function buildControlPanel(dmd: Dmd): void {
             });
             const visLabel = document.createElement('label');
             visLabel.append(visCheckbox, ' Visible');
-            row(panel, visLabel);
+            row(commonCard, visLabel);
 
             // Common — opacity
             opacitySlider.addEventListener('input', () => {
@@ -644,11 +873,11 @@ export function buildControlPanel(dmd: Dmd): void {
                 opacityValue.textContent = o.toFixed(2);
                 syncFadeButtons();
             });
-            row(panel, labelEl('Opacity'), opacitySlider, opacityValue);
+            row(commonCard, labelEl('Opacity'), opacitySlider, opacityValue);
 
             // Common — fade in / fade out
             const layerEasing = easingSelect();
-            const layerDuration = durationSlider(1000);
+            const layerDuration = durationSlider();
             fadeInBtn.addEventListener('click', () => {
                 if (!layer.isVisible()) {
                     layer.setOpacity(0);
@@ -673,32 +902,15 @@ export function buildControlPanel(dmd: Dmd): void {
             });
 
             syncFadeButtons();
-            row(panel, fadeInBtn, fadeOutBtn, labelEl('Easing'), layerEasing.select);
-            row(panel, labelEl('Duration'), layerDuration.slider, layerDuration.value);
+            row(commonCard, fadeInBtn, fadeOutBtn, labelEl('Easing'), layerEasing.select);
+            row(commonCard, labelEl('Duration'), layerDuration.slider, layerDuration.value);
 
-            // Specific controls
+            // Specific controls - one card per layer
             if (desc.kind === 'animation') {
-                const anim = layer as AnimationLayer;
-                const frameInfo = document.createElement('span');
-                frameInfo.className = 'ctl-note';
-                const showFrame = () => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    frameInfo.textContent = `frame: ${(anim as any)._frameIndex}`;
-                };
-                showFrame();
-                row(panel,
-                    btn('Play', () => anim.play(true)),
-                    btn('Pause', () => { anim.pause(); showFrame(); }),
-                    btn('Stop', () => { anim.stop(); showFrame(); })
-                );
-                row(panel,
-                    btn('\u25C0 Prev frame', () => { anim.previousFrame(); showFrame(); }),
-                    btn('Next frame \u25B6', () => { anim.nextFrame(); showFrame(); }),
-                    frameInfo
-                );
+                animationLayerControls(card(panel, desc.id, layer), layer as AnimationLayer);
             } else if (desc.kind === 'video') {
                 const video = layer as VideoLayer;
-                row(panel,
+                row(card(panel, desc.id, layer),
                     btn('Play', () => video.play()),
                     btn('Pause', () => video.pause()),
                     btn('Stop', () => video.stop())
@@ -706,92 +918,50 @@ export function buildControlPanel(dmd: Dmd): void {
             } else if (desc.kind === 'sprites') {
                 const sprites = layer as SpritesLayer;
                 const sid = desc.spriteId ?? 'scott';
-                row(panel,
+                row(card(panel, desc.id, layer),
                     btn('Run', () => sprites.run(sid)),
                     btn('Stop', () => sprites.stop(sid))
                 );
+            } else if (desc.kind === 'group') {
+                // The common card above acts on the group as a unit (visibility cascades
+                // to the children, fades affect the composited output). One card per
+                // child, dispatched on the child's kind.
+                const group = layer as LayerGroup;
+                for (const child of desc.children ?? []) {
+                    const childLayer = group.getLayer(child.id);
+                    if (!childLayer) continue;
+                    const childCard = card(panel, child.id, childLayer);
+
+                    // Per-child visibility, so children can be toggled individually
+                    // (e.g. picking one of two overlapping videos) without hiding the
+                    // whole group.
+                    const childVis = document.createElement('input');
+                    childVis.type = 'checkbox';
+                    childVis.checked = childLayer.isVisible();
+                    childVis.addEventListener('change', () => childLayer.setVisibility(childVis.checked));
+                    const childVisLabel = document.createElement('label');
+                    childVisLabel.append(childVis, ' Visible');
+                    row(childCard, childVisLabel);
+
+                    if (child.kind === 'text') {
+                        textLayerControls(childCard, childLayer as TextLayer);
+                    } else if (child.kind === 'animation') {
+                        animationLayerControls(childCard, childLayer as AnimationLayer);
+                    } else if (child.kind === 'video') {
+                        const video = childLayer as VideoLayer;
+                        row(childCard,
+                            btn('Play', () => video.play()),
+                            btn('Pause', () => video.pause()),
+                            btn('Stop', () => video.stop())
+                        );
+                    } else if (child.kind === 'canvas' && child.id === 'bg') {
+                        bgDrawEditor(childCard, childLayer as CanvasLayer);
+                    }
+                }
             } else if (desc.kind === 'text') {
                 const text = layer as TextLayer;
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.placeholder = 'New text\u2026';
-                input.value = text.text;
-                row(panel,
-                    input,
-                    btn('Set text', () => { if (input.value) text.setText(input.value); })
-                );
-
-                const colorInput = document.createElement('input');
-                colorInput.type = 'color';
-                colorInput.value = '#ffffff';
-                colorInput.addEventListener('input', () => {
-                    text.setTextColor(colorInput.value);
-                });
-                row(panel, labelEl('Color'), colorInput);
-
-                const adjustCheckbox = document.createElement('input');
-                adjustCheckbox.type = 'checkbox';
-                adjustCheckbox.checked = text.adjustWidth;
-                adjustCheckbox.addEventListener('change', () => {
-                    text.setAdjustWidth(adjustCheckbox.checked);
-                });
-                const adjustLabel = document.createElement('label');
-                adjustLabel.append(adjustCheckbox, ' Adjust width');
-                row(panel, adjustLabel);
-
-                const outlineValue = document.createElement('span');
-                const outlineSlider = document.createElement('input');
-                outlineSlider.type = 'range';
-                outlineSlider.min = '0';
-                outlineSlider.max = '10';
-                outlineSlider.step = '1';
-                outlineSlider.value = String(text.outlineWidth);
-                outlineValue.textContent = outlineSlider.value;
-                outlineSlider.addEventListener('input', () => {
-                    outlineValue.textContent = outlineSlider.value;
-                    text.setOutlineWidth(parseInt(outlineSlider.value));
-                });
-                row(panel, labelEl('Outline width'), outlineSlider, outlineValue);
-
-                const outlineColorInput = document.createElement('input');
-                outlineColorInput.type = 'color';
-                // Initialise from the layer's current outlineColor (strip alpha if present)
-                outlineColorInput.value = (text.outlineColor.startsWith('#') ? text.outlineColor : '#' + text.outlineColor).slice(0, 7);
-                outlineColorInput.addEventListener('input', () => {
-                    text.setOutlineColor(outlineColorInput.value);
-                });
-                row(panel, labelEl('Outline color'), outlineColorInput);
-
-                const fontSizeValue = document.createElement('span');
-                const fontSizeSlider = document.createElement('input');
-                fontSizeSlider.type = 'range';
-                fontSizeSlider.min = '0';
-                fontSizeSlider.max = '100';
-                fontSizeSlider.step = '1';
-                fontSizeSlider.value = String(text.fontSize);
-                fontSizeValue.textContent = `${fontSizeSlider.value}%`;
-                fontSizeSlider.addEventListener('input', () => {
-                    fontSizeValue.textContent = `${fontSizeSlider.value}%`;
-                    text.setFontSize(parseInt(fontSizeSlider.value));
-                });
-                row(panel, labelEl('Font size'), fontSizeSlider, fontSizeValue);
-
-                const fonts = ['Arial', 'Arial Black', 'Verdana', 'Helvetica', 'Tahoma',
-                    'Trebuchet MS', 'Impact', 'Georgia', 'Times New Roman',
-                    'Courier New', 'Lucida Console', 'monospace', 'serif', 'sans-serif',
-                ];
-                const fontSelect = document.createElement('select');
-                fontSelect.style.cssText = 'background:#222;color:#fff;border:1px solid #555;border-radius:4px;padding:4px 6px;';
-                fonts.forEach(f => {
-                    const o = document.createElement('option');
-                    o.value = f;
-                    o.textContent = f;
-                    o.style.fontFamily = f;
-                    if (f === text.fontFamily) o.selected = true;
-                    fontSelect.appendChild(o);
-                });
-                fontSelect.addEventListener('change', () => text.setFontFamily(fontSelect.value));
-                row(panel, labelEl('Font'), fontSelect);
+                const textCard = card(panel, desc.id, layer);
+                textLayerControls(textCard, text);
 
                 // Extra decoration controls — only shown for the interactive text demo
                 if (desc.id === 'big-text-demo') {
@@ -810,7 +980,7 @@ export function buildControlPanel(dmd: Dmd): void {
                     });
                     const bgLabel = document.createElement('label');
                     bgLabel.append(bgEnabled, '\u00a0Enable');
-                    row(panel, labelEl('Background'), bgLabel, bgPicker);
+                    row(textCard, labelEl('Background'), bgLabel, bgPicker);
 
                     const bgOpacityValue = document.createElement('span');
                     const bgOpacitySlider = document.createElement('input');
@@ -824,7 +994,7 @@ export function buildControlPanel(dmd: Dmd): void {
                         bgOpacityValue.textContent = parseFloat(bgOpacitySlider.value).toFixed(2);
                         text.setBackgroundOpacity(parseFloat(bgOpacitySlider.value));
                     });
-                    row(panel, labelEl('Bg opacity'), bgOpacitySlider, bgOpacityValue);
+                    row(textCard, labelEl('Bg opacity'), bgOpacitySlider, bgOpacityValue);
 
                     const borderColorPicker = document.createElement('input');
                     borderColorPicker.type = 'color';
@@ -833,7 +1003,7 @@ export function buildControlPanel(dmd: Dmd): void {
                     borderColorPicker.addEventListener('input', () => {
                         if (borderWidthSlider.valueAsNumber > 0) text.setBorderColor(borderColorPicker.value);
                     });
-                    row(panel, labelEl('Border color'), borderColorPicker);
+                    row(textCard, labelEl('Border color'), borderColorPicker);
 
                     const borderWidthValue = document.createElement('span');
                     const borderWidthSlider = document.createElement('input');
@@ -848,65 +1018,15 @@ export function buildControlPanel(dmd: Dmd): void {
                         text.setBorderWidth(borderWidthSlider.valueAsNumber);
                         if (borderWidthSlider.valueAsNumber > 0) text.setBorderColor(borderColorPicker.value);
                     });
-                    row(panel, labelEl('Border width'), borderWidthSlider, borderWidthValue);
+                    row(textCard, labelEl('Border width'), borderWidthSlider, borderWidthValue);
                 }
-            } else if (desc.kind === 'canvas' && desc.id === 'bg') {
-                const canvas = layer as CanvasLayer;
-
-                const textArea = document.createElement('div');
-
-                // Same appearance as the original layer content but built with canvas operations
-                const editor =new EditorView({
-                    doc: "function({fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap}) { //🔒\n" +
-                    "  // const imagesPath = document.baseURI.replace('index.html', '') + 'images'; //🔒 \n" +
-                    "  fillColor('#0C98F4'); //Fill the whole canvas\n" +
-                    "  drawRect(0,17,426,96,'#FF0000'); //Draw a rectangle\n" +
-                    "  // drawLine(0, 126, 426, 126, '#00FF00'); //Draw a line\n" +
-                    "  // fillGradient(['#FF0000','#00FF00','#0000FF'], 'horizontal'); //Fill a gradient\n" +
-                    "  // drawGradientRect(10, 10, 50, 20, ['#FF0000','#0000FF']); //Gradient rect\n" +
-                    "  // fetch(`${imagesPath}/bg-2.png`)\n" +
-                    "  //  .then(response => response.blob())\n" +
-                    "  //  .then(blob => createImageBitmap(blob))\n" +
-                    "  //  .then(bitmap => {\n" +
-                    "  //    drawBitmap(bitmap); //Draw a bitmap\n" +
-                    "  //  });\n" +
-                    "} //🔒",
-                    extensions: [
-                        basicSetup,
-                        javascript({ typescript: true }),
-                        oneDark,
-                         readOnlyRangesExtension(getReadOnlyRanges)
-                    ],
-                    parent: textArea
-                })
-
-
-                textArea.style.width = '100%';
-
-                const applyDrawFunction = () => {
-                    const code = getEditableContent(editor.state);
-                    canvas.setDrawFunction(({fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap}) => {
-                        try {
-                            const fullCode = "const imagesPath = document.baseURI.replace('index.html', '') + 'images';\n" + code;
-                            const fn = new Function('fillColor', 'fillGradient', 'drawGradientRect', 'drawRect', 'drawLine', 'drawBitmap', fullCode);
-                            fn(fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap);
-                        } catch (e) {
-                            console.error('Draw function error:', e);
-                        }
-                    });
-                    canvas.draw();
-                };
-
-                //applyDrawFunction();
-
-                row(panel, textArea);
-                row(panel,
-                    btn('Draw', applyDrawFunction),
-                    btn('Clear', () => canvas.clear())
-                );
             }
         }, desc.id);
     });
+
+    // layerDescriptors is authored for readability, not z-order — lay the tabs out in
+    // rendering order so a drag reads as "move this layer up/down the stack".
+    syncTabOrderToLayers();
 
     activateTab(0);
 }

@@ -1,4 +1,4 @@
-import {Colors, Dmd, LayerGroup, TextLayer, CanvasLayer, NoiseEffectRenderer, rendererEntry, ShakyRenderer, Utils} from "h5dmd";
+import {Colors, Dmd, TextLayer, CanvasLayer, NoiseEffectRenderer, rendererEntry, ShakyRenderer, Utils} from "h5dmd";
 
 /**
  * Build a pinball-style scoreboard out of three independent top-level LayerGroups: the
@@ -32,7 +32,7 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
     // ---------------------------------------------------------------------
     // Score - big outlined digits, right-aligned
     // ---------------------------------------------------------------------
-    const score = dmd.addLayer(LayerGroup, 'score', {
+    const score = dmd.addLayerGroup('score', {
         width: scoreWidth,
         height: scoreHeight,
         position: {hAlign: 'right', vAlign: 'middle'},
@@ -58,7 +58,7 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
     // ---------------------------------------------------------------------
     // Player indicator (bottom-left) - "P" label + player number
     // ---------------------------------------------------------------------
-    const player = dmd.addLayer(LayerGroup, 'player', {
+    const player = dmd.addLayerGroup('player', {
         width: 35,
         height: 18,
         position: {left: 4, vAlign: 'bottom'}
@@ -100,7 +100,7 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
     // ---------------------------------------------------------------------
     // Ball indicator (bottom-right) - "B" label + ball number
     // ---------------------------------------------------------------------
-    const ball = dmd.addLayer(LayerGroup, 'ball', {
+    const ball = dmd.addLayerGroup('ball', {
         width: 35,
         height: 20,
         position: {hAlign: 'right', vAlign: 'bottom'}

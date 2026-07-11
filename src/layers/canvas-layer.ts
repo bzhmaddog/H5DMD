@@ -74,13 +74,30 @@ class CanvasLayer extends BaseLayer {
             hOffset : 0,
             vOffset : 0,
             fit : 'contain',
-            keepAspectRatio : true
+            keepAspectRatio : true,
+            smoothing : false
         }).merge(_options)
 
         // Compute final dimensions and position
         const dimensions = this._computeDimensions(bitmapOptions, img.width, img.height) // new Options(_options) to handle drawBitmap calls from Javascript
 
-        this._contentBuffer.context.drawImage(img, dimensions.left, dimensions.top, dimensions.width, dimensions.height)
+        const ctx = this._contentBuffer.context
+        const smoothing = bitmapOptions.get('smoothing')
+
+        // Restored afterwards: the content buffer is shared with every other draw op on
+        // this layer, so drawBitmap must not leave its resampling mode behind.
+        const previousEnabled = ctx.imageSmoothingEnabled
+        const previousQuality = ctx.imageSmoothingQuality
+
+        ctx.imageSmoothingEnabled = smoothing !== false
+        if (typeof smoothing === 'string') {
+            ctx.imageSmoothingQuality = smoothing
+        }
+
+        ctx.drawImage(img, dimensions.left, dimensions.top, dimensions.width, dimensions.height)
+
+        ctx.imageSmoothingEnabled = previousEnabled
+        ctx.imageSmoothingQuality = previousQuality
 
         this._layerUpdated()
     }
@@ -212,7 +229,10 @@ class CanvasLayer extends BaseLayer {
             }
         }
 
-        return { top: t, left: l, width: w, height: h } as IDimensions
+        // Round to whole pixels: the centering branches halve a difference, so they yield a
+        // fractional offset when the parities differ - and drawImage() at a fractional
+        // offset resamples the bitmap bilinearly, blurring it however sharp the source is.
+        return { top: Math.round(t), left: Math.round(l), width: Math.round(w), height: Math.round(h) } as IDimensions
     }
 
     /**

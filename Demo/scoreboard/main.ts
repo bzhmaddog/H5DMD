@@ -1,15 +1,15 @@
-import './style.scss';
+import '../src/style.scss';
 import {
     Dmd,
     DotShape
 } from "h5dmd";
-import {setupScoreboardLayers} from "./scoreboard-layers";
-import {buildScoreboardControlPanel} from "./scoreboard-controls";
+import {setupScoreboardLayers} from "./layers";
+import {buildScoreboardControlPanel} from "./controls";
 
 // When dom is loaded create the objects and bind the events
 document.addEventListener('DOMContentLoaded', function () {
 
-    const imagesPath = document.baseURI.replace('scoreboard.html', '') + 'images';
+    const imagesPath = `${import.meta.env.BASE_URL}images`;
 
 
     // Display the H5DMD library version
