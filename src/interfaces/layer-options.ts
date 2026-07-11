@@ -176,6 +176,21 @@ export interface BitmapOptions {
     fit: 'contain' | 'cover' | 'none'
     /** Preserve the image aspect ratio when fitting. Default: `true`. */
     keepAspectRatio: boolean
+    /**
+     * Resampling used when the bitmap is scaled.
+     *
+     * Defaults to `false` (nearest-neighbour) because every pixel of a layer becomes one
+     * *dot* on the DMD: a smoothed downscale turns edges into intermediate values, which
+     * the dot grid renders as washed-out half-lit dots. Nearest-neighbour keeps each dot
+     * decisively on or off, which is what reads as "sharp" on a dot display.
+     *
+     * Pass `true` (or an explicit `'low' | 'medium' | 'high'` quality) to get the browser's
+     * smoothed resampling instead — occasionally what you want for a photographic image on
+     * a high-resolution DMD, where there are enough dots for the gradients to pay off.
+     *
+     * Default: `false`.
+     */
+    smoothing: boolean | 'low' | 'medium' | 'high'
     /** Target width in pixels or as a percentage string (used when `fit` is `'none'`). */
     width?: number | string
     /** Target height in pixels or as a percentage string (used when `fit` is `'none'`). */

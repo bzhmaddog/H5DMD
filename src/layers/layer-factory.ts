@@ -186,7 +186,14 @@ export function resolveLayerPosition(
         }
     }
 
-    return {top, left}
+    // Round to whole dots. The centering branches above (`center`/`middle` and the six
+    // `*CenterTo*Of` constraints) all halve a difference, so they produce a fractional
+    // position whenever the layer and its container differ in parity (e.g. a 60-wide layer
+    // centered in a 213-wide group -> 76.5). A container composites its children with
+    // `drawImage(canvas, left, top)`, and drawImage at a fractional offset resamples the
+    // image bilinearly - which silently blurs the layer, and on a dot display every blurred
+    // edge becomes a half-lit dot. A layer's position is a dot index; it cannot be a half.
+    return {top: Math.round(top), left: Math.round(left)}
 }
 
 /**

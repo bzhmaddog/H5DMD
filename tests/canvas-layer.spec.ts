@@ -158,6 +158,71 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
     })
 })
 
+describe('CanvasLayer.drawBitmap smoothing', () => {
+
+    beforeEach(() => {
+        setupVitestCanvasMock()
+        vi.stubGlobal('requestAnimationFrame', vi.fn(() => 0))
+    })
+
+    afterEach(() => {
+        vi.restoreAllMocks()
+        vi.unstubAllGlobals()
+    })
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const context = (layer: CanvasLayer) => (layer as any)._contentBuffer.context
+
+    /** Capture the smoothing state *during* the drawImage call, not after it's restored. */
+    const smoothingDuringDraw = (layer: CanvasLayer) => {
+        const ctx = context(layer)
+        const seen: {enabled: boolean, quality: string}[] = []
+        vi.spyOn(ctx, 'drawImage').mockImplementation(() => {
+            seen.push({enabled: ctx.imageSmoothingEnabled, quality: ctx.imageSmoothingQuality})
+        })
+        return seen
+    }
+
+    test('scaling is nearest-neighbour by default (one layer pixel = one DMD dot)', () => {
+        const layer = new CanvasLayer('c', 64, 16)
+        const seen = smoothingDuringDraw(layer)
+
+        layer.drawBitmap(img(40, 40))
+
+        expect(seen[0].enabled).toBe(false)
+    })
+
+    test('smoothing: true enables the browser resampler', () => {
+        const layer = new CanvasLayer('c', 64, 16)
+        const seen = smoothingDuringDraw(layer)
+
+        layer.drawBitmap(img(40, 40), {smoothing: true})
+
+        expect(seen[0].enabled).toBe(true)
+    })
+
+    test('an explicit quality enables smoothing and sets that quality', () => {
+        const layer = new CanvasLayer('c', 64, 16)
+        const seen = smoothingDuringDraw(layer)
+
+        layer.drawBitmap(img(40, 40), {smoothing: 'high'})
+
+        expect(seen[0]).toEqual({enabled: true, quality: 'high'})
+    })
+
+    test('the context smoothing state is restored after drawing', () => {
+        const layer = new CanvasLayer('c', 64, 16)
+        const ctx = context(layer)
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'medium'
+
+        layer.drawBitmap(img(40, 40), {smoothing: 'high'})
+
+        expect(ctx.imageSmoothingEnabled).toBe(true)
+        expect(ctx.imageSmoothingQuality).toBe('medium')
+    })
+})
+
 describe('CanvasLayer inherited BaseLayer behaviour', () => {
 
     beforeEach(() => {

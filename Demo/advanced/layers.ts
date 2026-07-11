@@ -18,7 +18,7 @@ import {
  * Add every demo layer (background, animation, video, images, text and sprites)
  * to the given Dmd instance.
  */
-export function setupLayers(dmd: Dmd, imagesPath: string): void {
+export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
 
     const noiseUrls: string[] = [];
     for (let i = 0; i < 6; i++) {

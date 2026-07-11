@@ -641,6 +641,14 @@ export class Dmd {
     }
 
     /**
+     * Ids of the top-level layers in rendering order (index 0 = bottom-most).
+     * An id's index here is the index moveLayer() expects for that position.
+     */
+    get layerIds(): string[] {
+        return this._sortedLayers.map(l => l.id)
+    }
+
+    /**
      * Get Dmd brightness
      */
     get brightness() {

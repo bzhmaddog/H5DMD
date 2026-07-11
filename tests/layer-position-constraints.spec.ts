@@ -57,10 +57,13 @@ describe('resolveLayerPosition - constraint fields (unit)', () => {
         ['bottomToTopOf', 1],
         ['bottomToBottomOf', 9],
         ['bottomToCenterOf', 5],
-        ['vCenterToTopOf', 2.5],
-        ['vCenterToCenterOf', 6.5],
-        ['vCenterToBottomOf', 10.5],
-    ])('vAlign constraint %s resolves top correctly', (field, expected) => {
+        // LAYER_H (3) is odd, so these three halve an odd number: 2.5 / 6.5 / 10.5 before
+        // rounding. Positions are dot indices and must be whole - a fractional top makes the
+        // container composite the layer with a blurring, resampling drawImage().
+        ['vCenterToTopOf', 3],
+        ['vCenterToCenterOf', 7],
+        ['vCenterToBottomOf', 11],
+    ])('vAlign constraint %s resolves top correctly (rounded to a whole dot)', (field, expected) => {
         const {top} = resolve({vAlign: 'constraint', [field]: 'panel'})
         expect(top).toBe(expected)
     })
@@ -79,8 +82,8 @@ describe('resolveLayerPosition - constraint fields (unit)', () => {
             hAlign: 'constraint', hCenterToCenterOf: 'parent',
             vAlign: 'constraint', vCenterToCenterOf: 'parent',
         })
-        expect(left).toBe((CONTAINER_W - LAYER_W) / 2)
-        expect(top).toBe((CONTAINER_H - LAYER_H) / 2)
+        expect(left).toBe(Math.round((CONTAINER_W - LAYER_W) / 2))
+        expect(top).toBe(Math.round((CONTAINER_H - LAYER_H) / 2))
     })
 
     test("target: 'parent' resolves against the container's own box", () => {
@@ -120,18 +123,62 @@ describe('resolveLayerPosition - constraint fields (unit)', () => {
 
     test('hAlign left/center/right unaffected by the constraint fields being present', () => {
         expect(resolve({hAlign: 'left', hOffset: 3}).left).toBe(3)
-        expect(resolve({hAlign: 'center'}).left).toBe((CONTAINER_W - LAYER_W) / 2)
+        expect(resolve({hAlign: 'center'}).left).toBe(Math.round((CONTAINER_W - LAYER_W) / 2))
         expect(resolve({hAlign: 'right'}).left).toBe(CONTAINER_W - LAYER_W)
     })
 
     test('vAlign top/middle/bottom unaffected by the constraint fields being present', () => {
         expect(resolve({vAlign: 'top', vOffset: 2}).top).toBe(2)
-        expect(resolve({vAlign: 'middle'}).top).toBe((CONTAINER_H - LAYER_H) / 2)
+        expect(resolve({vAlign: 'middle'}).top).toBe(Math.round((CONTAINER_H - LAYER_H) / 2))
         expect(resolve({vAlign: 'bottom'}).top).toBe(CONTAINER_H - LAYER_H)
     })
 
     test('no position at all defaults to {top: 0, left: 0}', () => {
         expect(resolve({})).toEqual({top: 0, left: 0})
+    })
+})
+
+describe('resolveLayerPosition - whole-dot positions', () => {
+
+    // A layer whose size parity differs from its container: every centering path halves an
+    // odd difference. A fractional position makes the container composite the layer with
+    // drawImage(canvas, x.5, y.5), which resamples it and blurs the layer on the dot grid.
+    const CONTAINER_W = 213
+    const CONTAINER_H = 65
+    const LAYER_W = 60
+    const LAYER_H = 78
+
+    const resolve = (position: object) =>
+        resolveLayerPosition('me', position, LAYER_W, LAYER_H, CONTAINER_W, CONTAINER_H,
+            [{id: 'parent-ish', zIndex: 0, top: 0, left: 0}], {'parent-ish': fakeLayer(1, 1)})
+
+    const isWhole = (n: number) => Number.isInteger(n)
+
+    test("hAlign:'center' / vAlign:'middle' resolve to whole dots", () => {
+        const {left, top} = resolve({hAlign: 'center', vAlign: 'middle'})
+
+        // (213 - 60) / 2 = 76.5 and (65 - 78) / 2 = -6.5 before rounding
+        expect(isWhole(left)).toBe(true)
+        expect(isWhole(top)).toBe(true)
+        expect(left).toBe(77)
+        expect(top).toBe(-6)
+    })
+
+    test('centering constraints against the parent resolve to whole dots', () => {
+        const {left, top} = resolve({
+            hAlign: 'constraint', hCenterToCenterOf: 'parent',
+            vAlign: 'constraint', vCenterToCenterOf: 'parent',
+        })
+
+        expect(isWhole(left)).toBe(true)
+        expect(isWhole(top)).toBe(true)
+    })
+
+    test('a half-pixel hOffset/vOffset is still rounded to a whole dot', () => {
+        const {left, top} = resolve({hAlign: 'left', hOffset: 4.5, vAlign: 'top', vOffset: 2.5})
+
+        expect(isWhole(left)).toBe(true)
+        expect(isWhole(top)).toBe(true)
     })
 })
 

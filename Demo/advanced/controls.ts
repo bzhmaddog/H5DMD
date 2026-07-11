@@ -69,7 +69,7 @@ function getEditableContent(state: EditorState): string {
  * Build the tabbed per-layer control panel for the given Dmd instance.
  * Layers must already be added to the Dmd before calling this.
  */
-export function buildControlPanel(dmd: Dmd): void {
+export function buildAdvancedControlPanel(dmd: Dmd): void {
 
     const tabBar = document.getElementById('tab-bar') as HTMLDivElement;
     const tabPanels = document.getElementById('tab-panels') as HTMLDivElement;
@@ -88,8 +88,9 @@ export function buildControlPanel(dmd: Dmd): void {
         const panel = document.createElement('div');
         panel.className = 'tab-panel';
         build(panel);
-        const index = tabs.length;
-        button.addEventListener('click', () => activateTab(index));
+        // Resolve the index at click time: tabs are reordered by drag & drop, so a
+        // captured index would go stale.
+        button.addEventListener('click', () => activateTab(tabs.findIndex(t => t.button === button)));
         tabBar.appendChild(button);
         tabPanels.appendChild(panel);
         tabs.push({button, panel, layerId});
@@ -125,34 +126,40 @@ export function buildControlPanel(dmd: Dmd): void {
         }
     };
 
-    const reorderLayerTabs = (draggedId: string, targetId: string, afterTarget = false) => {
-        const layerTabs = tabs.filter(t => t.layerId);
-        const draggedIdx = layerTabs.findIndex(t => t.layerId === draggedId);
-        let targetIdx = layerTabs.findIndex(t => t.layerId === targetId);
-        if (draggedIdx === -1 || targetIdx === -1) return;
-
-        // Reorder the layer tabs in the main tabs array
+    /**
+     * Re-sort the layer tabs (and their panels) to match the Dmd's current rendering
+     * order, so the tab bar always reads bottom-most layer first. Global tabs keep
+     * their position ahead of the layer tabs.
+     */
+    const syncTabOrderToLayers = () => {
+        const order = dmd.layerIds;
         const globalTabs = tabs.filter(t => !t.layerId);
-        const moved = layerTabs.splice(draggedIdx, 1)[0];
-        // Adjust target index after removal
-        if (draggedIdx < targetIdx) targetIdx--;
-        if (afterTarget) targetIdx++;
-        layerTabs.splice(targetIdx, 0, moved);
+        const layerTabs = tabs.filter(t => t.layerId)
+            .sort((a, b) => order.indexOf(a.layerId!) - order.indexOf(b.layerId!));
 
-        // Rebuild tabs array
         tabs.length = 0;
         tabs.push(...globalTabs, ...layerTabs);
-
-        // Rebuild DOM order for buttons and panels
-        tabs.forEach((t, i) => {
+        tabs.forEach(t => {
             tabBar.appendChild(t.button);
             tabPanels.appendChild(t.panel);
-            // Re-bind click to new index
-            t.button.onclick = () => activateTab(i);
         });
+    };
 
-        // Update Dmd layer order
-        dmd.moveLayer(draggedId, targetIdx);
+    const reorderLayerTabs = (draggedId: string, targetId: string, afterTarget = false) => {
+        // Indices must be resolved against the Dmd's rendering order, not the tab
+        // order: moveLayer() takes an index into that order, and the two only agree
+        // because syncTabOrderToLayers() keeps the tab bar a projection of it.
+        const order = dmd.layerIds;
+        const fromIdx = order.indexOf(draggedId);
+        let toIdx = order.indexOf(targetId);
+        if (fromIdx === -1 || toIdx === -1 || draggedId === targetId) return;
+
+        // moveLayer() inserts into the array with the dragged layer already removed
+        if (fromIdx < toIdx) toIdx--;
+        if (afterTarget) toIdx++;
+
+        dmd.moveLayer(draggedId, toIdx);
+        syncTabOrderToLayers();
 
         // Keep active tab visually active
         const activeIdx = tabs.findIndex(t => t.panel.classList.contains('active'));
@@ -726,7 +733,7 @@ export function buildControlPanel(dmd: Dmd): void {
         // Same appearance as the original layer content but built with canvas operations
         const editor = new EditorView({
             doc: "function({fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap}) { //🔒\n" +
-            "  // const imagesPath = document.baseURI.replace('index.html', '') + 'images'; //🔒 \n" +
+            "  // `imagesPath` is in scope — it points at the demo's images folder. //🔒 \n" +
             "  fillColor('#0C98F4'); //Fill the whole canvas\n" +
             "  drawRect(0,17,426,96,'#FF0000'); //Draw a rectangle\n" +
             "  // drawLine(0, 126, 426, 126, '#00FF00'); //Draw a line\n" +
@@ -750,15 +757,41 @@ export function buildControlPanel(dmd: Dmd): void {
 
         textArea.style.width = '100%';
 
+        const error = document.createElement('div');
+        error.className = 'ctl-note';
+        error.style.color = '#f66';
+        error.style.display = 'none';
+        const showError = (label: string, e: unknown) => {
+            error.textContent = `${label}: ${e instanceof Error ? e.message : String(e)}`;
+            error.style.display = '';
+            console.error(`${label}:`, e);
+        };
+
         const applyDrawFunction = () => {
-            const code = getEditableContent(editor.state);
+            // The edited code is compiled with new Function(), so it can't read import.meta
+            // itself — inline the resolved path as a literal instead.
+            const imagesPath = `${import.meta.env.BASE_URL}images`;
+            const source = `const imagesPath = ${JSON.stringify(imagesPath)};\n`
+                + getEditableContent(editor.state);
+
+            // Compile once per Draw, not once per redraw: the draw function is called on
+            // every canvas refresh and new Function() is a parse each time.
+            let compiled: (...args: unknown[]) => void;
+            try {
+                compiled = new Function(
+                    'fillColor', 'fillGradient', 'drawGradientRect', 'drawRect', 'drawLine', 'drawBitmap', source
+                ) as (...args: unknown[]) => void;
+            } catch (e) {
+                showError('Syntax error', e);
+                return;
+            }
+            error.style.display = 'none';
+
             canvas.setDrawFunction(({fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap}) => {
                 try {
-                    const fullCode = "const imagesPath = document.baseURI.replace('index.html', '') + 'images';\n" + code;
-                    const fn = new Function('fillColor', 'fillGradient', 'drawGradientRect', 'drawRect', 'drawLine', 'drawBitmap', fullCode);
-                    fn(fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap);
+                    compiled(fillColor, fillGradient, drawGradientRect, drawRect, drawLine, drawBitmap);
                 } catch (e) {
-                    console.error('Draw function error:', e);
+                    showError('Draw function error', e);
                 }
             });
             canvas.draw();
@@ -769,6 +802,7 @@ export function buildControlPanel(dmd: Dmd): void {
             btn('Draw', applyDrawFunction),
             btn('Clear', () => canvas.clear())
         );
+        row(panel, error);
     };
 
     // One tab per layer — common controls (visibility, opacity) + specific ones
@@ -989,6 +1023,10 @@ export function buildControlPanel(dmd: Dmd): void {
             }
         }, desc.id);
     });
+
+    // layerDescriptors is authored for readability, not z-order — lay the tabs out in
+    // rendering order so a drag reads as "move this layer up/down the stack".
+    syncTabOrderToLayers();
 
     activateTab(0);
 }

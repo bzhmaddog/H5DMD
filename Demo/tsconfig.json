@@ -21,7 +21,10 @@
     ]
   },
   "include": [
-    "src"
+    "src",
+    "basic",
+    "advanced",
+    "scoreboard"
   ],
   "exclude": [
     "node_modules",

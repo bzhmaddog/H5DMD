@@ -1,15 +1,15 @@
-import './style.scss';
+import '../src/style.scss';
 import {
     Dmd,
     DotShape
 } from "h5dmd";
-import {setupLayers} from "./layers";
-import {buildControlPanel} from "./controls";
+import {setupAdvancedLayers} from "./layers";
+import {buildAdvancedControlPanel} from "./controls";
 
 // When dom is loaded create the objects and bind the events
 document.addEventListener('DOMContentLoaded', function () {
 
-    const imagesPath = document.baseURI.replace('simple.html', '') + 'images';
+    const imagesPath = `${import.meta.env.BASE_URL}images`;
 
     // Display the H5DMD library version
     const versionElement = document.getElementById('version_value');
@@ -29,8 +29,8 @@ document.addEventListener('DOMContentLoaded', function () {
             dmd.run();
 
             // Add all demo layers, then build the control panel for them
-            setupLayers(dmd, imagesPath);
-            buildControlPanel(dmd);
+            setupAdvancedLayers(dmd, imagesPath);
+            buildAdvancedControlPanel(dmd);
 
         }); // Dmd.init()
 

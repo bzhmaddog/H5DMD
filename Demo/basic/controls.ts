@@ -1,5 +1,5 @@
 import {CanvasLayer, Colors, Dmd, LayerGroup, LayerPosition, TextLayer, VideoLayer} from "h5dmd";
-import {addConstraintMarker, CONSTRAINT_MARKER_ID} from "./advanced-layers";
+import {addConstraintMarker, CONSTRAINT_MARKER_ID} from "./layers";
 
 // Small DOM helpers (duplicated from Demo/src/controls.ts on purpose - this page is a
 // self-contained showcase and not worth wiring into that file's larger tab machinery).
@@ -34,16 +34,16 @@ const selectEl = (options: readonly string[], onChange: () => void) => {
 };
 
 /**
- * Build the focused (non-tabbed) control panel for the advanced/LayerGroup demo page.
- * Layer groups must already be added to the Dmd (via setupAdvancedLayers) before calling this.
+ * Build the focused (non-tabbed) control panel for the basic/LayerGroup demo page.
+ * Layer groups must already be added to the Dmd (via setupBasicLayers) before calling this.
  *
  * Sections are built in the same order as the quadrants they control appear on the DMD
- * (top-left, top-right, bottom-left, bottom-right) and #advanced-controls lays them out as
+ * (top-left, top-right, bottom-left, bottom-right) and #basic-controls lays them out as
  * a matching 2x2 CSS grid (see style.scss), each accented with its quadrant's color.
  */
-export function buildAdvancedControlPanel(dmd: Dmd): void {
+export function buildBasicControlPanel(dmd: Dmd): void {
 
-    const root = document.getElementById('advanced-controls') as HTMLDivElement;
+    const root = document.getElementById('basic-controls') as HTMLDivElement;
 
     const section = (title: string, accentColor: string, note?: string): HTMLElement => {
         const el = document.createElement('section');
@@ -194,7 +194,6 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
     // Info (bottom-right, blue)
     // -----------------------------------------------------------------
     const info = dmd.getLayer('info') as LayerGroup;
-    const infoCaption = info.getLayer('caption') as TextLayer;
 
     const infoSection = section('Info group', Colors.Blue, 'A minimal group: just dimensioned/positioned with a background and one child.');
 
@@ -215,11 +214,6 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
     infoBgOpacity.addEventListener('input', () => info.setBackgroundOpacity(parseFloat(infoBgOpacity.value)));
     row(infoSection, labelEl('Background opacity'), infoBgOpacity);
 
-    const infoText = document.createElement('input');
-    infoText.type = 'text';
-    infoText.value = infoCaption.text;
-    row(infoSection, infoText, btn('Set caption', () => { if (infoText.value) infoCaption.setText(infoText.value); }));
-
     // -----------------------------------------------------------------
     // Constraints playground (the white "marker" layer)
     // -----------------------------------------------------------------
@@ -231,7 +225,7 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
     const TARGETS = ['parent', 'video-panel', 'hud', 'sandbox', 'info'] as const;
 
     // 'none' centers that axis instead - must match the initial marker position in
-    // setupAdvancedLayers (the selects default to 'none'/'none': centered, no constraint).
+    // setupBasicLayers (the selects default to 'none'/'none': centered, no constraint).
     const applyConstraints = () => {
         const position: LayerPosition = {hAlign: 'center', vAlign: 'middle'};
         if (hConstraint.value !== 'none') {

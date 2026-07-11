@@ -23,7 +23,7 @@ import {
 const QUADRANT_WIDTH = 213;
 const QUADRANT_HEIGHT = 65;
 
-export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
+export function setupBasicLayers(dmd: Dmd, imagesPath: string): void {
 
     // Register the custom HUD font. Registering alone is enough (no await needed):
     // TextLayer waits for a registered-but-unloaded font itself (document.fonts.load)
@@ -31,6 +31,9 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
     // the label silently renders with the fallback font.
     const fontsPath = imagesPath.replace(/images$/, 'fonts');
     document.fonts.add(new FontFace('Dusty', `url(${fontsPath}/Dusty.otf)`));
+
+
+    const catImageUrl: string = `${imagesPath}/cat.png`
 
     // ---------------------------------------------------------------------
     // Video panel (top-left, red) - hiding the group pauses the child video's playback
@@ -90,10 +93,10 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
     });
 
     hud.addLayer(TextLayer, 'label', {
-        text: 'HUD',
+        text: 'DMD',
         fontSize: 90,
         fontFamily: 'Dusty',
-        hOffset: 1,
+        hOffset: 5,
         vAlign: 'middle',
         color: Colors.White,
         outlineWidth: 2,
@@ -159,17 +162,30 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
         height: QUADRANT_HEIGHT,
         position: {top: QUADRANT_HEIGHT, left: QUADRANT_WIDTH},
         backgroundColor: Colors.Blue,
-        backgroundOpacity: 0.3,
+        //backgroundOpacity: 0.3,
     });
 
-    info.addLayer(TextLayer, 'caption', {
-        text: 'Hello DMD!',
-        hAlign: 'center',
-        vAlign: 'middle',
-        fontSize: 80,
-        adjustWidth: true,
-        color: Colors.White,
-    });
+    info.addLayer(
+        CanvasLayer,
+        'cat',
+        {
+            width: 60,
+            height: 78,
+            // Centered in the group by constraining both of the layer's centers to the
+            // group's own centers ('parent' = the containing LayerGroup).
+            position: {
+                hAlign: 'constraint',
+                hCenterToCenterOf: 'parent',
+                vAlign: 'constraint',
+                vCenterToCenterOf: 'parent',
+            },
+            //backgroundColor: Colors.White,
+        },
+        async (layer) => {
+            const bitmap = await fetch(catImageUrl).then(r => r.blob()).then(createImageBitmap);
+            layer.drawBitmap(bitmap, {hAlign: 'center', vAlign: 'middle'});
+        }
+    );
 
     // ---------------------------------------------------------------------
     // Constraint marker - a small top-level layer the "Constraints" control panel

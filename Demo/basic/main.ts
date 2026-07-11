@@ -1,15 +1,15 @@
-import './style.scss';
+import '../src/style.scss';
 import {
     Dmd,
     DotShape
 } from "h5dmd";
-import {setupAdvancedLayers} from "./advanced-layers";
-import {buildAdvancedControlPanel} from "./advanced-controls";
+import {setupBasicLayers} from "./layers";
+import {buildBasicControlPanel} from "./controls";
 
 // When dom is loaded create the objects and bind the events
 document.addEventListener('DOMContentLoaded', function () {
 
-    const imagesPath = document.baseURI.replace('advanced.html', '') + 'images';
+    const imagesPath = `${import.meta.env.BASE_URL}images`;
 
     // Display the H5DMD library version
     const versionElement = document.getElementById('version_value');
@@ -39,8 +39,8 @@ document.addEventListener('DOMContentLoaded', function () {
             dmd.run();
 
             // Add the LayerGroup showcase, then build its control panel
-            setupAdvancedLayers(dmd, imagesPath);
-            buildAdvancedControlPanel(dmd);
+            setupBasicLayers(dmd, imagesPath);
+            buildBasicControlPanel(dmd);
 
         }); // Dmd.init()
 

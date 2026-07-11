@@ -84,6 +84,19 @@ describe('Dmd public API', () => {
         expect((dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'x')).toBeUndefined()
     })
 
+    test('layerIds reports the rendering order and follows moveLayer', () => {
+        const dmd = makeDmd()
+        dmd.addLayer(CanvasLayer, 'a', new Options())
+        dmd.addLayer(CanvasLayer, 'b', new Options())
+        dmd.addLayer(CanvasLayer, 'c', new Options())
+
+        expect(dmd.layerIds).toEqual(['a', 'b', 'c'])
+
+        dmd.moveLayer('a', dmd.layerIds.indexOf('c'))
+
+        expect(dmd.layerIds).toEqual(['b', 'c', 'a'])
+    })
+
     test('removeLayer on a missing id is a no-op', () => {
         const dmd = makeDmd()
         expect(() => dmd.removeLayer('ghost')).not.toThrow()
@@ -147,7 +160,7 @@ describe('Dmd public API', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const entry = (dmd as any)._sortedLayers.find((l: {id: string}) => l.id === 'c')
         expect(entry.left).toBe(16)  // (42 - 10) / 2
-        expect(entry.top).toBe(2.5)  // (10 - 5) / 2
+        expect(entry.top).toBe(3)    // (10 - 5) / 2 = 2.5, rounded: a position is a dot index
     })
 
     test('an explicit zIndex option is honoured in the sorted list', () => {

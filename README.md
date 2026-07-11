@@ -138,7 +138,7 @@ await dmd.fadeOut(1000);
 await dmd.fadeIn(1000);
 ```
 
-For a complete example see [Demo/src/main.ts](https://github.com/bzhmaddog/H5DMD/blob/main/Demo/src/main.ts).
+For a complete example see [Demo/advanced/main.ts](https://github.com/bzhmaddog/H5DMD/blob/main/Demo/advanced/main.ts).
 
 # Install dependencies
 ```

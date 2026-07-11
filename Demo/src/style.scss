@@ -8,6 +8,10 @@ $border-light: #555;
     box-sizing: border-box;
 }
 
+canvas#output {
+    image-rendering: pixelated;
+}
+
 body {
     background: black;
     padding: 0;
@@ -189,7 +193,7 @@ input[type='text'] {
     }
 }
 
-#advanced-controls {
+#basic-controls {
     font: 13px sans-serif;
     max-width: 900px;
     // Sections are appended in the same order as the quadrants they control appear on the
