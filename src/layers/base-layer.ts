@@ -228,6 +228,16 @@ abstract class BaseLayer {
     }
 
     /**
+     * True while the continuous render loop is engaged (i.e. _renderNextFrame
+     * schedules another frame). This is broader than haveRenderer(): layers
+     * without renderers can run the loop via _startRendering() (e.g. a
+     * SpritesLayer while sprites are running, a LayerGroup while visible).
+     */
+    protected _isRenderLoopActive(): boolean {
+        return this._renderNextFrame === this._requestAnimationFrame
+    }
+
+    /**
      * Request rendering of layer frame
      */
     private _requestAnimationFrame() {
@@ -437,8 +447,9 @@ abstract class BaseLayer {
 
         console.log(`Layer [${this._id}] : Updated => ${this.haveRenderer()}`)
 
-        // Re-render frame if needed
-        if (!this.haveRenderer()) {
+        // Re-render frame if needed (skip when the loop is already running:
+        // it will pick the update up next frame)
+        if (!this._isRenderLoopActive()) {
             this._renderFrame()
         }
 
@@ -472,28 +483,28 @@ abstract class BaseLayer {
     /** Set the background fill color for this layer and trigger a redraw. Pass `undefined` to clear. */
     setBackgroundColor(color: string | undefined) {
         this._options.set('backgroundColor', color)
-        if (this.isVisible() && !this.haveRenderer()) this._renderFrame()
+        if (this.isVisible() && !this._isRenderLoopActive()) this._renderFrame()
     }
     get backgroundColor(): string | undefined { return this._options.get('backgroundColor') }
 
     /** Set the background fill opacity (0–1) and trigger a redraw. */
     setBackgroundOpacity(opacity: number) {
         this._options.set('backgroundOpacity', Math.max(0, Math.min(1, opacity)))
-        if (this.isVisible() && !this.haveRenderer()) this._renderFrame()
+        if (this.isVisible() && !this._isRenderLoopActive()) this._renderFrame()
     }
     get backgroundOpacity(): number { return this._options.get('backgroundOpacity') ?? 1 }
 
     /** Set the border stroke color and trigger a redraw. */
     setBorderColor(color: string) {
         this._options.set('borderColor', color)
-        if (this.isVisible() && !this.haveRenderer()) this._renderFrame()
+        if (this.isVisible() && !this._isRenderLoopActive()) this._renderFrame()
     }
     get borderColor(): string | undefined { return this._options.get('borderColor') }
 
     /** Set the border stroke width in pixels and trigger a redraw. */
     setBorderWidth(width: number) {
         this._options.set('borderWidth', width)
-        if (this.isVisible() && !this.haveRenderer()) this._renderFrame()
+        if (this.isVisible() && !this._isRenderLoopActive()) this._renderFrame()
     }
     get borderWidth(): number { return this._options.get('borderWidth') ?? 0 }
 
@@ -535,10 +546,12 @@ abstract class BaseLayer {
         const o = Math.max(0, Math.min(opacity, 1))
         this._options.set('opacity', o)
 
-        // Layers that already run a continuous render loop (those with renderers)
-        // pick up the new opacity on their next frame. Otherwise render a single
-        // frame now so the change is applied immediately.
-        if (this.isVisible() && !this.haveRenderer()) {
+        // Layers whose continuous render loop is running pick up the new opacity
+        // on their next frame. Rendering directly here as well would spawn a
+        // second render chain racing the loop over _renderQueue (one chain can
+        // steal the opacity pass and the other then draws a full-opacity frame
+        // mid-fade). Only render a single frame when no loop is active.
+        if (this.isVisible() && !this._isRenderLoopActive()) {
             this._renderFrame()
         }
     }
