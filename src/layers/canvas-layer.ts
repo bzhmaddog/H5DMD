@@ -199,12 +199,14 @@ class CanvasLayer extends BaseLayer {
         // Alignment operates within the inset area
         if (typeof _options.get('hAlign') === 'string') {
             switch (_options.get('hAlign')) {
+                case 'start':
                 case 'left':
                     l = mStart + _options.get('hOffset')
                     break
                 case 'center':
                     l = mStart + availW / 2 - w / 2 + _options.get('hOffset')
                     break
+                case 'end':
                 case 'right':
                     l = mStart + availW - w + _options.get('hOffset')
                     break
@@ -215,12 +217,15 @@ class CanvasLayer extends BaseLayer {
 
         if (typeof _options.get('vAlign') === 'string') {
             switch (_options.get('vAlign')) {
+                case 'start':
                 case 'top':
                     t = mTop + _options.get('vOffset')
                     break
+                case 'center':
                 case 'middle':
                     t = mTop + availH / 2 - h / 2 + _options.get('vOffset')
                     break
+                case 'end':
                 case 'bottom':
                     t = mTop + availH - h + _options.get('vOffset')
                     break

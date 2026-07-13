@@ -19,6 +19,7 @@ export default defineConfig({
             input: {
                 index: resolveEntry('./index.html'),
                 basic: resolveEntry('./basic/index.html'),
+                text: resolveEntry('./text/index.html'),
                 advanced: resolveEntry('./advanced/index.html'),
                 scoreboard: resolveEntry('./scoreboard/index.html'),
             }

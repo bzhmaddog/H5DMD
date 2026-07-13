@@ -1,15 +1,18 @@
 {
   "$schema": "https://typedoc.org/schema.json",
   "tsconfig": "./tsconfig.json",
-  "entryPoints": [
-    "./src/*",
-    "./src/layers/*",
-    "./src/renderers/*",
-    "./src/enums/*",
-    "./src/interfaces/*",
-    "./src/utils/*"
-  ],
+  "name": "H5DMD",
+  "readme": "./README.md",
+  "entryPoints": ["./src/index.ts"],
   "includeVersion": true,
   "out": "docs",
-  "basePath": "/H5DMD/docs"
+  "categorizeByGroup": false,
+  "navigationLinks": {
+    "GitHub": "https://github.com/bzhmaddog/H5DMD",
+    "Demo": "https://bzhmaddog.github.io/H5DMD/"
+  },
+  "sort": ["source-order"],
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true
 }

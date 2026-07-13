@@ -79,6 +79,59 @@ describe('SpritesLayer', () => {
         expect(stored.y).toBe(4)
     })
 
+    // Positions only ever had to be strings so a '50%' could be told apart from pixels; a plain
+    // pixel coordinate is now accepted as the number it is, and must land in the same place the
+    // equivalent numeric string does.
+    test('addSprite accepts number positions', () => {
+        const layer = new SpritesLayer('s', 64, 16)
+        const sprite = new Sprite('n', sheet(), 0, 0)
+        sprite.addAnimation('walk', animations[0].animationParams)
+
+        layer.addSprite('n', sprite, 12, 4)
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const stored = (layer as any)._sprites['n']
+        expect(stored.x).toBe(12)
+        expect(stored.y).toBe(4)
+    })
+
+    test('addSprite accepts 0 as a position (not treated as unset)', () => {
+        const layer = new SpritesLayer('s', 64, 16)
+        const sprite = new Sprite('z', sheet(), 0, 0)
+        sprite.addAnimation('walk', animations[0].animationParams)
+
+        layer.addSprite('z', sprite, 0, 0)
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const stored = (layer as any)._sprites['z']
+        expect(stored.x).toBe(0)
+        expect(stored.y).toBe(0)
+    })
+
+    test('a fractional number position is floored to a whole dot', () => {
+        const layer = new SpritesLayer('s', 64, 16)
+        const sprite = new Sprite('f', sheet(), 0, 0)
+        sprite.addAnimation('walk', animations[0].animationParams)
+
+        layer.addSprite('f', sprite, 12.7, 4.2)
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const stored = (layer as any)._sprites['f']
+        expect(stored.x).toBe(12)
+        expect(stored.y).toBe(4)
+    })
+
+    test('createSprite accepts number positions too', async () => {
+        const layer = new SpritesLayer('s', 64, 16)
+
+        await layer.createSprite('hero', sheet(), 0, 0, animations, 12, 4)
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const stored = (layer as any)._sprites['hero']
+        expect(stored.x).toBe(12)
+        expect(stored.y).toBe(4)
+    })
+
     test('addSprite refuses a non-Sprite object', () => {
         const layer = new SpritesLayer('s', 64, 16)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

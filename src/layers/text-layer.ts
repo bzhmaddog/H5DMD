@@ -31,9 +31,9 @@ class TextLayer extends BaseLayer {
         updatedListener?: (layer: TextLayer) => void | Promise<void>
     ) {
 
+        // top/left are deliberately not defaulted: "unset" is what lets hAlign/vAlign place
+        // that axis, and setting either is what overrides the alignment (see _renderText).
         const layerOptions = new Options({
-            top: 0,
-            left: 0,
             color: Colors.White,
             fontSize: '10',
             fontUnit: '%',
@@ -298,6 +298,13 @@ class TextLayer extends BaseLayer {
             const descent = m.actualBoundingBoxDescent
 
 
+            // An explicit coordinate overrides the alignment on its own axis; the axes left
+            // unset are placed by hAlign/vAlign (the usual case, given their defaults). The
+            // two are independent, so e.g. hAlign 'center' + top 3 centers horizontally and
+            // pins the text 3px down.
+            const hasLeft = left !== undefined
+            const hasTop = top !== undefined
+
             // Convert % to pixels/dots
             if (typeof options.get('left') === 'string' && options.get('left').at(-1) === '%') {
                 const vl = parseFloat(options.get('left').replace('%', ''))
@@ -310,7 +317,7 @@ class TextLayer extends BaseLayer {
                 top = Math.floor((vt * this.height) / 100)
             }
 
-            if (typeof options.get('hAlign') === 'string') {
+            if (!hasLeft && typeof options.get('hAlign') === 'string') {
                 // Reserve room for the outline's horizontal expansion so it isn't clipped by
                 // the canvas edge - without this, text placed flush against either edge (the
                 // common case for 'left'/'right', and for 'right' whenever the text is wide
@@ -319,30 +326,39 @@ class TextLayer extends BaseLayer {
                 const outlineMargin = options.get('outlineWidth') ?? 0
 
                 switch (options.get('hAlign')) {
+                    case 'start':
                     case 'left':
                         left = outlineMargin
                         break
                     case 'center':
                         left = (this.width / 2) - (m.width / 2)
                         break
+                    case 'end':
                     case 'right':
                         left = this.width - m.width - outlineMargin
                 }
             }
 
-            if (typeof options.get('vAlign') === 'string') {
+            if (!hasTop && typeof options.get('vAlign') === 'string') {
                 switch (options.get('vAlign')) {
+                    case 'start':
                     case 'top':
                         top = ascent
                         break
+                    case 'center':
                     case 'middle':
                         top = (this.height / 2) + (ascent - descent) / 2
                         break
+                    case 'end':
                     case 'bottom':
                         top = this.height - descent
                         break
                 }
             }
+
+            // Neither an explicit coordinate nor a usable alignment on this axis: layer origin.
+            left = left ?? 0
+            top = top ?? 0
 
             let hOffset = options.get('hOffset')
             const vOffset = options.get('vOffset')
@@ -366,6 +382,14 @@ class TextLayer extends BaseLayer {
             // Add offsets
             left += hOffset
             top += vOffset
+
+            // Snap to whole dots. The alignment branches above derive their position from
+            // measureText() metrics (m.width, ascent, descent), which are fractional, so
+            // left/top are almost never integers - and fillText() at a fractional offset
+            // rasterises every glyph edge across two dots with partial alpha. On a dot
+            // display that half-lit dot IS the blur; a glyph's position is a dot index.
+            left = Math.round(left)
+            top = Math.round(top)
 
             if (options.get('strokeWidth') > 0) {
                 this._textBuffer.context.strokeStyle = options.get('strokeColor')

@@ -212,6 +212,54 @@ input[type='text'] {
     gap: 12px;
 }
 
+// Static reference panel on the text demo (no controls on that page). Two columns, laid out to
+// match the two halves of the DMD above them: [alignment grid][manual positioning].
+#text-info {
+    font: 13px sans-serif;
+    max-width: 1000px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-left: 5px;
+
+    em {
+        color: #ccc;
+        font-style: italic;
+    }
+
+    strong {
+        color: #fff;
+    }
+
+    code {
+        color: #fa0;
+        font: 12px monospace;
+        white-space: nowrap;
+    }
+}
+
+.info-table {
+    border-collapse: collapse;
+    margin: 8px 0;
+    width: 100%;
+
+    th, td {
+        color: #ddd;
+        text-align: left;
+        vertical-align: top;
+        padding: 4px 8px 4px 0;
+        border-top: 1px solid $border;
+        font-weight: normal;
+        line-height: 1.45;
+    }
+
+    th {
+        white-space: nowrap;
+        width: 1%;
+        color: #888;
+    }
+}
+
 .adv-section {
     border: 1px solid $border;
     // Overridden per-section (inline) to the matching quadrant's color.

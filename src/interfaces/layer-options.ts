@@ -1,6 +1,24 @@
 import type {RendererEntry} from './layer-renderer-dictionary'
 
 /**
+ * Horizontal alignment, shared by every option object that aligns something horizontally:
+ * a layer in its container ({@link LayerPosition}), text in a TextLayer
+ * ({@link TextLayerOptions}), and a bitmap in a CanvasLayer ({@link BitmapOptions}).
+ *
+ * `'start'`/`'end'` are the preferred spellings; `'left'`/`'right'` are exact aliases kept
+ * so existing code keeps working, and are treated identically everywhere (this library lays
+ * out left-to-right only - `'start'` never means "right" the way CSS/canvas would in RTL).
+ */
+export type HAlign = 'start' | 'center' | 'end' | 'left' | 'right'
+
+/**
+ * Vertical alignment - the counterpart of {@link HAlign}. `'start'`/`'center'`/`'end'` are the
+ * preferred spellings, with `'top'`/`'middle'`/`'bottom'` kept as exact aliases. Using
+ * `'center'` on both axes means the two no longer disagree on what the midpoint is called.
+ */
+export type VAlign = 'start' | 'center' | 'end' | 'top' | 'middle' | 'bottom'
+
+/**
  * Positioning of a layer within its container (the Dmd, or a parent LayerGroup).
  */
 export interface LayerPosition {
@@ -12,12 +30,12 @@ export interface LayerPosition {
      * Horizontal alignment within the container. `'constraint'` opts into aligning against
      * a sibling instead - see the `*To*Of` fields below.
      */
-    hAlign?: 'left' | 'center' | 'right' | 'constraint'
+    hAlign?: HAlign | 'constraint'
     /**
      * Vertical alignment within the container. `'constraint'` opts into aligning against a
      * sibling instead - see the `*To*Of` fields below.
      */
-    vAlign?: 'top' | 'middle' | 'bottom' | 'constraint'
+    vAlign?: VAlign | 'constraint'
     /** Horizontal pixel offset (added after alignment). Default: `0`. */
     hOffset?: number
     /** Vertical pixel offset (added after alignment). Default: `0`. */
@@ -196,9 +214,9 @@ export interface BitmapOptions {
     /** Target height in pixels or as a percentage string (used when `fit` is `'none'`). */
     height?: number | string
     /** Horizontal alignment. */
-    hAlign?: 'left' | 'center' | 'right'
+    hAlign?: HAlign
     /** Vertical alignment. */
-    vAlign?: 'top' | 'middle' | 'bottom'
+    vAlign?: VAlign
     /** Margin on all sides in pixels or as a percentage string. Default: `0`. */
     margin?: number | string
     /** Top margin, overrides `margin`. */
@@ -216,10 +234,20 @@ export interface BitmapOptions {
  * Required properties are always initialised with defaults by the TextLayer constructor.
  */
 export interface TextLayerOptions extends BaseLayerOptions {
-    /** Top position in pixels or as a percentage string (e.g. `'50%'`). Default: `0`. */
-    top: number | string
-    /** Left position in pixels or as a percentage string (e.g. `'50%'`). Default: `0`. */
-    left: number | string
+    /**
+     * Top position of the text within the layer, in pixels or as a percentage string
+     * (e.g. `'50%'`). Overrides {@link vAlign} when set. The value is the y passed to
+     * `fillText`, so {@link textBaseline} decides what it anchors (with the default
+     * `'top'` baseline, the top of the em square - which sits slightly above the glyph
+     * ink). Unset by default, so `vAlign` places the text.
+     */
+    top?: number | string
+    /**
+     * Left position of the text within the layer, in pixels or as a percentage string
+     * (e.g. `'50%'`). Overrides {@link hAlign} when set. Unset by default, so `hAlign`
+     * places the text.
+     */
+    left?: number | string
     /** Text fill colour. Default: `Colors.White`. */
     color: string
     /** Font size value. Default: `'10'`. */
@@ -260,10 +288,10 @@ export interface TextLayerOptions extends BaseLayerOptions {
     antialiasing: boolean
     /** Text content. */
     text?: string
-    /** Horizontal alignment. */
-    hAlign?: 'left' | 'center' | 'right'
-    /** Vertical alignment. */
-    vAlign?: 'top' | 'middle' | 'bottom'
+    /** Horizontal alignment of the text within the layer. Ignored when {@link left} is set. Default: `'center'`. */
+    hAlign?: HAlign
+    /** Vertical alignment of the text within the layer. Ignored when {@link top} is set. Default: `'middle'`. */
+    vAlign?: VAlign
 }
 
 /**

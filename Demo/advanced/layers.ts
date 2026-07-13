@@ -136,7 +136,7 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
         {
             width: 218,
             height: 91,
-            position: { hAlign: 'right', vAlign: 'middle', hOffset: -1 }
+            position: { hAlign: 'end', vAlign: 'center', hOffset: -1 }
         },
         async (layer) => {
             const bitmap = await fetch(matthewImageUrl).then(r => r.blob()).then(createImageBitmap);
@@ -167,7 +167,7 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
         {
             width: 95,
             height: 15,
-            position: { hAlign: 'right', vAlign: 'bottom' },
+            position: { hAlign: 'end', vAlign: 'end' },
             text: "Matthew Patel",
             fontSize: 80,
             adjustWidth: true
@@ -181,7 +181,7 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
     const vs = dmd.addLayerGroup('vs', {
         width: 100,
         height: 52,
-        position: { hAlign: 'center', vAlign: 'middle', hOffset: -60 },
+        position: { hAlign: 'center', vAlign: 'center', hOffset: -60 },
     });
 
     vs.addLayer(
@@ -313,7 +313,7 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
             await new Promise<void>(resolve => { img.onload = () => resolve(); img.src = `${imagesPath}/sptitle.svg`; });
             const bitmap = await createImageBitmap(img);
             layer.setDrawFunction(({ drawBitmap }) => {
-                drawBitmap(bitmap, { hAlign: 'center', vAlign: 'middle', margin: 5 });
+                drawBitmap(bitmap, { hAlign: 'center', vAlign: 'center', margin: 5 });
             });
             layer.draw();
         }
@@ -326,7 +326,7 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
         {
             width: 426,
             height: 94,
-            position: { vAlign: 'middle' },
+            position: { vAlign: 'center' },
             text: 'Hello DMD!',
             fontFamily: 'Arial',
             fontSize: 90,

@@ -97,7 +97,7 @@ export function setupBasicLayers(dmd: Dmd, imagesPath: string): void {
         fontSize: 90,
         fontFamily: 'Dusty',
         hOffset: 5,
-        vAlign: 'middle',
+        vAlign: 'center',
         color: Colors.White,
         outlineWidth: 2,
         outlineColor: Colors.Yellow,
@@ -183,7 +183,7 @@ export function setupBasicLayers(dmd: Dmd, imagesPath: string): void {
         },
         async (layer) => {
             const bitmap = await fetch(catImageUrl).then(r => r.blob()).then(createImageBitmap);
-            layer.drawBitmap(bitmap, {hAlign: 'center', vAlign: 'middle'});
+            layer.drawBitmap(bitmap, {hAlign: 'center', vAlign: 'center'});
         }
     );
 
@@ -194,7 +194,7 @@ export function setupBasicLayers(dmd: Dmd, imagesPath: string): void {
     // ---------------------------------------------------------------------
     addConstraintMarker(dmd, {
         hAlign: 'center',
-        vAlign: 'middle',
+        vAlign: 'center',
     });
 }
 
