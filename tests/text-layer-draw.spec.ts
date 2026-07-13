@@ -93,6 +93,113 @@ describe('TextLayer._drawText branches', () => {
     })
 })
 
+/**
+ * measureText() reports fractional metrics for real fonts, and every alignment branch
+ * derives left/top from them (m.width, ascent, descent) - so without rounding the text
+ * is drawn at a sub-pixel offset and the rasteriser spreads each glyph edge across two
+ * dots. On a dot display a glyph's position is a dot index; it cannot be a half.
+ */
+describe('TextLayer draws at whole-dot coordinates', () => {
+
+    beforeEach(() => {
+        setupVitestCanvasMock()
+        vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)
+        vi.spyOn(OutlineRenderer.prototype, 'init').mockResolvedValue(undefined)
+        vi.spyOn(RemoveAliasingRenderer.prototype, 'init').mockResolvedValue(undefined)
+        vi.stubGlobal('requestAnimationFrame', vi.fn(() => 0))
+        vi.stubGlobal('createImageBitmap', () => {
+            const c = document.createElement('canvas')
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ;(c as any).close = () => {}
+            return Promise.resolve(c as unknown as ImageBitmap)
+        })
+    })
+
+    afterEach(() => {
+        vi.restoreAllMocks()
+        vi.unstubAllGlobals()
+    })
+
+    /**
+     * Build a layer whose text buffer reports deliberately fractional metrics, so every
+     * alignment branch would land on a fractional coordinate if it weren't rounded.
+     * Returns the fillText/strokeText spies to assert against.
+     */
+    const layerWithFractionalMetrics = (over: Record<string, unknown> = {}) => {
+        const layer = new TextLayer('t', 64, 16, new Options({text: 'Hello', ...over}))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ctx = (layer as any)._textBuffer.context as CanvasRenderingContext2D
+
+        ctx.measureText = (() => ({
+            width: 41.328,
+            actualBoundingBoxAscent: 9.371,
+            actualBoundingBoxDescent: 2.617
+        })) as unknown as CanvasRenderingContext2D['measureText']
+
+        return {
+            layer,
+            fillText: vi.spyOn(ctx, 'fillText'),
+            strokeText: vi.spyOn(ctx, 'strokeText')
+        }
+    }
+
+    const drawn = (spy: ReturnType<typeof vi.spyOn>) => {
+        expect(spy).toHaveBeenCalled()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return spy.mock.calls.map(([, x, y]: any) => [x, y] as [number, number])
+    }
+
+    test.each([
+        ['center', 'middle'],
+        ['center', 'top'],
+        ['right', 'bottom'],
+        ['left', 'middle'],
+    ])('fillText gets integer coordinates for hAlign=%s vAlign=%s', async (hAlign, vAlign) => {
+        const {layer, fillText} = layerWithFractionalMetrics()
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (layer as any)._drawText(new Options({hAlign, vAlign}))
+
+        for (const [x, y] of drawn(fillText)) {
+            expect(Number.isInteger(x), `x=${x} is not a whole dot`).toBe(true)
+            expect(Number.isInteger(y), `y=${y} is not a whole dot`).toBe(true)
+        }
+    })
+
+    test('the stroke is drawn at the same whole-dot coordinates as the fill', async () => {
+        const {layer, fillText, strokeText} = layerWithFractionalMetrics({
+            hAlign: 'center', vAlign: 'middle', strokeWidth: 2
+        })
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (layer as any)._drawText()
+
+        const strokes = drawn(strokeText)
+        const fills = drawn(fillText)
+
+        for (const [x, y] of strokes) {
+            expect(Number.isInteger(x)).toBe(true)
+            expect(Number.isInteger(y)).toBe(true)
+        }
+        // Stroke and fill must coincide, or the outline sits half a dot off its glyph.
+        expect(strokes.at(-1)).toEqual(fills.at(-1))
+    })
+
+    test('fractional hOffset/vOffset are rounded too', async () => {
+        const {layer, fillText} = layerWithFractionalMetrics()
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (layer as any)._drawText(new Options({
+            hAlign: 'left', vAlign: 'top', hOffset: 1.5, vOffset: 2.25
+        }))
+
+        for (const [x, y] of drawn(fillText)) {
+            expect(Number.isInteger(x)).toBe(true)
+            expect(Number.isInteger(y)).toBe(true)
+        }
+    })
+})
+
 describe('TextLayer public API', () => {
 
     beforeEach(() => {

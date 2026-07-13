@@ -367,6 +367,14 @@ class TextLayer extends BaseLayer {
             left += hOffset
             top += vOffset
 
+            // Snap to whole dots. The alignment branches above derive their position from
+            // measureText() metrics (m.width, ascent, descent), which are fractional, so
+            // left/top are almost never integers - and fillText() at a fractional offset
+            // rasterises every glyph edge across two dots with partial alpha. On a dot
+            // display that half-lit dot IS the blur; a glyph's position is a dot index.
+            left = Math.round(left)
+            top = Math.round(top)
+
             if (options.get('strokeWidth') > 0) {
                 this._textBuffer.context.strokeStyle = options.get('strokeColor')
                 this._textBuffer.context.lineWidth = options.get('strokeWidth')
