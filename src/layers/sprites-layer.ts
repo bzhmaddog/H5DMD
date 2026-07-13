@@ -74,8 +74,8 @@ class SpritesLayer extends BaseLayer {
      * @param {number} hFrameOffset  (horizontal distance between frames)
      * @param {number} vFrameOffset  (vertical distance between frames)
      * @param {array<string>} animations
-     * @param {string} x (horizontal position on layer)
-     * @param {string} y (vertical position on layer)
+     * @param x horizontal position on the layer: pixels (`12`) or a percentage string (`'50%'`)
+     * @param y vertical position on the layer: pixels (`12`) or a percentage string (`'50%'`)
      */
     createSprite(
         id: string,
@@ -83,8 +83,8 @@ class SpritesLayer extends BaseLayer {
         hFrameOffset: number,
         vFrameOffset: number,
         animations: SpriteAnimationItem[],
-        x: string,
-        y: string
+        x: number | string,
+        y: number | string
     ): Promise<Sprite> {
 
         return new Promise<Sprite>( (resolve, reject) => {
@@ -109,15 +109,37 @@ class SpritesLayer extends BaseLayer {
     }
 
     /**
+     * Resolve a sprite coordinate to whole pixels on one axis.
+     *
+     * A number is a pixel position and is used as-is; a `'50%'` string is a fraction of the
+     * layer's size on that axis. Percentages are why these coordinates ever had to be strings
+     * - a plain pixel position no longer does.
+     *
+     * @param value pixels (`12`) or a percentage string (`'50%'`)
+     * @param extent the layer's width or height, whichever axis `value` is on
+     */
+    private _resolveCoordinate(value: number | string, extent: number): number {
+        if (typeof value === 'number') {
+            return Math.floor(value)
+        }
+
+        if (value.at(-1) === '%') {
+            return Math.floor((parseFloat(value.replace('%', '')) * extent) / 100)
+        }
+
+        return parseInt(value, 10)
+    }
+
+    /**
      * Add an existing Sprite object to the layer ad x,y position
-     * @param {string} id 
-     * @param {Sprite} sprite 
-     * @param {string} _x 
-     * @param {string} _y
+     * @param {string} id
+     * @param {Sprite} sprite
+     * @param _x horizontal position: pixels (`12`) or a percentage string (`'50%'`)
+     * @param _y vertical position: pixels (`12`) or a percentage string (`'50%'`)
      * @param {boolean} v
      * @returns {boolean} true if sprite was assed false otherwise
      */
-    addSprite(id: string, sprite: Sprite, _x: string, _y: string, v?: boolean) {
+    addSprite(id: string, sprite: Sprite, _x: number | string, _y: number | string, v?: boolean) {
         let isVisible = true
 
         if (typeof sprite === 'object' && sprite.constructor !== Sprite) {
@@ -134,23 +156,8 @@ class SpritesLayer extends BaseLayer {
             isVisible = !!v
         }
 
-        let x = _x || 0
-        let y = _y || 0
-
-        if (_x.at(-1) === '%') {
-            const vx = parseFloat(_x.replace('%', ''))
-            x = Math.floor((vx * this.width) / 100)
-        } else {
-            x = parseInt(_x, 10)
-        }
-
-        if (_y.at(-1) === '%') {
-            const vy = parseFloat(_y.replace('%', ''))
-            y = Math.floor((vy * this.height) / 100)
-        } else {
-            y = parseInt(_y, 10)
-        }
-
+        const x = this._resolveCoordinate(_x, this.width)
+        const y = this._resolveCoordinate(_y, this.height)
 
         this._sprites[id] = {
             x : x,
