@@ -3,7 +3,7 @@ import type {RendererEntry} from './layer-renderer-dictionary'
 /**
  * Horizontal alignment, shared by every option object that aligns something horizontally:
  * a layer in its container ({@link LayerPosition}), text in a TextLayer
- * ({@link TextLayerOptions}), and a bitmap in a CanvasLayer ({@link DrawBitmapOptions}).
+ * ({@link TextLayerOptions}), and a bitmap in a CanvasLayer ({@link BitmapOptions}).
  *
  * `'start'`/`'end'` are the preferred spellings; `'left'`/`'right'` are exact aliases kept
  * so existing code keeps working, and are treated identically everywhere (this library lays
