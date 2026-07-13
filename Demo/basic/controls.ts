@@ -227,7 +227,7 @@ export function buildBasicControlPanel(dmd: Dmd): void {
     // 'none' centers that axis instead - must match the initial marker position in
     // setupBasicLayers (the selects default to 'none'/'none': centered, no constraint).
     const applyConstraints = () => {
-        const position: LayerPosition = {hAlign: 'center', vAlign: 'middle'};
+        const position: LayerPosition = {hAlign: 'center', vAlign: 'center'};
         if (hConstraint.value !== 'none') {
             position.hAlign = 'constraint';
             position[hConstraint.value as Exclude<typeof H_CONSTRAINTS[number], 'none'>] = hTarget.value;

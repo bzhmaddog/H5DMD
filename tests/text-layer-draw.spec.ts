@@ -200,6 +200,96 @@ describe('TextLayer draws at whole-dot coordinates', () => {
     })
 })
 
+/**
+ * hAlign/vAlign default to 'center'/'middle', so before this they ran on every draw and
+ * overwrote left/top - making both options (and textBaseline, whose only effect is on what
+ * an explicit top anchors) impossible to use. An explicit coordinate now wins on its axis.
+ */
+describe('TextLayer explicit top/left override the alignment', () => {
+
+    beforeEach(() => {
+        setupVitestCanvasMock()
+        vi.spyOn(OutlineRenderer.prototype, 'init').mockResolvedValue(undefined)
+        vi.spyOn(RemoveAliasingRenderer.prototype, 'init').mockResolvedValue(undefined)
+        vi.stubGlobal('requestAnimationFrame', vi.fn(() => 0))
+    })
+
+    afterEach(() => {
+        vi.restoreAllMocks()
+        vi.unstubAllGlobals()
+    })
+
+    /** Layer whose metrics are known, so the aligned position is predictable. */
+    const layerAt = (over: Record<string, unknown> = {}) => {
+        const layer = new TextLayer('t', 64, 16, new Options({text: 'Hello', ...over}))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const ctx = (layer as any)._textBuffer.context as CanvasRenderingContext2D
+
+        ctx.measureText = (() => ({
+            width: 40,
+            actualBoundingBoxAscent: 9,
+            actualBoundingBoxDescent: 3
+        })) as unknown as CanvasRenderingContext2D['measureText']
+
+        return {layer, fillText: vi.spyOn(ctx, 'fillText')}
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const lastDrawnAt = (spy: any) => {
+        expect(spy).toHaveBeenCalled()
+        const [, x, y] = spy.mock.calls.at(-1)
+        return [x, y]
+    }
+
+    test('left/top are used verbatim, in place of hAlign/vAlign', async () => {
+        const {layer, fillText} = layerAt()
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (layer as any)._drawText(new Options({left: 7, top: 3}))
+
+        expect(lastDrawnAt(fillText)).toEqual([7, 3])
+    })
+
+    test('the two axes are independent: hAlign still centers when only top is set', async () => {
+        const {layer, fillText} = layerAt()
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (layer as any)._drawText(new Options({hAlign: 'center', top: 3}))
+
+        // centered: (64 / 2) - (40 / 2) = 12
+        expect(lastDrawnAt(fillText)).toEqual([12, 3])
+    })
+
+    test('a percentage left/top overrides the alignment too', async () => {
+        const {layer, fillText} = layerAt()
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (layer as any)._drawText(new Options({left: '25%', top: '50%'}))
+
+        // 25% of 64 = 16, 50% of 16 = 8
+        expect(lastDrawnAt(fillText)).toEqual([16, 8])
+    })
+
+    test('offsets still apply on top of an explicit coordinate', async () => {
+        const {layer, fillText} = layerAt()
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (layer as any)._drawText(new Options({left: 7, top: 3, hOffset: 2, vOffset: 1}))
+
+        expect(lastDrawnAt(fillText)).toEqual([9, 4])
+    })
+
+    test('without left/top, alignment places the text as before', async () => {
+        const {layer, fillText} = layerAt()
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (layer as any)._drawText(new Options({hAlign: 'left', vAlign: 'top'}))
+
+        // hAlign 'left' -> outline margin (0), vAlign 'top' -> ascent (9)
+        expect(lastDrawnAt(fillText)).toEqual([0, 9])
+    })
+})
+
 describe('TextLayer public API', () => {
 
     beforeEach(() => {

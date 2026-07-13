@@ -35,7 +35,7 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
     const score = dmd.addLayerGroup('score', {
         width: scoreWidth,
         height: scoreHeight,
-        position: {hAlign: 'right', vAlign: 'middle'},
+        position: {hAlign: 'end', vAlign: 'center'},
         renderers: [
             rendererEntry('noise', NoiseEffectRenderer,  { duration: 200, noises: noiseData }, true)
         ]
@@ -43,8 +43,8 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
 
     score.addLayer(TextLayer, 'value', {
         text: '0',
-        hAlign: 'right',
-        vAlign: 'middle',
+        hAlign: 'end',
+        vAlign: 'center',
         fontFamily: 'Dusty',
         hOffset: 8, // Fix Dusty font issue
         fontSize: 90,
@@ -61,7 +61,7 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
     const player = dmd.addLayerGroup('player', {
         width: 35,
         height: 18,
-        position: {left: 4, vAlign: 'bottom'}
+        position: {left: 4, vAlign: 'end'}
     });
 
     player.addLayer(
@@ -103,7 +103,7 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
     const ball = dmd.addLayerGroup('ball', {
         width: 35,
         height: 20,
-        position: {hAlign: 'right', vAlign: 'bottom'}
+        position: {hAlign: 'end', vAlign: 'end'}
     });
 
     ball.addLayer(
@@ -133,7 +133,7 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
         text: '1',
         fontSize: 70,
         color: Colors.Yellow,
-        hAlign: 'left',
+        hAlign: 'start',
         renderers: [
             rendererEntry('shake', ShakyRenderer, {intensity: 1, speed: 12, mode: 'random'}, false)
         ],

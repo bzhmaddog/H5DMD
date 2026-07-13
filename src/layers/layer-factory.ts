@@ -92,12 +92,14 @@ export function resolveLayerPosition(
 
     if (typeof pos.hAlign === 'string') {
         switch (pos.hAlign) {
+            case "start":
             case "left":
                 left = pos.hOffset || 0
                 break
             case "center":
                 left = (containerWidth - layerWidth) / 2 + (pos.hOffset || 0)
                 break
+            case "end":
             case "right":
                 left = containerWidth - layerWidth + (pos.hOffset || 0)
                 break
@@ -140,12 +142,15 @@ export function resolveLayerPosition(
 
     if (typeof pos.vAlign === 'string') {
         switch (pos.vAlign) {
+            case 'start':
             case 'top':
                 top = pos.vOffset || 0
                 break
+            case 'center':
             case 'middle':
                 top = (containerHeight - layerHeight) / 2 + (pos.vOffset || 0)
                 break
+            case 'end':
             case 'bottom':
                 top = containerHeight - layerHeight + (pos.vOffset || 0)
                 break

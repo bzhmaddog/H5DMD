@@ -5,13 +5,15 @@ An interactive [Vite](https://vitejs.dev/) + TypeScript application that demonst
 and WebGPU.
 
 This is a Vite multi-page app (not an SPA): [index.html](index.html) is a small landing page
-that links out to three standalone demo pages. Each demo lives in **its own folder**, holding
+that links out to four standalone demo pages. Each demo lives in **its own folder**, holding
 its HTML shell and all of its TypeScript, so one folder is one complete, self-contained
 example — each with its own `Dmd` instance and canvas:
 
 - **[basic/](basic/)** — the gentlest starting point: a focused `LayerGroup` showcase with a
   small, untabbed control panel (see [Basic demo: Layer Groups](#basic-demo-layer-groups)
   below).
+- **[text/](text/)** — a static `TextLayer` reference: how text is placed *inside its own
+  layer* (see [Text demo: alignment & positioning](#text-demo-alignment--positioning) below).
 - **[advanced/](advanced/)** — the big one. Renders a 256×78 dot display (on a
   1280×390 canvas) and stacks every layer type on top of each other, with a tabbed
   control panel below the canvas to tweak every aspect of the display and each layer in
@@ -60,8 +62,33 @@ npm run preview
 ```
 
 Open the URL printed by `npm run dev` (typically http://localhost:5173) in a WebGPU-capable
-browser — that's the landing page; follow the links to `/basic/`, `/advanced/` or
+browser — that's the landing page; follow the links to `/basic/`, `/text/`, `/advanced/` or
 `/scoreboard/`.
+
+## Text demo: alignment & positioning
+
+[text/layers.ts](text/layers.ts) is a static reference for how a `TextLayer` places text
+**inside its own layer box** — a different question from where the layer itself sits on the
+DMD (that's `position`, which the other demos cover). There is no control panel: every option
+is set at construction, so the page shows exactly what the code declares. Each text layer draws
+its border, so you can see the box the text is being placed in.
+
+The page is two `LayerGroup`s side by side, so each half is one unit whose children are
+positioned relative to the group — resizing or moving a half is a single edit to the group, and
+no child re-derives an absolute DMD coordinate. The left group is the 3×3 grid of every
+`hAlign` × `vAlign` pair — in the preferred `'start'`/`'center'`/`'end'` spelling, labelled
+`h / v` since both axes now share the same three names. Each cell's text is the name of its own
+alignment, so the label doubles as the demonstration. The right group is manual positioning:
+
+| Layer | Options | Shows |
+| --- | --- | --- |
+| `manual-pixels` | `left: 4, top: 2` | An explicit coordinate is used verbatim, overriding the `'center'` alignment defaults. |
+| `manual-percent` | `left: '25%', top: '50%'` | Percentages resolve against the **layer's** own width/height. |
+| `manual-mixed` | `hAlign: 'center', top: 3` | The two axes are independent: `hAlign` still centers horizontally because no `left` was given, while the explicit `top` overrides `vAlign`. |
+| `manual-offsets` | `vAlign: 'end', hOffset: 12` | `hOffset`/`vOffset` are added *after* whichever mode placed the text, so they nudge an aligned position just as well as an explicit one. |
+
+The rule the page exists to make obvious: **an explicit `left`/`top` overrides the alignment on
+that axis, and only that axis.** Leave an axis unset and `hAlign`/`vAlign` place it.
 
 ## What the advanced demo shows
 
