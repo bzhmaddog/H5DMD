@@ -556,8 +556,8 @@ abstract class BaseLayer {
      * registered for the same event; they fire in registration order.
      * Returns `this` for chaining.
      */
-    on(event: LayerLifecycleEvent, handler: LayerLifecycleListener<BaseLayer>): this {
-        this._listeners[event].push(handler)
+    on(event: LayerLifecycleEvent, handler: LayerLifecycleListener<this>): this {
+        this._listeners[event].push(handler as unknown as LayerLifecycleListener<BaseLayer>)
         return this
     }
 
