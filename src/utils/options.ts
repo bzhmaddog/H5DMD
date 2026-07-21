@@ -7,7 +7,6 @@ type OptionsObject = Record<string, any>
  * @template T Shape of the options object. When omitted the class behaves like
  *             the original untyped `Options`.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 class Options<T extends OptionsObject = OptionsObject> extends Map {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

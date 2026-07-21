@@ -26,15 +26,18 @@ type LayerOptionsByInstance<T extends BaseLayer> =
     T extends LayerGroup ? Partial<LayerGroupOptions> | Options :
     LayerAddOptions
 
-type LayerPlayListenerByInstance<T extends BaseLayer> =
-    T extends VideoLayer ? (layer: VideoLayer) => void :
-    T extends AnimationLayer ? (layer: AnimationLayer) => void :
-    never
-
-type LayerPauseListenerByInstance<T extends BaseLayer> = LayerPlayListenerByInstance<T>
-
-type LayerStopListenerByInstance<T extends BaseLayer> =
-    T extends AnimationLayer ? (layer: AnimationLayer) => void : never
+type LayerListenersByInstance<T extends BaseLayer> =
+    LayerLifecycleListeners<T> &
+    (T extends VideoLayer ? {
+        play?: (layer: VideoLayer) => void | Array<(layer: VideoLayer) => void>
+        pause?: (layer: VideoLayer) => void | Array<(layer: VideoLayer) => void>
+        stop?: (layer: VideoLayer) => void | Array<(layer: VideoLayer) => void>
+    } : unknown) &
+    (T extends AnimationLayer ? {
+        play?: (layer: AnimationLayer) => void | Array<(layer: AnimationLayer) => void>
+        pause?: (layer: AnimationLayer) => void | Array<(layer: AnimationLayer) => void>
+        stop?: (layer: AnimationLayer) => void | Array<(layer: AnimationLayer) => void>
+    } : unknown)
 
 /**
  * A "virtual" layer that cannot draw content itself. It can be dimensioned, positioned,
@@ -119,8 +122,7 @@ class LayerGroup extends BaseLayer {
         layerClass: typeof LayerGroup,
         id: string,
         options?: Partial<LayerGroupOptions> | Options,
-        layerLoadedListener?: (layer: LayerGroup) => void | Promise<void>,
-        layerUpdatedListener?: (layer: LayerGroup) => void | Promise<void>,
+        listeners?: LayerListenersByInstance<LayerGroup>,
     ): LayerGroup
     /**
      * Add a child layer to this group. Mirrors {@link Dmd.addLayer} — same factory, same
@@ -131,37 +133,25 @@ class LayerGroup extends BaseLayer {
         layerClass: new (...args: never[]) => T,
         id: string,
         options?: LayerOptionsByInstance<T>,
-        layerLoadedListener?: (layer: T) => void | Promise<void>,
-        layerUpdatedListener?: (layer: T) => void | Promise<void>,
-        layerOnPlayListener?: LayerPlayListenerByInstance<T>,
-        layerOnPauseListener?: LayerPauseListenerByInstance<T>,
-        layerOnStopListener?: LayerStopListenerByInstance<T>,
+        listeners?: LayerListenersByInstance<T>,
     ): T
     addLayer<T extends BaseLayer>(
         layerClass: new (...args: never[]) => T,
         id: string,
         options?: LayerOptionsByInstance<T>,
-        layerLoadedListener?: (layer: T) => void | Promise<void>,
-        layerUpdatedListener?: (layer: T) => void | Promise<void>,
-        layerOnPlayListener?: LayerPlayListenerByInstance<T>,
-        layerOnPauseListener?: LayerPauseListenerByInstance<T>,
-        layerOnStopListener?: LayerStopListenerByInstance<T>,
+        listeners?: LayerListenersByInstance<T>,
     ): T {
         if ((layerClass as unknown) === LayerGroup) {
             console.warn(`LayerGroup[${this.id}].addLayer(LayerGroup, '${id}', ...) is deprecated and will be removed in the next major version - use addLayerGroup('${id}', options) instead`)
         }
-        return this._addChildLayer(layerClass, id, options, layerLoadedListener, layerUpdatedListener, layerOnPlayListener, layerOnPauseListener, layerOnStopListener)
+        return this._addChildLayer(layerClass, id, options, listeners)
     }
 
     private _addChildLayer<T extends BaseLayer>(
         layerClass: new (...args: never[]) => T,
         id: string,
         options?: LayerOptionsByInstance<T>,
-        layerLoadedListener?: (layer: T) => void | Promise<void>,
-        layerUpdatedListener?: (layer: T) => void | Promise<void>,
-        layerOnPlayListener?: LayerPlayListenerByInstance<T>,
-        layerOnPauseListener?: LayerPauseListenerByInstance<T>,
-        layerOnStopListener?: LayerStopListenerByInstance<T>,
+        listeners?: LayerListenersByInstance<T>,
     ): T {
         if (typeof this._children[id] !== 'undefined') {
             throw new Error(`Layer [${id}] already exists`)
@@ -175,13 +165,46 @@ class LayerGroup extends BaseLayer {
         const pos: LayerPosition = opts.get('position') || {}
         const {top: layerTop, left: layerLeft} = resolveLayerPosition(id, pos, layerWidth, layerHeight, this.width, this.height, this._sortedChildren, this._children)
 
-        const userLoaded  = layerLoadedListener  as unknown as ((layer: BaseLayer) => void | Promise<void>) | undefined
-        const userUpdated = layerUpdatedListener as unknown as ((layer: BaseLayer) => void | Promise<void>) | undefined
-        const onPlay       = layerOnPlayListener  as unknown as ((layer: BaseLayer) => void) | undefined
-        const onPause      = layerOnPauseListener as unknown as ((layer: BaseLayer) => void) | undefined
-        const onStop        = layerOnStopListener  as unknown as ((layer: BaseLayer) => void) | undefined
+        const lifecycle = listeners as unknown as LayerLifecycleListeners<BaseLayer> | undefined
+        const media = listeners as unknown as {
+            play?: ((layer: BaseLayer) => void) | Array<(layer: BaseLayer) => void>
+            pause?: ((layer: BaseLayer) => void) | Array<(layer: BaseLayer) => void>
+            stop?: ((layer: BaseLayer) => void) | Array<(layer: BaseLayer) => void>
+        } | undefined
 
-        const layer = createLayerInstance(layerClass, id, layerWidth, layerHeight, opts, userLoaded, userUpdated, onPlay, onPause, onStop)
+        const asArray = <TListener>(value?: TListener | Array<TListener>): Array<TListener> =>
+            value === undefined ? [] : (Array.isArray(value) ? value : [value])
+
+        const composeAsync = (value?: ((layer: BaseLayer) => void | Promise<void>) | Array<(layer: BaseLayer) => void | Promise<void>>) => {
+            const listenersArray = asArray(value)
+            if (listenersArray.length === 0) return undefined
+            return async (layer: BaseLayer): Promise<void> => {
+                for (const listener of listenersArray) {
+                    await listener(layer)
+                }
+            }
+        }
+
+        const composeSync = (value?: ((layer: BaseLayer) => void) | Array<(layer: BaseLayer) => void>) => {
+            const listenersArray = asArray(value)
+            if (listenersArray.length === 0) return undefined
+            return (layer: BaseLayer): void => {
+                listenersArray.forEach(listener => listener(layer))
+            }
+        }
+
+        const layer = createLayerInstance(
+            layerClass,
+            id,
+            layerWidth,
+            layerHeight,
+            opts,
+            composeAsync(lifecycle?.loaded as ((layer: BaseLayer) => void | Promise<void>) | Array<(layer: BaseLayer) => void | Promise<void>> | undefined),
+            composeAsync(lifecycle?.updated as ((layer: BaseLayer) => void | Promise<void>) | Array<(layer: BaseLayer) => void | Promise<void>> | undefined),
+            composeSync(media?.play),
+            composeSync(media?.pause),
+            composeSync(media?.stop)
+        )
         // Register recomposite hooks as separate listeners so no wrapper closures are needed.
         layer.on('loaded', () => this._scheduleRecomposite())
         layer.on('updated', () => this._scheduleRecomposite())

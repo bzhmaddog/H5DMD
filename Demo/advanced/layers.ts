@@ -52,13 +52,13 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
     // and so do the children unless they say otherwise.
     const backdrop = dmd.addLayerGroup('backdrop');
 
-    backdrop.addLayer(CanvasLayer, 'bg', {}, async (bg) => {
+    backdrop.addLayer(CanvasLayer, 'bg', {}, {loaded: async (bg) => {
         const bgURI = `${imagesPath}/boss-mode-bg.png`;
         console.log(`Fetching background image from: ${bgURI}`);
         const bitmap = await fetch(bgURI).then(r => r.blob()).then(createImageBitmap);
         bg.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap));
         bg.draw();
-    });
+    }});
 
     backdrop.addLayer(AnimationLayer, 'animation', {
         height: 90,
@@ -66,10 +66,10 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
         duration: 800,
         autoplay: true,
         loop: true
-    }, async (animation) => {
+    }, {loaded: async (animation) => {
         const bitmaps = await Utils.loadImagesOrdered(animationImagesUrls);
         animation.setAnimationData(bitmaps);
-    });
+    }});
 
 
     // The two demo videos are alternatives sharing the same slot - grouped so the shared
@@ -85,11 +85,11 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
         autoplay: true,
         loop: true,
         visible: false
-    }, (videoTransparent) => {
+    }, {loaded: (videoTransparent) => {
         const video = document.createElement('video');
         video.addEventListener('loadeddata', () => videoTransparent.setVideo(video));
         video.src = `${imagesPath}/transparent-video.webm`;
-    });
+    }});
 
     videos.addLayer(VideoLayer, 'video-chromakey', {
         autoplay: true,
@@ -98,11 +98,11 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
         renderers: [
             rendererEntry('chroma-key', ChromaKeyRenderer, { color: [0, 0, 0], threshold: 9 })
         ]
-    }, (videoChromakey) => {
+    }, {loaded: (videoChromakey) => {
         const video = document.createElement('video');
         video.addEventListener('loadeddata', () => videoChromakey.setVideo(video));
         video.src = `${imagesPath}/sample.webm`;
-    });
+    }});
 
     dmd.addLayer(CanvasLayer, 'matthew', {
         width: 218,
@@ -158,11 +158,11 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
         fontSize: 95,
         fontStyle: 'italic bold',
         adjustWidth: true,
-    }, async (vsin) => {
+    }, {loaded: async (vsin) => {
         const bitmaps = await Utils.loadImagesOrdered(noiseUrls);
         const noiseData = Utils.bitmapsToPixelData(bitmaps, vsin.width, vsin.height);
         await vsin.addRenderer('noise-effect', NoiseEffectRenderer, { duration: 200, noises: noiseData });
-    });
+    }});
 
     vs.addLayer(TextLayer, 'vsout', {
         text: "VS",
@@ -172,9 +172,9 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
         strokeWidth: 2,
         strokeColor: Colors.Red,
         adjustWidth: true
-    }, async (vsout) => {
+    }, {loaded: async (vsout) => {
         await vsout.addRenderer('shaky-effect', ShakyRenderer, { intensity: 0.8, speed: 160, mode: "random" });
-    });
+    }});
 
     dmd.addLayer(SpritesLayer, 'sprite', {
         width: 110,

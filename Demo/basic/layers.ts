@@ -57,11 +57,11 @@ export function setupBasicLayers(dmd: Dmd, imagesPath: string): void {
         renderers: [
             rendererEntry('chroma-key', ChromaKeyRenderer, {color: [0, 0, 0], threshold: 9})
         ],
-    }, (clip) => {
+    }, {loaded: (clip) => {
         const video = document.createElement('video');
         video.addEventListener('loadeddata', () => clip.setVideo(video));
         video.src = `${imagesPath}/sample.webm`;
-    });
+    }});
 
     videoPanel.addLayer(TextLayer, 'caption', {
         width: 120,
@@ -117,9 +117,9 @@ export function setupBasicLayers(dmd: Dmd, imagesPath: string): void {
         width: 10,
         height: 10,
         position: {top: 2, left: 2},
-    }, (layer) => {
+    }, {loaded: (layer) => {
         layer.fillColor(Colors.Orange);
-    });
+    }});
 
     badge.addLayer(TextLayer, 'count', {
         width: 40,
@@ -150,7 +150,7 @@ export function setupBasicLayers(dmd: Dmd, imagesPath: string): void {
             width: sandboxBoxSize,
             height: sandboxBoxSize,
             position: {top: 24, left: 8 + i * (sandboxBoxSize + sandboxSpacing)},
-        }, (layer) => layer.fillColor(color));
+        }, {loaded: (layer) => layer.fillColor(color)});
     });
 
     // ---------------------------------------------------------------------
@@ -177,10 +177,10 @@ export function setupBasicLayers(dmd: Dmd, imagesPath: string): void {
             vCenterToCenterOf: 'parent',
         },
         //backgroundColor: Colors.White,
-    }, async (cat) => {
+    }, {loaded: async (cat) => {
         const bitmap = await fetch(catImageUrl).then(r => r.blob()).then(createImageBitmap);
         cat.drawBitmap(bitmap, {hAlign: 'center', vAlign: 'center'});
-    });
+    }});
 
     // ---------------------------------------------------------------------
     // Constraint marker - a small top-level layer the "Constraints" control panel

@@ -29,7 +29,6 @@ export interface RendererClassEntry<P = unknown> {
     /** Unique identifier for this renderer within the layer. */
     id: string
     /** The renderer class to instantiate. */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rendererClass: new (width: number, height: number, params?: P) => LayerRenderer
     /** Optional params forwarded to the renderer constructor. */
     params?: P
