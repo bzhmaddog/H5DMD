@@ -1,4 +1,9 @@
-import {BaseLayer, LayerLifecycleListeners} from "./base-layer"
+import {
+	BaseLayer,
+	LayerLifecycleEvent,
+	LayerLifecycleListener,
+	LayerLifecycleListeners,
+} from './base-layer'
 import {Options} from "../utils"
 import {VideoLayerOptions} from "../interfaces"
 
@@ -183,22 +188,40 @@ class VideoLayer extends BaseLayer {
 		if (!isInternal) for (const fn of this._stopListeners) fn(this)
 	}
 
-	on(event: 'loaded' | 'updated', handler: (layer: VideoLayer) => void | Promise<void>): this
-	on(event: 'play' | 'pause' | 'stop', handler: (layer: VideoLayer) => void): this
-	on(event: 'loaded' | 'updated' | 'play' | 'pause' | 'stop', handler: (layer: VideoLayer) => void | Promise<void>): this {
-		if (event === 'play') { this._playListeners.push(handler as (layer: VideoLayer) => void); return this }
-		if (event === 'pause') { this._pauseListeners.push(handler as (layer: VideoLayer) => void); return this }
-		if (event === 'stop') { this._stopListeners.push(handler as (layer: VideoLayer) => void); return this }
-		return super.on(event as 'loaded' | 'updated', handler as unknown as (layer: BaseLayer) => void | Promise<void>)
+	on(event: LayerLifecycleEvent, handler: LayerLifecycleListener<this>): this
+	on(event: 'play' | 'pause' | 'stop', handler: (layer: this) => void): this
+	on(event: LayerLifecycleEvent | 'play' | 'pause' | 'stop', handler: LayerLifecycleListener<this>): this {
+		if (event === 'play') {
+			this._playListeners.push(handler as unknown as (layer: VideoLayer) => void)
+			return this
+		}
+		if (event === 'pause') {
+			this._pauseListeners.push(handler as unknown as (layer: VideoLayer) => void)
+			return this
+		}
+		if (event === 'stop') {
+			this._stopListeners.push(handler as unknown as (layer: VideoLayer) => void)
+			return this
+		}
+		return super.on(event, handler)
 	}
 
-	off(event: 'loaded' | 'updated', handler: (layer: VideoLayer) => void | Promise<void>): this
-	off(event: 'play' | 'pause' | 'stop', handler: (layer: VideoLayer) => void): this
-	off(event: 'loaded' | 'updated' | 'play' | 'pause' | 'stop', handler: (layer: VideoLayer) => void | Promise<void>): this {
-		if (event === 'play') { this._playListeners = this._playListeners.filter(h => h !== handler); return this }
-		if (event === 'pause') { this._pauseListeners = this._pauseListeners.filter(h => h !== handler); return this }
-		if (event === 'stop') { this._stopListeners = this._stopListeners.filter(h => h !== handler); return this }
-		return super.off(event as 'loaded' | 'updated', handler as unknown as (layer: BaseLayer) => void | Promise<void>)
+	off(event: LayerLifecycleEvent, handler: LayerLifecycleListener<this>): this
+	off(event: 'play' | 'pause' | 'stop', handler: (layer: this) => void): this
+	off(event: LayerLifecycleEvent | 'play' | 'pause' | 'stop', handler: LayerLifecycleListener<this>): this {
+		if (event === 'play') {
+			this._playListeners = this._playListeners.filter(h => h !== handler)
+			return this
+		}
+		if (event === 'pause') {
+			this._pauseListeners = this._pauseListeners.filter(h => h !== handler)
+			return this
+		}
+		if (event === 'stop') {
+			this._stopListeners = this._stopListeners.filter(h => h !== handler)
+			return this
+		}
+		return super.off(event, handler)
 	}
 
 	protected _onVisibilityChanged(): void {
