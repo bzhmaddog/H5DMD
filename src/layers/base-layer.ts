@@ -20,6 +20,7 @@ abstract class BaseLayer {
     private _loaded: boolean = false
     private _outputBuffer: OffscreenBuffer
     private _renderNextFrame: () => void
+    private _contentLoopGen: number = 0
 
     private _loadedListener?: (layer: BaseLayer) => void | Promise<void>
     private _updatedListener?: (layer: BaseLayer) => void | Promise<void>
@@ -341,6 +342,13 @@ abstract class BaseLayer {
     protected _prepareFrame(): void {}
 
     /**
+     * Hook called after layer visibility changes. No-op by default; subclasses
+     * override this instead of `setVisibility` to react to visibility changes
+     * without needing a `super` call.
+     */
+    protected _onVisibilityChanged(): void {}
+
+    /**
      * Layer is loaded : Start rendering and call the callback if needed
      * @param {boolean} startRenderingLoop
      */
@@ -467,6 +475,27 @@ abstract class BaseLayer {
     }
 
     /**
+     * Start a per-frame content-generation loop. Subclasses call this to drive
+     * drawing into `_contentBuffer` (e.g. video frames, animation frames, sprites).
+     * The loop self-terminates when `_stopContentLoop()` is called or when
+     * `_startContentLoop` is called again (old generation is orphaned).
+     */
+    protected _startContentLoop(frameFn: (timestamp: number) => void): void {
+        const gen = ++this._contentLoopGen
+        const loop = (t: number) => {
+            if (this._contentLoopGen !== gen) return
+            frameFn(t)
+            if (this._contentLoopGen === gen) requestAnimationFrame(loop)
+        }
+        requestAnimationFrame(loop)
+    }
+
+    /** Stop the content-generation loop started by `_startContentLoop`. */
+    protected _stopContentLoop(): void {
+        this._contentLoopGen++
+    }
+
+    /**
      * Start rendering of the layer
      */
     protected _startRendering() {
@@ -527,6 +556,8 @@ abstract class BaseLayer {
         } else {
             this._renderNextFrame = function() { console.log(`Layer [${this._id}] : Stop rendering`) }
         }
+
+        this._onVisibilityChanged()
     }
 
     /* Toggle layer visibility and return the new state

@@ -14,7 +14,6 @@ class VideoLayer extends BaseLayer {
 	private _onPlayListener?: (layer: VideoLayer) => void
 	private _onPauseListener?: (layer: VideoLayer) => void
 	private _onStopListener?: (layer: VideoLayer) => void
-	private __renderNextFrame: (layer: VideoLayer) => void
 	private _internalAction: boolean
 
 	private _state: VideoState = VideoState.STOPPED
@@ -42,7 +41,6 @@ class VideoLayer extends BaseLayer {
 		this._onPlayListener = playListener
 		this._onPauseListener = pauseListener
 		this._onStopListener = stopListener
-		this.__renderNextFrame = function(){}
 
 		if (this._options.get('stopOnHide') === true) {
 			this._options.set('pauseOnHide', false)
@@ -75,8 +73,7 @@ class VideoLayer extends BaseLayer {
     }
 
 	private _onVideoPlayed() {
-		this.__renderNextFrame = this._requestRenderNextFrame
-		this._requestRenderNextFrame()
+		this._startContentLoop(this.__renderFrame.bind(this))
 
 		if (typeof this._onPlayListener === 'function') {
 			this._onPlayListener(this)
@@ -84,7 +81,7 @@ class VideoLayer extends BaseLayer {
 	}
 
 	private _onVideoPaused() {
-		this.__renderNextFrame = function(){console.log('End of video rendering')}
+		this._stopContentLoop()
 		this._stopRendering()
 
 		if (typeof this._onPauseListener === 'function') {
@@ -95,11 +92,6 @@ class VideoLayer extends BaseLayer {
 	private __renderFrame() {
 		this._contentBuffer.clear()
 		this._contentBuffer.context.drawImage(this._video, 0, 0, this.width, this.height)
-		this.__renderNextFrame(this)
-	}
-
-	private _requestRenderNextFrame() {
-		requestAnimationFrame(this.__renderFrame.bind(this))
 	}
 
 	private _play() {
@@ -124,8 +116,7 @@ class VideoLayer extends BaseLayer {
 		this._state = VideoState.PLAYING
 		this._internalAction = false
 
-		this.__renderNextFrame = this._requestRenderNextFrame
-		this._requestRenderNextFrame()
+		this._startContentLoop(this.__renderFrame.bind(this))
 		this._video.play()
 
 		this._startRendering()
@@ -146,7 +137,7 @@ class VideoLayer extends BaseLayer {
 		this._state = VideoState.PAUSED
 		
 		this._video.pause()
-		this.__renderNextFrame = function(){}
+		this._stopContentLoop()
 	}
 
 	private _stop(isInternal: boolean = false) {
@@ -165,21 +156,11 @@ class VideoLayer extends BaseLayer {
 
 		this._video.pause()
 		this._video.currentTime = 0
-		this.__renderNextFrame = function(){}
+		this._stopContentLoop()
 	}
 
-	/**
-	 * Override default setVisibility to pause/resume the video if needed
-	 * @param isVisible boolean
-	 */
-	setVisibility(isVisible: boolean): void {
-		if (isVisible === this.isVisible()) {
-			return
-		}
-
-		super.setVisibility(isVisible)
-
-		if (!isVisible && this._state === VideoState.PLAYING && (this._options.get('stopOnHide') || this._options.get('pauseOnHide'))) {
+	protected _onVisibilityChanged(): void {
+		if (!this.isVisible() && this._state === VideoState.PLAYING && (this._options.get('stopOnHide') || this._options.get('pauseOnHide'))) {
 
 			if (this._options.get('stopOnHide')) {
 				this._stop(true)
@@ -188,7 +169,7 @@ class VideoLayer extends BaseLayer {
 			}
 		}
 
-		if (isVisible && this._state !== VideoState.PLAYING && this._internalAction) {
+		if (this.isVisible() && this._state !== VideoState.PLAYING && this._internalAction) {
 			this._play()
 		}
 	}

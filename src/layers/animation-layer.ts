@@ -7,7 +7,6 @@ class AnimationLayer extends BaseLayer {
     private _onPlayListener?: (layer: AnimationLayer) => void
     private _onPauseListener?: (layer: AnimationLayer) => void
     private _onStopListener?: (layer: AnimationLayer) => void
-    private __renderNextFrame: () => void
     private _images: ImageBitmap[]
     private _isPlaying: boolean
     private _isPaused: boolean
@@ -41,8 +40,7 @@ class AnimationLayer extends BaseLayer {
         this._isPaused = false
         this._frameIndex = 0
         this._loop = layerOptions.get('loop')
-        this.__renderNextFrame = function(){}
-        
+
         setTimeout(this._layerLoaded.bind(this), 1)
     }
 
@@ -111,21 +109,11 @@ class AnimationLayer extends BaseLayer {
             // Update content buffer with current frame data
             this._drawImage()
         }
-
-        // Render next frame if needed
-        this.__renderNextFrame()
     }
 
     private _drawImage() {
         this._contentBuffer.clear()
         this._contentBuffer.context.drawImage(this._images[this._frameIndex], 0, 0, this.width, this.height)
-    }
-
-    /**
-     * Request rendering of next frame
-     */
-    private _requestRenderNextFrame() {
-        requestAnimationFrame(this.__renderFrame.bind(this))
     }
 
     /**
@@ -147,8 +135,7 @@ class AnimationLayer extends BaseLayer {
             this._isPlaying = true
             this._isPaused = false
 
-            this.__renderNextFrame = this._requestRenderNextFrame
-            this._requestRenderNextFrame()
+            this._startContentLoop(this.__renderFrame.bind(this))
 
             this._startRendering()
 
@@ -166,7 +153,7 @@ class AnimationLayer extends BaseLayer {
             this._isPlaying = false
             this._isPaused = false
             this._frameIndex = 0
-            this.__renderNextFrame = function(){}
+            this._stopContentLoop()
             this._stopRendering()
 
             if (typeof this._onStopListener === 'function') {
@@ -185,7 +172,7 @@ class AnimationLayer extends BaseLayer {
             if (this._loop) {
                 this._isPlaying = false
                 this._isPaused = true
-                this.__renderNextFrame = function(){}
+                this._stopContentLoop()
                 if (typeof this._onPauseListener === 'function') {
                     this._onPauseListener(this)
                 }
@@ -232,15 +219,10 @@ class AnimationLayer extends BaseLayer {
     }
 
 
-    /**
-     * Override base method to stop/resume animation when changing layer visibility
-     */
-    setVisibility(visible: boolean) {
-        super.setVisibility(visible)
-
-        if (!visible && this._isPlaying) {
+    protected _onVisibilityChanged(): void {
+        if (!this.isVisible() && this._isPlaying) {
             this.pause()
-        } else if (visible && this._isPaused) {
+        } else if (this.isVisible() && this._isPaused) {
             this.resume()
         }
     }
