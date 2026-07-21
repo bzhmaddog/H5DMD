@@ -240,13 +240,13 @@ class AnimationLayer extends BaseLayer {
     }
 
 
-    on(event: 'loaded' | 'updated', handler: (layer: BaseLayer) => void | Promise<void>): this
-    on(event: 'play' | 'pause' | 'stop', handler: (layer: BaseLayer) => void): this
-    on(event: 'loaded' | 'updated' | 'play' | 'pause' | 'stop', handler: (layer: BaseLayer) => void | Promise<void>): this {
+    on(event: 'loaded' | 'updated', handler: (layer: AnimationLayer) => void | Promise<void>): this
+    on(event: 'play' | 'pause' | 'stop', handler: (layer: AnimationLayer) => void): this
+    on(event: 'loaded' | 'updated' | 'play' | 'pause' | 'stop', handler: (layer: AnimationLayer) => void | Promise<void>): this {
         if (event === 'play') { this._playListeners.push(handler as (layer: AnimationLayer) => void); return this }
         if (event === 'pause') { this._pauseListeners.push(handler as (layer: AnimationLayer) => void); return this }
         if (event === 'stop') { this._stopListeners.push(handler as (layer: AnimationLayer) => void); return this }
-        return super.on(event as 'loaded' | 'updated', handler)
+        return super.on(event as 'loaded' | 'updated', handler as unknown as (layer: BaseLayer) => void | Promise<void>)
     }
 
     off(event: 'loaded' | 'updated', handler: (layer: BaseLayer) => void | Promise<void>): this
