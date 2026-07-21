@@ -565,8 +565,8 @@ abstract class BaseLayer {
      * Remove a previously registered event handler. No-op if the handler was not
      * registered for that event.
      */
-    off(event: LayerLifecycleEvent, handler: LayerLifecycleListener<BaseLayer>): this {
-        this._listeners[event] = this._listeners[event].filter(h => h !== handler)
+    off(event: LayerLifecycleEvent, handler: LayerLifecycleListener<this>): this {
+        this._listeners[event] = this._listeners[event].filter(h => h !== (handler as unknown as LayerLifecycleListener<BaseLayer>))
         return this
     }
 
