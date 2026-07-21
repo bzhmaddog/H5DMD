@@ -3,14 +3,13 @@
  * after being drawn so decoded bitmaps are not leaked. Exercised through
  * CanvasLayer, which inherits BaseLayer's render-queue processing.
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {CanvasLayer} from '../src/layers'
-import {ChangeAlphaRenderer} from '../src/renderers'
+import { CanvasLayer } from '../src/layers'
+import { ChangeAlphaRenderer } from '../src/renderers'
 
 describe('BaseLayer frame handling', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)
@@ -30,10 +29,7 @@ describe('BaseLayer frame handling', () => {
         const closeSpy = vi.fn()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(fakeBitmap as any).close = closeSpy
-        vi.stubGlobal(
-            'createImageBitmap',
-            () => Promise.resolve(fakeBitmap as unknown as ImageBitmap)
-        )
+        vi.stubGlobal('createImageBitmap', () => Promise.resolve(fakeBitmap as unknown as ImageBitmap))
 
         // Empty queue => the "draw final image" branch runs.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

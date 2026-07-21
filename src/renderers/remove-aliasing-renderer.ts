@@ -1,6 +1,6 @@
-import {Renderer} from './renderer'
-import {LayerRenderer} from './layer-renderer'
-import {Utils} from '../utils'
+import { Renderer } from './renderer'
+import { LayerRenderer } from './layer-renderer'
+import { Utils } from '../utils'
 
 export interface RemoveAliasingRendererParams {
     /** Alpha threshold — semi-transparent pixels above this value are fully opaqued. Default: `0`. */
@@ -10,7 +10,6 @@ export interface RemoveAliasingRendererParams {
 }
 
 class RemoveAliasingRenderer extends LayerRenderer<RemoveAliasingRendererParams> {
-
     private _threshold: number
     private _baseColor: string
     private _uboBuffer: GPUBuffer
@@ -25,16 +24,15 @@ class RemoveAliasingRenderer extends LayerRenderer<RemoveAliasingRendererParams>
      * @param {RemoveAliasingRendererParams} params Optional defaults for threshold and baseColor.
      */
     constructor(width: number, height: number, params?: RemoveAliasingRendererParams) {
-        super("RemoveAliasingRenderer", width, height)
+        super('RemoveAliasingRenderer', width, height)
         this._threshold = params?.threshold ?? 0
-        this._baseColor  = params?.baseColor  ?? 'FFFFFFFF'
+        this._baseColor = params?.baseColor ?? 'FFFFFFFF'
     }
 
     init(): Promise<void> {
-
         return new Promise((resolve, reject) => {
-
-            Renderer.requestSharedDevice().then( device => {
+            Renderer.requestSharedDevice()
+                .then(device => {
                     this._device = device
 
                     this._shaderModule = device.createShaderModule({
@@ -118,7 +116,7 @@ class RemoveAliasingRenderer extends LayerRenderer<RemoveAliasingRendererParams>
                                //outputPixels.rgba[index] = 255u << 24u | 255u << 16u | 255u << 8u | 255u;
              
                             }
-                        `
+                        `,
                     })
 
                     console.log('RemoveAliasingRenderer:init()')
@@ -129,9 +127,9 @@ class RemoveAliasingRenderer extends LayerRenderer<RemoveAliasingRendererParams>
                         this.renderFrame = this._doRendering
                         resolve()
                     })
-                }).catch(reject)
-       })
-    
+                })
+                .catch(reject)
+        })
     }
 
     /**
@@ -139,7 +137,6 @@ class RemoveAliasingRenderer extends LayerRenderer<RemoveAliasingRendererParams>
      * Done once after init to avoid per-frame allocations (memory leak / GC churn).
      */
     private _createResources() {
-
         this._uboBuffer = this._device.createBuffer({
             size: 8,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -147,12 +144,12 @@ class RemoveAliasingRenderer extends LayerRenderer<RemoveAliasingRendererParams>
 
         this._inputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         })
 
         this._tempBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         })
 
         this._createOutputBuffers()
@@ -163,24 +160,24 @@ class RemoveAliasingRenderer extends LayerRenderer<RemoveAliasingRendererParams>
                     binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "read-only-storage"
-                    }
+                        type: 'read-only-storage',
+                    },
                 },
                 {
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "storage"
-                    }
+                        type: 'storage',
+                    },
                 },
                 {
                     binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                      type: "uniform",
-                    }
-                }
-            ]
+                        type: 'uniform',
+                    },
+                },
+            ],
         })
 
         this._bindGroup = this._device.createBindGroup({
@@ -189,32 +186,32 @@ class RemoveAliasingRenderer extends LayerRenderer<RemoveAliasingRendererParams>
                 {
                     binding: 0,
                     resource: {
-                        buffer: this._inputBuffer
-                    }
+                        buffer: this._inputBuffer,
+                    },
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this._tempBuffer
-                    }
+                        buffer: this._tempBuffer,
+                    },
                 },
                 {
                     binding: 2,
                     resource: {
-                      buffer: this._uboBuffer
-                    }
-                }
-            ]
+                        buffer: this._uboBuffer,
+                    },
+                },
+            ],
         })
 
         this._computePipeline = this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
-                bindGroupLayouts: [bindGroupLayout]
+                bindGroupLayouts: [bindGroupLayout],
             }),
             compute: {
                 module: this._shaderModule,
-                entryPoint: "main"
-            }
+                entryPoint: 'main',
+            },
         })
     }
 
@@ -227,9 +224,8 @@ class RemoveAliasingRenderer extends LayerRenderer<RemoveAliasingRendererParams>
      * @returns {Promise<ImageData>}
      */
     private _doRendering(frameData: ImageData, options?: RemoveAliasingRendererParams): Promise<ImageData> {
-
         const threshold = options?.threshold ?? this._threshold
-        const baseColor  = options?.baseColor  ?? this._baseColor
+        const baseColor = options?.baseColor ?? this._baseColor
 
         // Upload frame pixels into the persistent input buffer
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
@@ -248,8 +244,7 @@ class RemoveAliasingRenderer extends LayerRenderer<RemoveAliasingRendererParams>
         passEncoder.end()
 
         return this._submitAndReadback(this._tempBuffer, commandEncoder) || Promise.resolve(frameData)
-	}
-
+    }
 }
 
 export { RemoveAliasingRenderer }

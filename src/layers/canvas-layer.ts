@@ -1,15 +1,15 @@
-import {BaseLayer, LayerLifecycleListeners} from "./base-layer"
-import {BitmapOptions, CanvasLayerOptions} from "../interfaces"
-import {Options} from "../utils"
+import { BaseLayer, LayerLifecycleListeners } from './base-layer'
+import { BitmapOptions, CanvasLayerOptions } from '../interfaces'
+import { Options } from '../utils'
 
 /**
  * Interface to describe the values returned by computeDimensions method
  */
 interface IDimensions {
-    top : number,
-    left : number,
-    width : number,
-    height : number
+    top: number
+    left: number
+    width: number
+    height: number
 }
 
 /**
@@ -25,7 +25,14 @@ interface DrawContext {
     /** Fill with a linear gradient. */
     fillGradient(colors: string[], direction?: 'horizontal' | 'vertical'): void
     /** Draw a rectangle filled with a linear gradient. */
-    drawGradientRect(x: number, y: number, w: number, h: number, colors: string[], direction?: 'horizontal' | 'vertical'): void
+    drawGradientRect(
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        colors: string[],
+        direction?: 'horizontal' | 'vertical',
+    ): void
     /** Draw a bitmap with optional positioning/sizing options. */
     drawBitmap(img: ImageBitmap, options?: Partial<BitmapOptions>): void
     /** Access the raw 2D context for advanced operations. */
@@ -45,7 +52,6 @@ type DrawFunction = (draw: DrawContext) => void
  * A layer which content is a canvas
  */
 class CanvasLayer extends BaseLayer {
-
     private _drawFunction?: DrawFunction
 
     constructor(
@@ -53,9 +59,15 @@ class CanvasLayer extends BaseLayer {
         width: number,
         height: number,
         options?: Partial<CanvasLayerOptions> | Options,
-        listeners?: LayerLifecycleListeners<CanvasLayer>
+        listeners?: LayerLifecycleListeners<CanvasLayer>,
     ) {
-        super(id, width, height, new Options(options as Record<string, unknown>), listeners as unknown as LayerLifecycleListeners<BaseLayer>)
+        super(
+            id,
+            width,
+            height,
+            new Options(options as Record<string, unknown>),
+            listeners as unknown as LayerLifecycleListeners<BaseLayer>,
+        )
         setTimeout(this._layerLoaded.bind(this), 1)
     }
 
@@ -66,15 +78,14 @@ class CanvasLayer extends BaseLayer {
      * @param _options options
      */
     drawBitmap(img: ImageBitmap, _options?: Partial<BitmapOptions>) {
-
         const bitmapOptions = new Options<BitmapOptions>({
-            top : 0,
-            left : 0,
-            hOffset : 0,
-            vOffset : 0,
-            fit : 'contain',
-            keepAspectRatio : true,
-            smoothing : false
+            top: 0,
+            left: 0,
+            hOffset: 0,
+            vOffset: 0,
+            fit: 'contain',
+            keepAspectRatio: true,
+            smoothing: false,
         }).merge(_options)
 
         // Compute final dimensions and position
@@ -108,19 +119,19 @@ class CanvasLayer extends BaseLayer {
      * @param height default height
      * @returns a IDimensions object
      */
-    private _computeDimensions(_options: Options<BitmapOptions>, width: number, height: number ): IDimensions {
+    private _computeDimensions(_options: Options<BitmapOptions>, width: number, height: number): IDimensions {
         let t = 0
         let l = 0
         let w = width
         let h = height
 
         // Resolve margins once up front
-        const mTop    = this._resolveMargin(_options.get('marginTop')    ?? _options.get('margin'), this.height)
+        const mTop = this._resolveMargin(_options.get('marginTop') ?? _options.get('margin'), this.height)
         const mBottom = this._resolveMargin(_options.get('marginBottom') ?? _options.get('margin'), this.height)
-        const mStart  = this._resolveMargin(_options.get('marginStart')  ?? _options.get('margin'), this.width)
-        const mEnd    = this._resolveMargin(_options.get('marginEnd')    ?? _options.get('margin'), this.width)
-        const availW  = this.width  - mStart - mEnd
-        const availH  = this.height - mTop   - mBottom
+        const mStart = this._resolveMargin(_options.get('marginStart') ?? _options.get('margin'), this.width)
+        const mEnd = this._resolveMargin(_options.get('marginEnd') ?? _options.get('margin'), this.width)
+        const availW = this.width - mStart - mEnd
+        const availH = this.height - mTop - mBottom
 
         const fitOption = _options.get('fit')
         const isFit = fitOption === 'contain' || fitOption === 'cover'
@@ -128,30 +139,29 @@ class CanvasLayer extends BaseLayer {
         if (isFit) {
             // Warn if width/height are set — they are ignored in fit mode
             if (_options.get('width') !== undefined || _options.get('height') !== undefined) {
-                console.warn(`CanvasLayer[${this.id}].drawBitmap(): 'width'/'height' are ignored when 'fit' is 'contain' or 'cover'. Use margins to constrain the available area.`)
+                console.warn(
+                    `CanvasLayer[${this.id}].drawBitmap(): 'width'/'height' are ignored when 'fit' is 'contain' or 'cover'. Use margins to constrain the available area.`,
+                )
             }
 
             if (_options.get('keepAspectRatio') === true) {
                 const scaleX = availW / width
                 const scaleY = availH / height
                 // 'contain' (or true): scale down to fit; 'cover': scale up to fill
-                const scale = fitOption === 'cover'
-                    ? Math.max(scaleX, scaleY)
-                    : Math.min(scaleX, scaleY)
-                w = Math.round(width  * scale)
+                const scale = fitOption === 'cover' ? Math.max(scaleX, scaleY) : Math.min(scaleX, scaleY)
+                w = Math.round(width * scale)
                 h = Math.round(height * scale)
             } else {
                 w = availW
                 h = availH
             }
 
-        // fit: 'none' — explicit dimensions
+            // fit: 'none' — explicit dimensions
         } else {
-
-            const optWidth  = _options.get('width')
+            const optWidth = _options.get('width')
             const optHeight = _options.get('height')
-            const isMissingDimension    = (optWidth === undefined || optHeight === undefined)
-            const isMissingAllDimensions = (optWidth === undefined && optHeight === undefined)
+            const isMissingDimension = optWidth === undefined || optHeight === undefined
+            const isMissingAllDimensions = optWidth === undefined && optHeight === undefined
 
             if (typeof optWidth === 'number') {
                 w = optWidth
@@ -168,9 +178,9 @@ class CanvasLayer extends BaseLayer {
             // If only one dimension provided and ratio must be preserved, compute the other
             if (_options.get('keepAspectRatio') && isMissingDimension && !isMissingAllDimensions) {
                 if (optWidth === undefined) {
-                    w = Math.round((optHeight as number) * width / height)
+                    w = Math.round(((optHeight as number) * width) / height)
                 } else if (optHeight === undefined) {
-                    h = Math.round((optWidth as number) * height / width)
+                    h = Math.round(((optWidth as number) * height) / width)
                 }
             }
 
@@ -181,7 +191,7 @@ class CanvasLayer extends BaseLayer {
 
         // Resolve absolute top/left (margins offset the origin)
         const optLeft = _options.get('left')
-        const optTop  = _options.get('top')
+        const optTop = _options.get('top')
 
         if (typeof optLeft === 'number') {
             l = mStart + optLeft
@@ -210,7 +220,9 @@ class CanvasLayer extends BaseLayer {
                     l = mStart + availW - w + _options.get('hOffset')
                     break
                 default:
-                    console.warn(`CanvasLayer[${this.id}].drawBitmap(): Incorrect value hAlign:'${_options.get('hAlign')}'`)
+                    console.warn(
+                        `CanvasLayer[${this.id}].drawBitmap(): Incorrect value hAlign:'${_options.get('hAlign')}'`,
+                    )
             }
         }
 
@@ -229,7 +241,9 @@ class CanvasLayer extends BaseLayer {
                     t = mTop + availH - h + _options.get('vOffset')
                     break
                 default:
-                    console.warn(`CanvasLayer[${this.id}].drawBitmap(): Incorrect value vAlign:'${_options.get('vAlign')}'`)
+                    console.warn(
+                        `CanvasLayer[${this.id}].drawBitmap(): Incorrect value vAlign:'${_options.get('vAlign')}'`,
+                    )
             }
         }
 
@@ -322,11 +336,19 @@ class CanvasLayer extends BaseLayer {
      * @param {string[]} colors Array of CSS color stops (at least 2)
      * @param {'horizontal' | 'vertical'} direction Gradient direction (default 'horizontal')
      */
-    drawGradientRect(x: number, y: number, w: number, h: number, colors: string[], direction: 'horizontal' | 'vertical' = 'horizontal') {
+    drawGradientRect(
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        colors: string[],
+        direction: 'horizontal' | 'vertical' = 'horizontal',
+    ) {
         const ctx = this._contentBuffer.context
-        const gradient = direction === 'vertical'
-            ? ctx.createLinearGradient(x, y, x, y + h)
-            : ctx.createLinearGradient(x, y, x + w, y)
+        const gradient =
+            direction === 'vertical'
+                ? ctx.createLinearGradient(x, y, x, y + h)
+                : ctx.createLinearGradient(x, y, x + w, y)
 
         colors.forEach((c, i) => {
             gradient.addColorStop(i / (colors.length - 1), c)
@@ -357,20 +379,29 @@ class CanvasLayer extends BaseLayer {
         if (this._drawFunction) {
             const drawCtx: DrawContext = {
                 fillColor: (color: string) => this.fillColor(color),
-                drawRect: (x: number, y: number, w: number, h: number, color: string) => this.drawRect(x, y, w, h, color),
-                drawLine: (x1: number, y1: number, x2: number, y2: number, color: string, lineWidth?: number) => this.drawLine(x1, y1, x2, y2, color, lineWidth),
-                fillGradient: (colors: string[], direction?: 'horizontal' | 'vertical') => this.fillGradient(colors, direction),
-                drawGradientRect: (x: number, y: number, w: number, h: number, colors: string[], direction?: 'horizontal' | 'vertical') => this.drawGradientRect(x, y, w, h, colors, direction),
+                drawRect: (x: number, y: number, w: number, h: number, color: string) =>
+                    this.drawRect(x, y, w, h, color),
+                drawLine: (x1: number, y1: number, x2: number, y2: number, color: string, lineWidth?: number) =>
+                    this.drawLine(x1, y1, x2, y2, color, lineWidth),
+                fillGradient: (colors: string[], direction?: 'horizontal' | 'vertical') =>
+                    this.fillGradient(colors, direction),
+                drawGradientRect: (
+                    x: number,
+                    y: number,
+                    w: number,
+                    h: number,
+                    colors: string[],
+                    direction?: 'horizontal' | 'vertical',
+                ) => this.drawGradientRect(x, y, w, h, colors, direction),
                 drawBitmap: (img: ImageBitmap, options?: Partial<BitmapOptions>) => this.drawBitmap(img, options),
                 //ctx: this._contentBuffer.context,
                 width: this.width,
-                height: this.height
+                height: this.height,
             }
             this._drawFunction(drawCtx)
         }
         this._layerUpdated()
     }
-
 }
 
 export { CanvasLayer, type DrawFunction }

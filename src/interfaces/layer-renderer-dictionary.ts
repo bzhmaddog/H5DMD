@@ -1,8 +1,8 @@
-import {LayerRenderer} from "../renderers/layer-renderer";
+import { LayerRenderer } from '../renderers/layer-renderer'
 
 export interface LayerRendererDictionary {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [index: string]: LayerRenderer<any>;
+    [index: string]: LayerRenderer<any>
 }
 
 /**
@@ -60,7 +60,7 @@ export function rendererEntry<P>(
     id: string,
     rendererClass: new (width: number, height: number, params?: P) => LayerRenderer,
     params?: P,
-    active?: boolean
+    active?: boolean,
 ): RendererClassEntry<P> {
     return { id, rendererClass, params, active }
 }

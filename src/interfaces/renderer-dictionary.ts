@@ -1,4 +1,4 @@
-import {Renderer} from "../renderers/renderer";
+import { Renderer } from '../renderers/renderer'
 
 export interface RendererDictionary {
     [index: string]: Renderer

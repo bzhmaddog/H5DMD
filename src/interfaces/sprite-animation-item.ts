@@ -1,6 +1,6 @@
-import {SpriteAnimation} from "./sprite-animation";
+import { SpriteAnimation } from './sprite-animation'
 
 export interface SpriteAnimationItem {
-    key: string,
+    key: string
     animationParams: SpriteAnimation
 }

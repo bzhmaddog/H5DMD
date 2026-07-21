@@ -1,56 +1,50 @@
-import {BaseLayer, LayerLifecycleListeners} from "./base-layer"
-import {SpritesLayerOptions, SpriteAnimationItem, SpriteSequenceItem} from "../interfaces"
-import {Options, Sprite} from "../utils"
+import { BaseLayer, LayerLifecycleListeners } from './base-layer'
+import { SpritesLayerOptions, SpriteAnimationItem, SpriteSequenceItem } from '../interfaces'
+import { Options, Sprite } from '../utils'
 
 interface ISpriteItem {
-    x : number,
-    y : number,
-    sprite : Sprite,
-    visible : boolean
+    x: number
+    y: number
+    sprite: Sprite
+    visible: boolean
 }
 
 interface ISpriteDictionary {
-    [index: string] : ISpriteItem 
+    [index: string]: ISpriteItem
 }
 
 class SpritesLayer extends BaseLayer {
-
     private _sprites: ISpriteDictionary
     private _runningSprites: number
 
-	constructor(
+    constructor(
         id: string,
         width: number,
         height: number,
         options?: Partial<SpritesLayerOptions> | Options,
-    listeners?: LayerLifecycleListeners<SpritesLayer>
+        listeners?: LayerLifecycleListeners<SpritesLayer>,
     ) {
-        const layerOptions = new Options({loop: false, autoplay: false}).merge(options)
+        const layerOptions = new Options({ loop: false, autoplay: false }).merge(options)
 
-    super(id, width, height, layerOptions, listeners as unknown as LayerLifecycleListeners<BaseLayer>)
+        super(id, width, height, layerOptions, listeners as unknown as LayerLifecycleListeners<BaseLayer>)
 
         this._sprites = {} as ISpriteDictionary
         this._runningSprites = 0
 
         setTimeout(this._layerLoaded.bind(this), 1)
-	}
+    }
 
     /**
      * Render frame with all sprites data
      */
     private __renderFrame() {
-
         this._contentBuffer.clear()
-        
+
         Object.keys(this._sprites).forEach(id => {
             const sprite = this._sprites[id]
 
             if (sprite.visible) {
-                this._contentBuffer.context.drawImage(
-                    sprite.sprite.data,
-                    sprite.x,
-                    sprite.y
-                )
+                this._contentBuffer.context.drawImage(sprite.sprite.data, sprite.x, sprite.y)
             }
         })
     }
@@ -72,10 +66,9 @@ class SpritesLayer extends BaseLayer {
         vFrameOffset: number,
         animations: SpriteAnimationItem[],
         x: number | string,
-        y: number | string
+        y: number | string,
     ): Promise<Sprite> {
-
-        return new Promise<Sprite>( (resolve, reject) => {
+        return new Promise<Sprite>((resolve, reject) => {
             if (typeof this._sprites[id] === 'undefined') {
                 if (animations.length) {
                     const sprite = new Sprite(id, spriteSheet, hFrameOffset, vFrameOffset)
@@ -131,7 +124,7 @@ class SpritesLayer extends BaseLayer {
         let isVisible = true
 
         if (typeof sprite === 'object' && sprite.constructor !== Sprite) {
-            console.error("Provided sprite is not a Sprite object")
+            console.error('Provided sprite is not a Sprite object')
             return false
         }
 
@@ -148,10 +141,10 @@ class SpritesLayer extends BaseLayer {
         const y = this._resolveCoordinate(_y, this.height)
 
         this._sprites[id] = {
-            x : x,
-            y : y,
-            sprite : sprite,
-            visible : isVisible
+            x: x,
+            y: y,
+            sprite: sprite,
+            visible: isVisible,
         }
 
         // set sprite listener to this layer
@@ -186,9 +179,9 @@ class SpritesLayer extends BaseLayer {
 
     /**
      * Change sprite position to x,y
-     * @param {string} id 
-     * @param {string} x 
-     * @param {string} y 
+     * @param {string} id
+     * @param {string} x
+     * @param {string} y
      */
     /*moveSprite(id: string, x: string, y: string) {
         if (typeof this._sprites[id] !== 'undefined') {
@@ -201,24 +194,23 @@ class SpritesLayer extends BaseLayer {
 
     /**
      * Change sprite visibility
-     * @param {string} id 
-     * @param {boolean} v 
+     * @param {string} id
+     * @param {boolean} v
      */
-    setSpriteVisibility(id:string, v: boolean) {
+    setSpriteVisibility(id: string, v: boolean) {
         if (typeof this._sprites[id] !== 'undefined') {
             this._sprites[id].visible = v
         } else {
             console.error(`Layer[${this.id}] : sprite [${id}] does not exist`)
         }
     }
-    
+
     /**
      * Run sprite current animation
-     * @param {string} id 
+     * @param {string} id
      */
     run(id: string) {
         if (typeof this._sprites[id] !== 'undefined') {
-
             this._startRendering()
 
             if (!this._sprites[id].sprite.isAnimating()) {
@@ -270,9 +262,9 @@ class SpritesLayer extends BaseLayer {
 
     /**
      * Add sequence of animations to sprite queue
-     * @param {string} id 
-     * @param {array} queue 
-     * @param {boolean} loop 
+     * @param {string} id
+     * @param {array} queue
+     * @param {boolean} loop
      */
     enqueueSequence(id: string, queue: SpriteSequenceItem[], loop: boolean) {
         if (typeof this._sprites[id] !== 'undefined') {
@@ -281,7 +273,6 @@ class SpritesLayer extends BaseLayer {
             console.error(`Layer[${this.id}] : sprite [${id}] does not exist`)
         }
     }
-
 }
 
 export { SpritesLayer }

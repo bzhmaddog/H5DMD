@@ -8,7 +8,6 @@ type OptionsObject = Record<string, any>
  *             the original untyped `Options`.
  */
 class Options<T extends OptionsObject = OptionsObject> extends Map {
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(o?: Options<any> | OptionsObject) {
         super()
@@ -80,4 +79,4 @@ class Options<T extends OptionsObject = OptionsObject> extends Map {
     }
 }
 
-export {Options, OptionsObject}
+export { Options, OptionsObject }

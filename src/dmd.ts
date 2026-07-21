@@ -1,9 +1,25 @@
-import {Easing, OffscreenBuffer, Options, type EasingFunction} from './utils'
-import {DmdRenderer, LayerRenderer} from './renderers'
-import {AnimationLayer, BaseLayer, CanvasLayer, LayerGroup, SpritesLayer, TextLayer, VideoLayer} from './layers'
-import {compositeSortedLayers, createLayerInstance, resolveLayerPosition, type LayerDictionary} from './layers/layer-factory'
-import {DotShape} from "./enums"
-import {AnimationLayerOptions, CanvasLayerOptions, DmdOptions, Layer, LayerGroupOptions, LayerPosition, LayerRendererDictionary, SpritesLayerOptions, TextLayerOptions, VideoLayerOptions} from "./interfaces"
+import { Easing, OffscreenBuffer, Options, type EasingFunction } from './utils'
+import { DmdRenderer, LayerRenderer } from './renderers'
+import { AnimationLayer, BaseLayer, CanvasLayer, LayerGroup, SpritesLayer, TextLayer, VideoLayer } from './layers'
+import {
+    compositeSortedLayers,
+    createLayerInstance,
+    resolveLayerPosition,
+    type LayerDictionary,
+} from './layers/layer-factory'
+import { DotShape } from './enums'
+import {
+    AnimationLayerOptions,
+    CanvasLayerOptions,
+    DmdOptions,
+    Layer,
+    LayerGroupOptions,
+    LayerPosition,
+    LayerRendererDictionary,
+    SpritesLayerOptions,
+    TextLayerOptions,
+    VideoLayerOptions,
+} from './interfaces'
 
 type LayerAddOptions =
     | Partial<CanvasLayerOptions>
@@ -14,27 +30,33 @@ type LayerAddOptions =
     | Partial<LayerGroupOptions>
     | Options
 
-type LayerOptionsByInstance<T extends BaseLayer> =
-    T extends CanvasLayer ? Partial<CanvasLayerOptions> | Options :
-    T extends VideoLayer ? Partial<VideoLayerOptions> | Options :
-    T extends AnimationLayer ? Partial<AnimationLayerOptions> | Options :
-    T extends SpritesLayer ? Partial<SpritesLayerOptions> | Options :
-    T extends TextLayer ? Partial<TextLayerOptions> | Options :
-    T extends LayerGroup ? Partial<LayerGroupOptions> | Options :
-    LayerAddOptions
+type LayerOptionsByInstance<T extends BaseLayer> = T extends CanvasLayer
+    ? Partial<CanvasLayerOptions> | Options
+    : T extends VideoLayer
+      ? Partial<VideoLayerOptions> | Options
+      : T extends AnimationLayer
+        ? Partial<AnimationLayerOptions> | Options
+        : T extends SpritesLayer
+          ? Partial<SpritesLayerOptions> | Options
+          : T extends TextLayer
+            ? Partial<TextLayerOptions> | Options
+            : T extends LayerGroup
+              ? Partial<LayerGroupOptions> | Options
+              : LayerAddOptions
 
-type LayerPlayListenerByInstance<T extends BaseLayer> =
-    T extends VideoLayer ? (layer: VideoLayer) => void :
-    T extends AnimationLayer ? (layer: AnimationLayer) => void :
-    never
+type LayerPlayListenerByInstance<T extends BaseLayer> = T extends VideoLayer
+    ? (layer: VideoLayer) => void
+    : T extends AnimationLayer
+      ? (layer: AnimationLayer) => void
+      : never
 
 type LayerPauseListenerByInstance<T extends BaseLayer> = LayerPlayListenerByInstance<T>
 
-type LayerStopListenerByInstance<T extends BaseLayer> =
-    T extends AnimationLayer ? (layer: AnimationLayer) => void : never
+type LayerStopListenerByInstance<T extends BaseLayer> = T extends AnimationLayer
+    ? (layer: AnimationLayer) => void
+    : never
 
 export class Dmd {
-
     /**
      * H5DMD library version. Single source of truth for the version string
      * (must be bumped together with package.json on release).
@@ -83,12 +105,10 @@ export class Dmd {
         this._zIndex = 1
         this._layers = {} as LayerDictionary
         this._sortedLayers = []
-        this._renderFPS = function () {
-        } // Does nothing
+        this._renderFPS = function () {} // Does nothing
         this._backgroundColor = `rgba(14, 14, 14, 255)`
         this._isRunning = false
-        this._renderNextFrame = function () {
-        }
+        this._renderNextFrame = function () {}
 
         this._fps = 0
         this._minFPS = 9999
@@ -96,9 +116,22 @@ export class Dmd {
         this._fpsSamples = []
         this._lastRenderTime = 0
 
-        console.log(`Creating a ${this._outputWidth}x${this._outputHeight} DMD on a ${this._outputCanvas.width}x${this._outputCanvas.height} canvas`)
+        console.log(
+            `Creating a ${this._outputWidth}x${this._outputHeight} DMD on a ${this._outputCanvas.width}x${this._outputCanvas.height} canvas`,
+        )
 
-        this._renderer = new DmdRenderer(this._outputWidth, this._outputHeight, this._outputCanvas.width, this._outputCanvas.height, dotSize, dotSpace, dotShape ?? DotShape.Square, backgroundBrightness, brightness, this._outputCanvas)
+        this._renderer = new DmdRenderer(
+            this._outputWidth,
+            this._outputHeight,
+            this._outputCanvas.width,
+            this._outputCanvas.height,
+            dotSize,
+            dotSpace,
+            dotShape ?? DotShape.Square,
+            backgroundBrightness,
+            brightness,
+            this._outputCanvas,
+        )
 
         if (opts.color !== undefined) {
             const color = opts.color
@@ -109,7 +142,7 @@ export class Dmd {
                 g = parseInt(hex.slice(2, 4), 16) / 255
                 b = parseInt(hex.slice(4, 6), 16) / 255
             } else {
-                ({ r, g, b } = color)
+                ;({ r, g, b } = color)
             }
             this._renderer.setMonochrome(true)
             this._renderer.setMonochromeColor(r, g, b)
@@ -128,7 +161,7 @@ export class Dmd {
                 g = parseInt(hex.slice(2, 4), 16) / 255
                 b = parseInt(hex.slice(4, 6), 16) / 255
             } else {
-                ({ r, g, b } = c)
+                ;({ r, g, b } = c)
             }
             this.setOffDotColor(r, g, b)
         }
@@ -167,7 +200,7 @@ export class Dmd {
      */
     run() {
         if (!this._initDone) {
-            throw new Error("call Dmd.init() first")
+            throw new Error('call Dmd.init() first')
         }
 
         // Already running: nothing to do (avoids starting a second render loop)
@@ -193,7 +226,7 @@ export class Dmd {
     stop() {
         this._isRunning = false
         this._renderNextFrame = function () {
-            console.log("Dmd render stopped")
+            console.log('Dmd render stopped')
         }
 
         // Remove the FPS overlay from the DOM so a discarded Dmd leaves nothing behind
@@ -212,13 +245,17 @@ export class Dmd {
         compositeSortedLayers(this._sortedLayers, this._layers, this._frameBuffer)
 
         // Get data from the merged layers content
-        const frameImageData = this._frameBuffer.context.getImageData(0, 0, this._frameBuffer.width, this._frameBuffer.height)
+        const frameImageData = this._frameBuffer.context.getImageData(
+            0,
+            0,
+            this._frameBuffer.width,
+            this._frameBuffer.height,
+        )
 
         // Generate Dmd frame
         this._renderer.renderFrame(frameImageData).then(() => {
-
             const now = performance.now()
-            const delta = (now - this._lastRenderTime)
+            const delta = now - this._lastRenderTime
             this._lastRenderTime = now
 
             // Smoothed FPS : rolling average of frame time over the last frames.
@@ -277,8 +314,7 @@ export class Dmd {
             this._fpsCtx = undefined
         }
 
-        this._renderFPS = function () {
-        } // Does nothing
+        this._renderFPS = function () {} // Does nothing
     }
 
     /**
@@ -315,7 +351,6 @@ export class Dmd {
     private sortLayers() {
         this._sortedLayers = this._sortedLayers.sort((a, b) => a.zIndex - b.zIndex)
     }
-
 
     /**
      * Fade dmd brightness out
@@ -356,12 +391,10 @@ export class Dmd {
 
         const startBrightness = this._renderer.brightness
 
-
         return new Promise(resolve => {
             const renderer = this._renderer
 
             const cb = function () {
-
                 const delta = window.performance.now() - start
                 const b = Easing.easeOutSine(delta, startBrightness, 1 - startBrightness, duration)
 
@@ -445,9 +478,20 @@ export class Dmd {
         layerOnStopListener?: LayerStopListenerByInstance<T>,
     ): T {
         if ((layerClass as unknown) === LayerGroup) {
-            console.warn(`Dmd.addLayer(LayerGroup, '${id}', ...) is deprecated and will be removed in the next major version - use Dmd.addLayerGroup('${id}', options) instead`)
+            console.warn(
+                `Dmd.addLayer(LayerGroup, '${id}', ...) is deprecated and will be removed in the next major version - use Dmd.addLayerGroup('${id}', options) instead`,
+            )
         }
-        return this._addLayer(layerClass, id, options, layerLoadedListener, layerUpdatedListener, layerOnPlayListener, layerOnPauseListener, layerOnStopListener)
+        return this._addLayer(
+            layerClass,
+            id,
+            options,
+            layerLoadedListener,
+            layerUpdatedListener,
+            layerOnPlayListener,
+            layerOnPauseListener,
+            layerOnStopListener,
+        )
     }
 
     private _addLayer<T extends BaseLayer>(
@@ -461,7 +505,7 @@ export class Dmd {
         layerOnStopListener?: LayerStopListenerByInstance<T>,
     ): T {
         if (typeof this._layers[id] !== 'undefined') {
-            throw new Error(`Layer [${id}] already exists`);
+            throw new Error(`Layer [${id}] already exists`)
         }
 
         // Make sure we have an Options object from now on
@@ -471,16 +515,36 @@ export class Dmd {
         const layerHeight = opts.get('height') || this._outputHeight
 
         const pos: LayerPosition = opts.get('position') || {}
-        const {top: layerTop, left: layerLeft} = resolveLayerPosition(id, pos, layerWidth, layerHeight, this._outputWidth, this._outputHeight, this._sortedLayers, this._layers)
+        const { top: layerTop, left: layerLeft } = resolveLayerPosition(
+            id,
+            pos,
+            layerWidth,
+            layerHeight,
+            this._outputWidth,
+            this._outputHeight,
+            this._sortedLayers,
+            this._layers,
+        )
 
         // Cast typed callbacks to (layer: BaseLayer) for the layer constructors
-        const onLoaded  = layerLoadedListener  as unknown as ((layer: BaseLayer) => void | Promise<void>) | undefined
+        const onLoaded = layerLoadedListener as unknown as ((layer: BaseLayer) => void | Promise<void>) | undefined
         const onUpdated = layerUpdatedListener as unknown as ((layer: BaseLayer) => void | Promise<void>) | undefined
-        const onPlay    = layerOnPlayListener  as unknown as ((layer: BaseLayer) => void) | undefined
-        const onPause   = layerOnPauseListener as unknown as ((layer: BaseLayer) => void) | undefined
-        const onStop    = layerOnStopListener  as unknown as ((layer: BaseLayer) => void) | undefined
+        const onPlay = layerOnPlayListener as unknown as ((layer: BaseLayer) => void) | undefined
+        const onPause = layerOnPauseListener as unknown as ((layer: BaseLayer) => void) | undefined
+        const onStop = layerOnStopListener as unknown as ((layer: BaseLayer) => void) | undefined
 
-        const layer = createLayerInstance(layerClass, id, layerWidth, layerHeight, opts, onLoaded, onUpdated, onPlay, onPause, onStop)
+        const layer = createLayerInstance(
+            layerClass,
+            id,
+            layerWidth,
+            layerHeight,
+            opts,
+            onLoaded,
+            onUpdated,
+            onPlay,
+            onPause,
+            onStop,
+        )
 
         this._layers[id] = layer as BaseLayer
 
@@ -493,7 +557,7 @@ export class Dmd {
         }
 
         // Add new layer to sorted array
-        this._sortedLayers.push({id: id, zIndex: zIndex, top: layerTop, left: layerLeft})
+        this._sortedLayers.push({ id: id, zIndex: zIndex, top: layerTop, left: layerLeft })
 
         // Sort by zIndex inc
         this.sortLayers()
@@ -506,9 +570,7 @@ export class Dmd {
      * @param {string} id
      */
     removeLayer(id: string) {
-
         if (typeof this._layers[id] !== 'undefined') {
-
             this._layers[id].destroy() // Force stop rendering since delete does seems to GC
 
             // Remove Layer object from array
@@ -535,7 +597,9 @@ export class Dmd {
         if (fromIndex === -1) return
         const [moved] = this._sortedLayers.splice(fromIndex, 1)
         this._sortedLayers.splice(toIndex, 0, moved)
-        this._sortedLayers.forEach((l, i) => { l.zIndex = i })
+        this._sortedLayers.forEach((l, i) => {
+            l.zIndex = i
+        })
     }
 
     /**
@@ -592,9 +656,8 @@ export class Dmd {
      * @param {IRenderer} renderer
      */
     addRenderer(id: string, renderer: LayerRenderer) {
-
         if (this._isRunning) {
-            throw new Error("Renderers must be added before calling Dmd.run()")
+            throw new Error('Renderers must be added before calling Dmd.run()')
         }
 
         // TODO check if renderer is a renderer class
@@ -602,13 +665,12 @@ export class Dmd {
             if (typeof renderer === 'object' && typeof renderer.renderFrame === 'function') {
                 this._layerRenderers[id] = renderer
             } else {
-                throw new Error("Renderer object might not be a Renderer class")
+                throw new Error('Renderer object might not be a Renderer class')
             }
         } else {
             throw new Error(`A renderer with this id[${id}] already exists`)
         }
     }
-
 
     /**
      * Reset Dmd
@@ -725,7 +787,7 @@ export class Dmd {
     }
 
     /** Get the current off-dot color (RGB, each component 0–1). */
-    get offDotColor(): { r: number, g: number, b: number } {
+    get offDotColor(): { r: number; g: number; b: number } {
         return this._renderer.offDotColor
     }
 
@@ -757,7 +819,7 @@ export class Dmd {
     /**
      * Get the current monochrome tint color.
      */
-    get monochromeColor(): { r: number, g: number, b: number } {
+    get monochromeColor(): { r: number; g: number; b: number } {
         return this._renderer.monochromeColor
     }
 

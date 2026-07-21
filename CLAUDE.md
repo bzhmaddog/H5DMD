@@ -93,7 +93,7 @@ All renderer instances share one lazily-initialized `GPUDevice`/`GPUAdapter`
 Each processes a frame via a WebGPU compute shader and reads the result back through
 double-buffered `GPUBuffer`s (`_submitAndReadback`) so a still-mapped buffer from the prior frame
 doesn't stall the render loop (in that case the frame is dropped, not blocked on). A `LayerRenderer`
-is constructed with the *owning layer's* width/height so its buffers always match the frames it
+is constructed with the _owning layer's_ width/height so its buffers always match the frames it
 receives — this is why `addRenderer()` callers never pass dimensions themselves.
 
 `DmdRenderer` (`src/renderers/dmd-renderer.ts`) is the top-level, non-layer renderer that turns

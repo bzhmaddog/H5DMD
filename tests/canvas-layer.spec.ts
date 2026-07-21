@@ -3,12 +3,12 @@
  * accessor & visibility branches it inherits. A real <canvas> is used as the
  * ImageBitmap source (accepted by the canvas mock).
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {CanvasLayer} from '../src/layers'
-import {ChangeAlphaRenderer} from '../src/renderers'
-import {Options} from '../src/utils'
+import { CanvasLayer } from '../src/layers'
+import { ChangeAlphaRenderer } from '../src/renderers'
+import { Options } from '../src/utils'
 
 const img = (w: number, h: number) => {
     const c = document.createElement('canvas')
@@ -18,11 +18,13 @@ const img = (w: number, h: number) => {
 }
 
 describe('CanvasLayer.drawBitmap dimensions', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)
-        vi.stubGlobal('requestAnimationFrame', vi.fn(() => 0))
+        vi.stubGlobal(
+            'requestAnimationFrame',
+            vi.fn(() => 0),
+        )
     })
 
     afterEach(() => {
@@ -69,7 +71,7 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const spy = drawSpy(layer)
 
-        layer.drawBitmap(img(40, 40), new Options({keepAspectRatio: false}))
+        layer.drawBitmap(img(40, 40), new Options({ keepAspectRatio: false }))
 
         expect(spy).toHaveBeenCalledWith(expect.anything(), 0, 0, 64, 16)
     })
@@ -78,7 +80,7 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const spy = drawSpy(layer)
 
-        layer.drawBitmap(img(40, 40), new Options({fit: 'none', width: 30, height: 8}))
+        layer.drawBitmap(img(40, 40), new Options({ fit: 'none', width: 30, height: 8 }))
 
         expect(spy).toHaveBeenCalledWith(expect.anything(), 0, 0, 30, 8)
     })
@@ -87,7 +89,7 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const spy = drawSpy(layer)
 
-        layer.drawBitmap(img(40, 40), new Options({fit: 'none', width: '50%', height: '50%'}))
+        layer.drawBitmap(img(40, 40), new Options({ fit: 'none', width: '50%', height: '50%' }))
 
         // 50% of 64 = 32, 50% of 16 = 8
         expect(spy).toHaveBeenCalledWith(expect.anything(), 0, 0, 32, 8)
@@ -97,9 +99,16 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const spy = drawSpy(layer)
 
-        layer.drawBitmap(img(40, 40), new Options({
-            fit: 'none', width: 20, height: 8, hAlign: 'right', vAlign: 'bottom'
-        }))
+        layer.drawBitmap(
+            img(40, 40),
+            new Options({
+                fit: 'none',
+                width: 20,
+                height: 8,
+                hAlign: 'right',
+                vAlign: 'bottom',
+            }),
+        )
 
         const call = spy.mock.calls[0]
         // right: left = 64 - 20 = 44 ; bottom: top = 16 - 8 = 8
@@ -111,18 +120,18 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const spy = drawSpy(layer)
 
-        layer.drawBitmap(img(10, 10), new Options({fit: 'none', width: 10, height: 10, left: '25%', top: '50%'}))
+        layer.drawBitmap(img(10, 10), new Options({ fit: 'none', width: 10, height: 10, left: '25%', top: '50%' }))
 
         const call = spy.mock.calls[0]
         expect(call[1]).toBe(16) // 25% of 64
-        expect(call[2]).toBe(8)  // 50% of 16
+        expect(call[2]).toBe(8) // 50% of 16
     })
 
     test('keepAspectRatio derives the missing height from a given width', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const spy = drawSpy(layer)
 
-        layer.drawBitmap(img(40, 20), new Options({fit: 'none', keepAspectRatio: true, width: 20}))
+        layer.drawBitmap(img(40, 20), new Options({ fit: 'none', keepAspectRatio: true, width: 20 }))
 
         // h = round(width(20) * imgHeight(20) / imgWidth(40)) = 10
         const call = spy.mock.calls[0]
@@ -134,7 +143,7 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const spy = drawSpy(layer)
 
-        layer.drawBitmap(img(40, 20), new Options({fit: 'none', keepAspectRatio: true, height: 10}))
+        layer.drawBitmap(img(40, 20), new Options({ fit: 'none', keepAspectRatio: true, height: 10 }))
 
         // w = round(height(10) * imgWidth(40) / imgHeight(20)) = 20
         const call = spy.mock.calls[0]
@@ -147,9 +156,16 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         const spy = drawSpy(layer)
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-        layer.drawBitmap(img(40, 40), new Options({
-            fit: 'none', width: 10, height: 10, hAlign: 'bogus', vAlign: 'bogus'
-        }))
+        layer.drawBitmap(
+            img(40, 40),
+            new Options({
+                fit: 'none',
+                width: 10,
+                height: 10,
+                hAlign: 'bogus',
+                vAlign: 'bogus',
+            }),
+        )
 
         expect(warn).toHaveBeenCalled()
         const call = spy.mock.calls[0]
@@ -159,10 +175,12 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
 })
 
 describe('CanvasLayer.drawBitmap smoothing', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
-        vi.stubGlobal('requestAnimationFrame', vi.fn(() => 0))
+        vi.stubGlobal(
+            'requestAnimationFrame',
+            vi.fn(() => 0),
+        )
     })
 
     afterEach(() => {
@@ -176,9 +194,9 @@ describe('CanvasLayer.drawBitmap smoothing', () => {
     /** Capture the smoothing state *during* the drawImage call, not after it's restored. */
     const smoothingDuringDraw = (layer: CanvasLayer) => {
         const ctx = context(layer)
-        const seen: {enabled: boolean, quality: string}[] = []
+        const seen: { enabled: boolean; quality: string }[] = []
         vi.spyOn(ctx, 'drawImage').mockImplementation(() => {
-            seen.push({enabled: ctx.imageSmoothingEnabled, quality: ctx.imageSmoothingQuality})
+            seen.push({ enabled: ctx.imageSmoothingEnabled, quality: ctx.imageSmoothingQuality })
         })
         return seen
     }
@@ -196,7 +214,7 @@ describe('CanvasLayer.drawBitmap smoothing', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const seen = smoothingDuringDraw(layer)
 
-        layer.drawBitmap(img(40, 40), {smoothing: true})
+        layer.drawBitmap(img(40, 40), { smoothing: true })
 
         expect(seen[0].enabled).toBe(true)
     })
@@ -205,9 +223,9 @@ describe('CanvasLayer.drawBitmap smoothing', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const seen = smoothingDuringDraw(layer)
 
-        layer.drawBitmap(img(40, 40), {smoothing: 'high'})
+        layer.drawBitmap(img(40, 40), { smoothing: 'high' })
 
-        expect(seen[0]).toEqual({enabled: true, quality: 'high'})
+        expect(seen[0]).toEqual({ enabled: true, quality: 'high' })
     })
 
     test('the context smoothing state is restored after drawing', () => {
@@ -216,7 +234,7 @@ describe('CanvasLayer.drawBitmap smoothing', () => {
         ctx.imageSmoothingEnabled = true
         ctx.imageSmoothingQuality = 'medium'
 
-        layer.drawBitmap(img(40, 40), {smoothing: 'high'})
+        layer.drawBitmap(img(40, 40), { smoothing: 'high' })
 
         expect(ctx.imageSmoothingEnabled).toBe(true)
         expect(ctx.imageSmoothingQuality).toBe('medium')
@@ -224,11 +242,13 @@ describe('CanvasLayer.drawBitmap smoothing', () => {
 })
 
 describe('CanvasLayer inherited BaseLayer behaviour', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)
-        vi.stubGlobal('requestAnimationFrame', vi.fn(() => 0))
+        vi.stubGlobal(
+            'requestAnimationFrame',
+            vi.fn(() => 0),
+        )
     })
 
     afterEach(() => {

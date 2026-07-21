@@ -2,13 +2,12 @@
  * Unit test for OffscreenBuffer: construction must fail loudly (rather than
  * proceed with a null context) when a 2D rendering context cannot be acquired.
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {OffscreenBuffer} from '../src/utils'
+import { OffscreenBuffer } from '../src/utils'
 
 describe('OffscreenBuffer', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
     })

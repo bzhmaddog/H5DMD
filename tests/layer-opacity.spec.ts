@@ -2,14 +2,13 @@
  * Unit test for the BaseLayer opacity accessor (used by the demo control panel).
  * `setOpacity` clamps to the 0–1 range and `opacity` reflects the stored value.
  */
-import {beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {CanvasLayer} from '../src/layers'
-import {ChangeAlphaRenderer} from '../src/renderers'
+import { CanvasLayer } from '../src/layers'
+import { ChangeAlphaRenderer } from '../src/renderers'
 
 describe('BaseLayer opacity', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)

@@ -1,4 +1,4 @@
-import {defineConfig} from 'vitest/config'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
     test: {
@@ -11,11 +11,7 @@ export default defineConfig({
             reporter: ['text', 'html', 'lcov'],
             reportsDirectory: './coverage',
             include: ['src/**/*.ts'],
-            exclude: [
-                'src/**/*.d.ts',
-                'src/interfaces/**',
-                'src/**/index.ts',
-            ],
+            exclude: ['src/**/*.d.ts', 'src/interfaces/**', 'src/**/index.ts'],
             // Fail the run if coverage drops below these floors (set a few points
             // under the current ~90% to catch regressions without being flaky).
             thresholds: {

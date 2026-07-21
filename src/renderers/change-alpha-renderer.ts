@@ -1,5 +1,5 @@
-import {Renderer} from "./renderer"
-import {LayerRenderer} from "./layer-renderer"
+import { Renderer } from './renderer'
+import { LayerRenderer } from './layer-renderer'
 
 export interface ChangeAlphaRenderOptions {
     /** Frame opacity 0–1. Default: `1`. */
@@ -7,7 +7,6 @@ export interface ChangeAlphaRenderOptions {
 }
 
 class ChangeAlphaRenderer extends LayerRenderer<ChangeAlphaRenderOptions> {
-
     private _uboBuffer: GPUBuffer
     private _inputBuffer: GPUBuffer
     private _tempBuffer: GPUBuffer
@@ -15,11 +14,11 @@ class ChangeAlphaRenderer extends LayerRenderer<ChangeAlphaRenderOptions> {
     private _computePipeline: GPUComputePipeline
 
     /**
-     * @param {number} width 
-     * @param {number} height 
+     * @param {number} width
+     * @param {number} height
      */
     constructor(width: number, height: number) {
-        super("ChangeAlphaRenderer", width, height)
+        super('ChangeAlphaRenderer', width, height)
     }
 
     /**
@@ -27,10 +26,9 @@ class ChangeAlphaRenderer extends LayerRenderer<ChangeAlphaRenderOptions> {
      * @returns Promise
      */
     init(): Promise<void> {
-
         return new Promise((resolve, reject) => {
-
-            Renderer.requestSharedDevice().then( device => {
+            Renderer.requestSharedDevice()
+                .then(device => {
                     this._device = device
 
                     this._shaderModule = device.createShaderModule({
@@ -73,11 +71,10 @@ class ChangeAlphaRenderer extends LayerRenderer<ChangeAlphaRenderOptions> {
 
                                 outputPixels.rgba[index] = (aa << 24u) | (b << 16u) | (g << 8u) | r;
                             }
-                        `
+                        `,
                     })
 
                     console.log('ChangeAlphaRenderer:init()')
-
 
                     this._validateShader(reject).then(valid => {
                         if (!valid) return
@@ -85,9 +82,9 @@ class ChangeAlphaRenderer extends LayerRenderer<ChangeAlphaRenderOptions> {
                         this.renderFrame = this._doRendering
                         resolve()
                     })
-                }).catch(reject)
-       })
-    
+                })
+                .catch(reject)
+        })
     }
 
     /**
@@ -95,7 +92,6 @@ class ChangeAlphaRenderer extends LayerRenderer<ChangeAlphaRenderOptions> {
      * Done once after init to avoid per-frame allocations (memory leak / GC churn).
      */
     private _createResources() {
-
         this._uboBuffer = this._device.createBuffer({
             size: 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -103,40 +99,40 @@ class ChangeAlphaRenderer extends LayerRenderer<ChangeAlphaRenderOptions> {
 
         this._inputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         })
 
         this._tempBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         })
 
         this._createOutputBuffers()
 
         const bindGroupLayout = this._device.createBindGroupLayout({
-            entries : [
+            entries: [
                 {
                     binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "read-only-storage"
-                    }
+                        type: 'read-only-storage',
+                    },
                 },
                 {
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "storage"
-                    }
+                        type: 'storage',
+                    },
                 },
                 {
                     binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                      type: "uniform",
-                    }
-                }
-            ]
+                        type: 'uniform',
+                    },
+                },
+            ],
         })
 
         this._bindGroup = this._device.createBindGroup({
@@ -145,32 +141,32 @@ class ChangeAlphaRenderer extends LayerRenderer<ChangeAlphaRenderOptions> {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this._inputBuffer
-                    }
+                        buffer: this._inputBuffer,
+                    },
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this._tempBuffer
-                    }
+                        buffer: this._tempBuffer,
+                    },
                 },
                 {
                     binding: 2,
                     resource: {
-                      buffer: this._uboBuffer
-                    }
-                }
-            ]
+                        buffer: this._uboBuffer,
+                    },
+                },
+            ],
         })
 
         this._computePipeline = this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
-                bindGroupLayouts: [bindGroupLayout]
+                bindGroupLayouts: [bindGroupLayout],
             }),
             compute: {
                 module: this._shaderModule,
-                entryPoint: "main"
-            }
+                entryPoint: 'main',
+            },
         })
     }
 
@@ -183,7 +179,6 @@ class ChangeAlphaRenderer extends LayerRenderer<ChangeAlphaRenderOptions> {
      * @returns {Promise<ImageData>}
      */
     private _doRendering(frameData: ImageData, options?: ChangeAlphaRenderOptions): Promise<ImageData> {
-
         // Upload frame pixels into the persistent input buffer
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
@@ -200,7 +195,7 @@ class ChangeAlphaRenderer extends LayerRenderer<ChangeAlphaRenderOptions> {
         passEncoder.end()
 
         return this._submitAndReadback(this._tempBuffer, commandEncoder) || Promise.resolve(frameData)
-	}
+    }
 }
 
 export { ChangeAlphaRenderer }

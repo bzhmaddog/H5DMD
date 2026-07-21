@@ -3,26 +3,28 @@
  * and numeric positioning), visibility, run/stop bookkeeping, sequence queueing
  * and the end-of-queue rendering shutdown.
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {SpritesLayer} from '../src/layers'
-import {ChangeAlphaRenderer} from '../src/renderers'
-import {Sprite} from '../src/utils'
-import type {SpriteAnimationItem} from '../src/interfaces/sprite-animation-item'
+import { SpritesLayer } from '../src/layers'
+import { ChangeAlphaRenderer } from '../src/renderers'
+import { Sprite } from '../src/utils'
+import type { SpriteAnimationItem } from '../src/interfaces/sprite-animation-item'
 
 const sheet = () => document.createElement('canvas') as unknown as ImageBitmap
 
 const animations: SpriteAnimationItem[] = [
-    {key: 'walk', animationParams: {width: 10, height: 10, nbFrames: 2, xOffset: 0, yOffset: 0, duration: 100}}
+    { key: 'walk', animationParams: { width: 10, height: 10, nbFrames: 2, xOffset: 0, yOffset: 0, duration: 100 } },
 ]
 
 describe('SpritesLayer', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)
-        vi.stubGlobal('requestAnimationFrame', vi.fn(() => 0))
+        vi.stubGlobal(
+            'requestAnimationFrame',
+            vi.fn(() => 0),
+        )
     })
 
     afterEach(() => {
@@ -41,16 +43,14 @@ describe('SpritesLayer', () => {
     test('createSprite rejects when no animations are provided', async () => {
         const layer = new SpritesLayer('s', 64, 16)
 
-        await expect(layer.createSprite('hero', sheet(), 0, 0, [], '0', '0'))
-            .rejects.toMatch(/No animations/)
+        await expect(layer.createSprite('hero', sheet(), 0, 0, [], '0', '0')).rejects.toMatch(/No animations/)
     })
 
     test('createSprite rejects a duplicate id', async () => {
         const layer = new SpritesLayer('s', 64, 16)
         await layer.createSprite('hero', sheet(), 0, 0, animations, '0', '0')
 
-        await expect(layer.createSprite('hero', sheet(), 0, 0, animations, '0', '0'))
-            .rejects.toMatch(/already exists/)
+        await expect(layer.createSprite('hero', sheet(), 0, 0, animations, '0', '0')).rejects.toMatch(/already exists/)
     })
 
     test('addSprite resolves percentage positions against the layer size', () => {
@@ -63,7 +63,7 @@ describe('SpritesLayer', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const stored = (layer as any)._sprites['p']
         expect(stored.x).toBe(32) // 50% of 64
-        expect(stored.y).toBe(8)  // 50% of 16
+        expect(stored.y).toBe(8) // 50% of 16
     })
 
     test('addSprite parses numeric string positions', () => {
@@ -244,9 +244,9 @@ describe('SpritesLayer', () => {
         layer.addSprite('q', sprite, '0', '0')
 
         const seqSpy = vi.spyOn(sprite, 'enqueueSequence')
-        layer.enqueueSequence('q', [{key: 'walk', nbLoop: 1}], true)
+        layer.enqueueSequence('q', [{ key: 'walk', nbLoop: 1 }], true)
 
-        expect(seqSpy).toHaveBeenCalledWith([{key: 'walk', nbLoop: 1}], true)
+        expect(seqSpy).toHaveBeenCalledWith([{ key: 'walk', nbLoop: 1 }], true)
     })
 
     test('__renderFrame draws visible sprites only', () => {

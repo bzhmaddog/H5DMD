@@ -1,26 +1,24 @@
-import {Renderer} from "./renderer"
-import {LayerRenderer} from "./layer-renderer"
+import { Renderer } from './renderer'
+import { LayerRenderer } from './layer-renderer'
 
 class RemoveAlphaRenderer extends LayerRenderer {
-
     private _inputBuffer: GPUBuffer
     private _tempBuffer: GPUBuffer
     private _bindGroup: GPUBindGroup
     private _computePipeline: GPUComputePipeline
 
     /**
-     * @param {number} width 
-     * @param {number} height 
+     * @param {number} width
+     * @param {number} height
      */
     constructor(width: number, height: number) {
-        super("RemoveAlphaRenderer", width, height)
+        super('RemoveAlphaRenderer', width, height)
     }
 
     init(): Promise<void> {
-
         return new Promise((resolve, reject) => {
-
-            Renderer.requestSharedDevice().then( device => {
+            Renderer.requestSharedDevice()
+                .then(device => {
                     this._device = device
 
                     this._shaderModule = device.createShaderModule({
@@ -46,7 +44,7 @@ class RemoveAlphaRenderer extends LayerRenderer {
                
                                 outputPixels.rgba[index] = 255u << 24u | b << 16u | g << 8u | r;
                             }
-                        `
+                        `,
                     })
 
                     console.log('RemoveAlphaRenderer:init()')
@@ -57,9 +55,9 @@ class RemoveAlphaRenderer extends LayerRenderer {
                         this.renderFrame = this._doRendering
                         resolve()
                     })
-                }).catch(reject)
-       })
-    
+                })
+                .catch(reject)
+        })
     }
 
     /**
@@ -67,15 +65,14 @@ class RemoveAlphaRenderer extends LayerRenderer {
      * Done once after init to avoid per-frame allocations (memory leak / GC churn).
      */
     private _createResources() {
-
         this._inputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         })
 
         this._tempBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         })
 
         this._createOutputBuffers()
@@ -86,17 +83,17 @@ class RemoveAlphaRenderer extends LayerRenderer {
                     binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "read-only-storage"
-                    }
+                        type: 'read-only-storage',
+                    },
                 },
                 {
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "storage"
-                    }
-                }
-            ]
+                        type: 'storage',
+                    },
+                },
+            ],
         })
 
         this._bindGroup = this._device.createBindGroup({
@@ -105,26 +102,26 @@ class RemoveAlphaRenderer extends LayerRenderer {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this._inputBuffer
-                    }
+                        buffer: this._inputBuffer,
+                    },
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this._tempBuffer
-                    }
-                }
-            ]
+                        buffer: this._tempBuffer,
+                    },
+                },
+            ],
         })
 
         this._computePipeline = this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
-                bindGroupLayouts: [bindGroupLayout]
+                bindGroupLayouts: [bindGroupLayout],
             }),
             compute: {
                 module: this._shaderModule,
-                entryPoint: "main"
-            }
+                entryPoint: 'main',
+            },
         })
     }
 
@@ -132,11 +129,10 @@ class RemoveAlphaRenderer extends LayerRenderer {
      * Apply filter to provided data then return altered data.
      * Reuses the GPU resources created in init() : only per-frame pixels
      * are uploaded each call.
-     * @param {ImageData} frameData 
+     * @param {ImageData} frameData
      * @returns {Promise<ImageData>}
      */
     private _doRendering(frameData: ImageData): Promise<ImageData> {
-
         // Upload frame pixels into the persistent input buffer
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
@@ -149,8 +145,7 @@ class RemoveAlphaRenderer extends LayerRenderer {
         passEncoder.end()
 
         return this._submitAndReadback(this._tempBuffer, commandEncoder) || Promise.resolve(frameData)
-	}
-
+    }
 }
 
 export { RemoveAlphaRenderer }

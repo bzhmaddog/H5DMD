@@ -1,29 +1,29 @@
 name: CI
 on:
-  pull_request:
-    branches: [main]
+    pull_request:
+        branches: [main]
 
 permissions:
-  contents: read
+    contents: read
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run test:coverage
-      - run: npm run build
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: coverage/
-          retention-days: 14
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 24
+                  cache: npm
+                  cache-dependency-path: package-lock.json
+            - run: npm ci
+            - run: npm run lint
+            - run: npm run test:coverage
+            - run: npm run build
+            - name: Upload coverage report
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage
+                  path: coverage/
+                  retention-days: 14

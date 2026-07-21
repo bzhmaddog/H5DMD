@@ -1,5 +1,5 @@
-import {Renderer} from "./renderer"
-import {LayerRenderer} from "./layer-renderer"
+import { Renderer } from './renderer'
+import { LayerRenderer } from './layer-renderer'
 
 export interface NoiseEffectRendererParams {
     /** Total animation cycle duration in ms. Default: `200`. */
@@ -13,7 +13,6 @@ export interface NoiseEffectRendererParams {
 }
 
 class NoiseEffectRenderer extends LayerRenderer {
-
     private _noises: Uint8ClampedArray[]
     private _startTime: number
     private _frameDuration: number
@@ -31,7 +30,7 @@ class NoiseEffectRenderer extends LayerRenderer {
      * @param {NoiseEffectRendererParams} params Optional noise frames and intensity.
      */
     constructor(width: number, height: number, params?: NoiseEffectRendererParams) {
-        super("NoiseEffectRenderer", width, height)
+        super('NoiseEffectRenderer', width, height)
 
         this._noises = params?.noises ?? []
         this._nbFrames = this._noises.length
@@ -39,10 +38,9 @@ class NoiseEffectRenderer extends LayerRenderer {
     }
 
     init(): Promise<void> {
-
         return new Promise((resolve, reject) => {
-
-            Renderer.requestSharedDevice().then( device => {
+            Renderer.requestSharedDevice()
+                .then(device => {
                     this._device = device
 
                     this._shaderModule = device.createShaderModule({
@@ -86,7 +84,7 @@ class NoiseEffectRenderer extends LayerRenderer {
                                 outputPixels.rgba[index] = pixel;
                                 //outputPixels.rgba[index] = noise;
                             }
-                        `
+                        `,
                     })
 
                     console.log('NoiseEffectRenderer:init()')
@@ -97,8 +95,9 @@ class NoiseEffectRenderer extends LayerRenderer {
                         this.renderFrame = this._doRendering
                         resolve()
                     })
-                }).catch(reject)
-       })
+                })
+                .catch(reject)
+        })
     }
 
     /**
@@ -106,20 +105,19 @@ class NoiseEffectRenderer extends LayerRenderer {
      * Done once after init to avoid per-frame allocations (memory leak / GC churn).
      */
     private _createResources() {
-
         this._noiseBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         })
 
         this._inputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         })
 
         this._tempBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         })
 
         this._createOutputBuffers()
@@ -129,25 +127,25 @@ class NoiseEffectRenderer extends LayerRenderer {
                 {
                     binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
-                    buffer : {
-                        type: "read-only-storage"
-                    }
-                },            
+                    buffer: {
+                        type: 'read-only-storage',
+                    },
+                },
                 {
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "read-only-storage"
-                    }
+                        type: 'read-only-storage',
+                    },
                 },
                 {
                     binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "storage"
-                    }
-                }
-            ]
+                        type: 'storage',
+                    },
+                },
+            ],
         })
 
         this._bindGroup = this._device.createBindGroup({
@@ -156,32 +154,32 @@ class NoiseEffectRenderer extends LayerRenderer {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this._noiseBuffer
-                    }
+                        buffer: this._noiseBuffer,
+                    },
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this._inputBuffer
-                    }
+                        buffer: this._inputBuffer,
+                    },
                 },
                 {
                     binding: 2,
                     resource: {
-                        buffer: this._tempBuffer
-                    }
-                }
-            ]
+                        buffer: this._tempBuffer,
+                    },
+                },
+            ],
         })
 
         this._computePipeline = this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
-                bindGroupLayouts: [bindGroupLayout]
+                bindGroupLayouts: [bindGroupLayout],
             }),
             compute: {
                 module: this._shaderModule,
-                entryPoint: "main"
-            }
+                entryPoint: 'main',
+            },
         })
     }
 
@@ -189,11 +187,10 @@ class NoiseEffectRenderer extends LayerRenderer {
      * Apply filter to provided ImageData object then return altered data.
      * Reuses the GPU resources created in init() : only per-frame data
      * (noise + pixels) is uploaded each call.
-     * @param {ImageData} frameData 
+     * @param {ImageData} frameData
      * @returns {ImageData}
      */
     private _doRendering(frameData: ImageData): Promise<ImageData> {
-
         const now = window.performance.now()
 
         if (!this._startTime) {
@@ -226,7 +223,7 @@ class NoiseEffectRenderer extends LayerRenderer {
         passEncoder.end()
 
         return this._submitAndReadback(this._tempBuffer, commandEncoder) || Promise.resolve(frameData)
-	}
+    }
 }
 
 export { NoiseEffectRenderer }

@@ -11,16 +11,15 @@
  *   - a rejected load() still draws (canvas fallback font) instead of never drawing.
  *   - absent FontFaceSet (e.g. jsdom) draws immediately (no-op guard).
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {TextLayer} from '../src/layers'
-import {ChangeAlphaRenderer, OutlineRenderer, RemoveAliasingRenderer} from '../src/renderers'
+import { TextLayer } from '../src/layers'
+import { ChangeAlphaRenderer, OutlineRenderer, RemoveAliasingRenderer } from '../src/renderers'
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 5))
 
 describe('TextLayer - font loading', () => {
-
     const originalGetContext = HTMLCanvasElement.prototype.getContext
 
     let fillTextCalls = 0
@@ -47,7 +46,7 @@ describe('TextLayer - font loading', () => {
                 }
             }
             return ctx
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any
     })
 
@@ -58,17 +57,22 @@ describe('TextLayer - font loading', () => {
         vi.restoreAllMocks()
     })
 
-    const stubFonts = (load: (font: string, text?: string) => Promise<unknown>, check?: (font: string, text?: string) => boolean) => {
-        Object.defineProperty(document, 'fonts', {value: {load, check}, configurable: true})
+    const stubFonts = (
+        load: (font: string, text?: string) => Promise<unknown>,
+        check?: (font: string, text?: string) => boolean,
+    ) => {
+        Object.defineProperty(document, 'fonts', { value: { load, check }, configurable: true })
     }
 
     test('awaits document.fonts.load with the configured style/family before drawing', async () => {
         let resolveLoad!: () => void
-        const loadGate = new Promise<FontFace[]>(resolve => { resolveLoad = () => resolve([]) })
+        const loadGate = new Promise<FontFace[]>(resolve => {
+            resolveLoad = () => resolve([])
+        })
         const load = vi.fn(() => loadGate)
         stubFonts(load)
 
-        new TextLayer('t', 40, 10, {text: 'SCORE', fontFamily: 'Dusty', fontStyle: 'italic'})
+        new TextLayer('t', 40, 10, { text: 'SCORE', fontFamily: 'Dusty', fontStyle: 'italic' })
         await flush()
 
         expect(load).toHaveBeenCalledWith('italic 100px Dusty', 'SCORE')
@@ -85,7 +89,7 @@ describe('TextLayer - font loading', () => {
         const check = vi.fn(() => true)
         stubFonts(load, check)
 
-        new TextLayer('t', 40, 10, {text: 'SCORE', fontFamily: 'Dusty'})
+        new TextLayer('t', 40, 10, { text: 'SCORE', fontFamily: 'Dusty' })
         await flush()
 
         expect(check).toHaveBeenCalledWith('normal 100px Dusty', 'SCORE')
@@ -96,14 +100,14 @@ describe('TextLayer - font loading', () => {
     test('a rejected load still draws, with the canvas fallback font', async () => {
         stubFonts(vi.fn(() => Promise.reject(new Error('font download failed'))))
 
-        new TextLayer('t', 40, 10, {text: 'X', fontFamily: 'Missing'})
+        new TextLayer('t', 40, 10, { text: 'X', fontFamily: 'Missing' })
         await flush()
 
         expect(fillTextCalls).toBeGreaterThan(0)
     })
 
     test('absent FontFaceSet (e.g. jsdom) draws immediately', async () => {
-        new TextLayer('t', 40, 10, {text: 'X'})
+        new TextLayer('t', 40, 10, { text: 'X' })
         await flush()
 
         expect(fillTextCalls).toBeGreaterThan(0)

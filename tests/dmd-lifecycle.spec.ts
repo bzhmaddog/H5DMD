@@ -8,15 +8,14 @@
  *   - addRenderer() rejects once the DMD is running, pointing at Dmd.run().
  *   - layers with equal z-index keep their insertion order (stable sort).
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {Dmd} from '../src'
-import {ChangeAlphaRenderer, DmdRenderer} from '../src/renderers'
-import {DotShape} from '../src/enums'
+import { Dmd } from '../src'
+import { ChangeAlphaRenderer, DmdRenderer } from '../src/renderers'
+import { DotShape } from '../src/enums'
 
 describe('Dmd lifecycle and layer ordering', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)
@@ -39,7 +38,14 @@ describe('Dmd lifecycle and layer ordering', () => {
         const raf = vi.fn(() => 0)
         vi.stubGlobal('requestAnimationFrame', raf)
 
-        const dmd = new Dmd(makeCanvas(), { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: false })
+        const dmd = new Dmd(makeCanvas(), {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: false,
+        })
         await dmd.init()
 
         dmd.run()
@@ -51,7 +57,14 @@ describe('Dmd lifecycle and layer ordering', () => {
     test('stop() removes the FPS canvas from the DOM', () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
 
-        const dmd = new Dmd(makeCanvas(), { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: true })
+        const dmd = new Dmd(makeCanvas(), {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: true,
+        })
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const canvas = (dmd as any)._fpsCanvas as HTMLElement
@@ -65,20 +78,33 @@ describe('Dmd lifecycle and layer ordering', () => {
     test('addRenderer() while running rejects, pointing at Dmd.run()', () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
 
-        const dmd = new Dmd(makeCanvas(), { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: false })
+        const dmd = new Dmd(makeCanvas(), {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: false,
+        })
 
         // Simulate a running Dmd.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(dmd as any)._isRunning = true
 
-        expect(() => dmd.addRenderer('x', {} as never))
-            .toThrow('Renderers must be added before calling Dmd.run()')
+        expect(() => dmd.addRenderer('x', {} as never)).toThrow('Renderers must be added before calling Dmd.run()')
     })
 
     test('equal z-index layers keep their insertion order (stable sort)', () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
 
-        const dmd = new Dmd(makeCanvas(), { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: false })
+        const dmd = new Dmd(makeCanvas(), {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: false,
+        })
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const internal = dmd as any
@@ -86,24 +112,37 @@ describe('Dmd lifecycle and layer ordering', () => {
             id,
             zIndex: 1,
             top: 0,
-            left: 0
+            left: 0,
         }))
 
         internal.sortLayers()
 
-        expect(internal._sortedLayers.map((l: {id: string}) => l.id))
-            .toEqual(['a', 'b', 'c', 'd', 'e'])
+        expect(internal._sortedLayers.map((l: { id: string }) => l.id)).toEqual(['a', 'b', 'c', 'd', 'e'])
     })
 
     test('run() before init() throws', () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
-        const dmd = new Dmd(makeCanvas(), { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: false })
+        const dmd = new Dmd(makeCanvas(), {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: false,
+        })
         expect(() => dmd.run()).toThrow('call Dmd.init() first')
     })
 
     test('run() re-creates the FPS canvas after stop()', async () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
-        const dmd = new Dmd(makeCanvas(), { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: true })
+        const dmd = new Dmd(makeCanvas(), {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: true,
+        })
         await dmd.init()
 
         dmd.run()
@@ -121,7 +160,14 @@ describe('Dmd lifecycle and layer ordering', () => {
     test('stop() sets _renderNextFrame to a no-op logger', () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
         const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-        const dmd = new Dmd(makeCanvas(), { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: false })
+        const dmd = new Dmd(makeCanvas(), {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: false,
+        })
 
         dmd.stop()
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

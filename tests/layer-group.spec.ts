@@ -9,14 +9,14 @@
  *   - 3-level nesting (Dmd -> group -> subgroup -> leaf layer)
  *   - visibility cascade (hide/restore) and destroy cascade
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {Dmd} from '../src'
-import {CanvasLayer, LayerGroup} from '../src/layers'
-import {ChangeAlphaRenderer, DmdRenderer} from '../src/renderers'
-import {Options} from '../src/utils'
-import {DotShape} from '../src/enums'
+import { Dmd } from '../src'
+import { CanvasLayer, LayerGroup } from '../src/layers'
+import { ChangeAlphaRenderer, DmdRenderer } from '../src/renderers'
+import { Options } from '../src/utils'
+import { DotShape } from '../src/enums'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const priv = (obj: unknown): any => obj as any
@@ -26,12 +26,14 @@ const markLoaded = (layer: CanvasLayer | LayerGroup) => {
 }
 
 describe('LayerGroup', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         vi.spyOn(DmdRenderer.prototype, 'init').mockResolvedValue(undefined)
         vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)
-        vi.stubGlobal('requestAnimationFrame', vi.fn(() => 0))
+        vi.stubGlobal(
+            'requestAnimationFrame',
+            vi.fn(() => 0),
+        )
         vi.stubGlobal('createImageBitmap', () => {
             const c = document.createElement('canvas')
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,13 +51,28 @@ describe('LayerGroup', () => {
         const canvas = document.createElement('canvas')
         canvas.width = 128
         canvas.height = 32
-        return new Dmd(canvas, {dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: false})
+        return new Dmd(canvas, {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: false,
+        })
     }
 
     test('inherits BaseLayer dimensioning/position/opacity/background/visibility', () => {
-        const group = new LayerGroup('g', 32, 16, new Options({
-            visible: false, opacity: 0.5, backgroundColor: '#112233', backgroundOpacity: 0.4
-        }))
+        const group = new LayerGroup(
+            'g',
+            32,
+            16,
+            new Options({
+                visible: false,
+                opacity: 0.5,
+                backgroundColor: '#112233',
+                backgroundOpacity: 0.4,
+            }),
+        )
 
         expect(group.width).toBe(32)
         expect(group.height).toBe(16)
@@ -93,8 +110,8 @@ describe('LayerGroup', () => {
     test('composites visible+loaded children at their relative position, in zIndex order', () => {
         const group = new LayerGroup('g', 64, 32)
 
-        const back = group.addLayer(CanvasLayer, 'back', new Options({position: {top: 1, left: 2}}))
-        const front = group.addLayer(CanvasLayer, 'front', new Options({position: {top: 3, left: 4}}))
+        const back = group.addLayer(CanvasLayer, 'back', new Options({ position: { top: 1, left: 2 } }))
+        const front = group.addLayer(CanvasLayer, 'front', new Options({ position: { top: 3, left: 4 } }))
         markLoaded(back)
         markLoaded(front)
 
@@ -109,7 +126,7 @@ describe('LayerGroup', () => {
     test('skips children that are hidden or not yet loaded', () => {
         const group = new LayerGroup('g', 64, 32)
 
-        const hidden = group.addLayer(CanvasLayer, 'hidden', new Options({visible: false}))
+        const hidden = group.addLayer(CanvasLayer, 'hidden', new Options({ visible: false }))
         group.addLayer(CanvasLayer, 'not-loaded', new Options()) // left unloaded on purpose
         markLoaded(hidden) // loaded but hidden - still skipped
 
@@ -140,9 +157,14 @@ describe('LayerGroup', () => {
     })
 
     test('a group with an active renderer recomposites on every render pass', () => {
-        const group = new LayerGroup('g', 32, 16, new Options({
-            renderers: [{id: 'alpha', instance: new ChangeAlphaRenderer(32, 16)}]
-        }))
+        const group = new LayerGroup(
+            'g',
+            32,
+            16,
+            new Options({
+                renderers: [{ id: 'alpha', instance: new ChangeAlphaRenderer(32, 16) }],
+            }),
+        )
         markLoaded(group)
 
         const prepareSpy = vi.spyOn(priv(group), '_prepareFrame')
@@ -155,9 +177,12 @@ describe('LayerGroup', () => {
 
     test('3-level nesting composes recursively (Dmd -> group -> subgroup -> leaf)', () => {
         const dmd = makeDmd()
-        const group = dmd.addLayerGroup('group', new Options({width: 40, height: 20}))
-        const subgroup = group.addLayerGroup('subgroup', new Options({width: 20, height: 10, position: {top: 1, left: 2}}))
-        const leaf = subgroup.addLayer(CanvasLayer, 'leaf', new Options({position: {top: 3, left: 4}}))
+        const group = dmd.addLayerGroup('group', new Options({ width: 40, height: 20 }))
+        const subgroup = group.addLayerGroup(
+            'subgroup',
+            new Options({ width: 20, height: 10, position: { top: 1, left: 2 } }),
+        )
+        const leaf = subgroup.addLayer(CanvasLayer, 'leaf', new Options({ position: { top: 3, left: 4 } }))
         markLoaded(leaf)
         markLoaded(subgroup)
         markLoaded(group)
@@ -174,7 +199,7 @@ describe('LayerGroup', () => {
     test('hiding cascades visibility to children and restores their prior state on show', () => {
         const group = new LayerGroup('g', 32, 16)
         const a = group.addLayer(CanvasLayer, 'a', new Options())
-        const b = group.addLayer(CanvasLayer, 'b', new Options({visible: false}))
+        const b = group.addLayer(CanvasLayer, 'b', new Options({ visible: false }))
 
         expect(a.isVisible()).toBe(true)
         expect(b.isVisible()).toBe(false)
@@ -192,7 +217,7 @@ describe('LayerGroup', () => {
         const group = new LayerGroup('g', 32, 16)
         group.setVisibility(false)
 
-        const child = group.addLayer(CanvasLayer, 'c', new Options({visible: true}))
+        const child = group.addLayer(CanvasLayer, 'c', new Options({ visible: true }))
         expect(child.isVisible()).toBe(false)
 
         group.setVisibility(true)
@@ -238,7 +263,7 @@ describe('LayerGroup', () => {
     test('deprecated LayerGroup.addLayer(LayerGroup, ...) still works but warns', () => {
         const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
         const group = new LayerGroup('g', 32, 16)
-        const nested = group.addLayer(LayerGroup, 'nested', new Options({width: 10, height: 10}))
+        const nested = group.addLayer(LayerGroup, 'nested', new Options({ width: 10, height: 10 }))
 
         expect(nested).toBeInstanceOf(LayerGroup)
         expect(group.getLayer('nested')).toBe(nested)

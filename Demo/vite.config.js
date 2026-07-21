@@ -1,18 +1,15 @@
-import {fileURLToPath} from "node:url";
-import {defineConfig} from "vite";
-import {tscWatch} from "vite-plugin-tsc-watch";
-import mkcert from "vite-plugin-mkcert";
+import { fileURLToPath } from 'node:url'
+import { defineConfig } from 'vite'
+import { tscWatch } from 'vite-plugin-tsc-watch'
+import mkcert from 'vite-plugin-mkcert'
 
-const resolveEntry = (path) => fileURLToPath(new URL(path, import.meta.url));
+const resolveEntry = path => fileURLToPath(new URL(path, import.meta.url))
 
 export default defineConfig({
     base: '/H5DMD/',
-    plugins: [
-        tscWatch(),
-        mkcert()
-    ],
+    plugins: [tscWatch(), mkcert()],
     server: {
-        host: '0.0.0.0'
+        host: '0.0.0.0',
     },
     build: {
         rollupOptions: {
@@ -22,7 +19,7 @@ export default defineConfig({
                 text: resolveEntry('./text/index.html'),
                 advanced: resolveEntry('./advanced/index.html'),
                 scoreboard: resolveEntry('./scoreboard/index.html'),
-            }
-        }
-    }
-});
+            },
+        },
+    },
+})

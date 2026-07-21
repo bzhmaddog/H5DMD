@@ -1,12 +1,12 @@
-import {Options, type OffscreenBuffer} from "../utils"
-import type {Layer, LayerPosition} from "../interfaces"
-import {BaseLayer} from "./base-layer"
-import {AnimationLayer} from "./animation-layer"
-import {CanvasLayer} from "./canvas-layer"
-import {SpritesLayer} from "./sprites-layer"
-import {TextLayer} from "./text-layer"
-import {VideoLayer} from "./video-layer"
-import {LayerGroup} from "./layer-group"
+import { Options, type OffscreenBuffer } from '../utils'
+import type { Layer, LayerPosition } from '../interfaces'
+import { BaseLayer } from './base-layer'
+import { AnimationLayer } from './animation-layer'
+import { CanvasLayer } from './canvas-layer'
+import { SpritesLayer } from './sprites-layer'
+import { TextLayer } from './text-layer'
+import { VideoLayer } from './video-layer'
+import { LayerGroup } from './layer-group'
 
 /**
  * id -> layer instance map. Shared shape between {@link Dmd} and {@link LayerGroup},
@@ -16,8 +16,28 @@ export interface LayerDictionary {
     [index: string]: BaseLayer
 }
 
-const H_CONSTRAINT_KEYS = ['leftToLeftOf', 'leftToRightOf', 'leftToCenterOf', 'rightToLeftOf', 'rightToRightOf', 'rightToCenterOf', 'hCenterToLeftOf', 'hCenterToCenterOf', 'hCenterToRightOf'] as const
-const V_CONSTRAINT_KEYS = ['topToTopOf', 'topToBottomOf', 'topToCenterOf', 'bottomToTopOf', 'bottomToBottomOf', 'bottomToCenterOf', 'vCenterToTopOf', 'vCenterToCenterOf', 'vCenterToBottomOf'] as const
+const H_CONSTRAINT_KEYS = [
+    'leftToLeftOf',
+    'leftToRightOf',
+    'leftToCenterOf',
+    'rightToLeftOf',
+    'rightToRightOf',
+    'rightToCenterOf',
+    'hCenterToLeftOf',
+    'hCenterToCenterOf',
+    'hCenterToRightOf',
+] as const
+const V_CONSTRAINT_KEYS = [
+    'topToTopOf',
+    'topToBottomOf',
+    'topToCenterOf',
+    'bottomToTopOf',
+    'bottomToBottomOf',
+    'bottomToCenterOf',
+    'vCenterToTopOf',
+    'vCenterToCenterOf',
+    'vCenterToBottomOf',
+] as const
 
 interface TargetBox {
     left: number
@@ -37,9 +57,9 @@ function resolveTargetBox(
     containerWidth: number,
     containerHeight: number,
     sortedLayers: Layer[],
-    layers: LayerDictionary
+    layers: LayerDictionary,
 ): TargetBox {
-    const parentBox: TargetBox = {left: 0, top: 0, width: containerWidth, height: containerHeight}
+    const parentBox: TargetBox = { left: 0, top: 0, width: containerWidth, height: containerHeight }
 
     if (targetRef === 'parent') {
         return parentBox
@@ -49,7 +69,7 @@ function resolveTargetBox(
     const sibling = layers[targetRef]
 
     if (record && sibling) {
-        return {left: record.left, top: record.top, width: sibling.width, height: sibling.height}
+        return { left: record.left, top: record.top, width: sibling.width, height: sibling.height }
     }
 
     console.warn(`Layer[${id}] : alignment target "${targetRef}" does not exist - falling back to 'parent'`)
@@ -84,29 +104,36 @@ export function resolveLayerPosition(
     containerWidth: number,
     containerHeight: number,
     sortedLayers: Layer[],
-    layers: LayerDictionary
-): { top: number, left: number } {
+    layers: LayerDictionary,
+): { top: number; left: number } {
     const pos = position || {}
     let top = pos.top || 0
     let left = pos.left || 0
 
     if (typeof pos.hAlign === 'string') {
         switch (pos.hAlign) {
-            case "start":
-            case "left":
+            case 'start':
+            case 'left':
                 left = pos.hOffset || 0
                 break
-            case "center":
+            case 'center':
                 left = (containerWidth - layerWidth) / 2 + (pos.hOffset || 0)
                 break
-            case "end":
-            case "right":
+            case 'end':
+            case 'right':
                 left = containerWidth - layerWidth + (pos.hOffset || 0)
                 break
-            case "constraint": {
+            case 'constraint': {
                 const activeKey = H_CONSTRAINT_KEYS.find(k => pos[k] !== undefined)
                 if (activeKey) {
-                    const target = resolveTargetBox(id, pos[activeKey]!, containerWidth, containerHeight, sortedLayers, layers)
+                    const target = resolveTargetBox(
+                        id,
+                        pos[activeKey]!,
+                        containerWidth,
+                        containerHeight,
+                        sortedLayers,
+                        layers,
+                    )
                     switch (activeKey) {
                         case 'leftToLeftOf':
                             left = target.left + (pos.hOffset || 0)
@@ -157,7 +184,14 @@ export function resolveLayerPosition(
             case 'constraint': {
                 const activeKey = V_CONSTRAINT_KEYS.find(k => pos[k] !== undefined)
                 if (activeKey) {
-                    const target = resolveTargetBox(id, pos[activeKey]!, containerWidth, containerHeight, sortedLayers, layers)
+                    const target = resolveTargetBox(
+                        id,
+                        pos[activeKey]!,
+                        containerWidth,
+                        containerHeight,
+                        sortedLayers,
+                        layers,
+                    )
                     switch (activeKey) {
                         case 'topToTopOf':
                             top = target.top + (pos.vOffset || 0)
@@ -198,7 +232,7 @@ export function resolveLayerPosition(
     // `drawImage(canvas, left, top)`, and drawImage at a fractional offset resamples the
     // image bilinearly - which silently blurs the layer, and on a dot display every blurred
     // edge becomes a half-lit dot. A layer's position is a dot index; it cannot be a half.
-    return {top: Math.round(top), left: Math.round(left)}
+    return { top: Math.round(top), left: Math.round(left) }
 }
 
 /**
@@ -227,7 +261,12 @@ export function createLayerInstance<T extends BaseLayer>(
     } else if (cls === VideoLayer) {
         layer = new VideoLayer(id, width, height, opts, { ...lifecycle, play: onPlay, pause: onPause, stop: onStop })
     } else if (cls === AnimationLayer) {
-        layer = new AnimationLayer(id, width, height, opts, { ...lifecycle, play: onPlay, pause: onPause, stop: onStop })
+        layer = new AnimationLayer(id, width, height, opts, {
+            ...lifecycle,
+            play: onPlay,
+            pause: onPause,
+            stop: onStop,
+        })
     } else if (cls === SpritesLayer) {
         layer = new SpritesLayer(id, width, height, opts, lifecycle)
     } else if (cls === TextLayer) {

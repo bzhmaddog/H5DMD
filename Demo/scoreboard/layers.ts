@@ -1,4 +1,4 @@
-import {Colors, Dmd, TextLayer, CanvasLayer, NoiseEffectRenderer, rendererEntry, ShakyRenderer, Utils} from "h5dmd";
+import { Colors, Dmd, TextLayer, CanvasLayer, NoiseEffectRenderer, rendererEntry, ShakyRenderer, Utils } from 'h5dmd'
 
 /**
  * Build a pinball-style scoreboard out of three independent top-level LayerGroups: the
@@ -7,27 +7,26 @@ import {Colors, Dmd, TextLayer, CanvasLayer, NoiseEffectRenderer, rendererEntry,
  * move/show/hide together as one unit, which is exactly what LayerGroup is for.
  */
 export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promise<void> {
-
-    const noiseUrls: string[] = [];
+    const noiseUrls: string[] = []
     for (let i = 0; i < 6; i++) {
-        noiseUrls.push(`${imagesPath}/noises/noise-${i}.png`);
+        noiseUrls.push(`${imagesPath}/noises/noise-${i}.png`)
     }
 
-    const bitmaps = await Utils.loadImagesOrdered(noiseUrls);
+    const bitmaps = await Utils.loadImagesOrdered(noiseUrls)
 
     // Load the custom score font. The FontFace must finish loading before the TextLayer
     // below draws its first frame, otherwise the canvas silently falls back to the default
     // font for that frame (document.fonts.add() alone doesn't wait for the font data).
-    const fontsPath = imagesPath.replace(/images$/, 'fonts');
-    const dustyFont = new FontFace('Dusty', `url(${fontsPath}/Dusty.otf)`);
-    await dustyFont.load();
-    document.fonts.add(dustyFont);
+    const fontsPath = imagesPath.replace(/images$/, 'fonts')
+    const dustyFont = new FontFace('Dusty', `url(${fontsPath}/Dusty.otf)`)
+    await dustyFont.load()
+    document.fonts.add(dustyFont)
 
     // Must match the score group's own width/height below - the NoiseEffectRenderer's GPU
     // buffer is sized from the layer it's attached to, not from this pixel data's own size.
-    const scoreWidth = 426;
-    const scoreHeight = 90;
-    const noiseData = Utils.bitmapsToPixelData(bitmaps, scoreWidth, scoreHeight);
+    const scoreWidth = 426
+    const scoreHeight = 90
+    const noiseData = Utils.bitmapsToPixelData(bitmaps, scoreWidth, scoreHeight)
 
     // ---------------------------------------------------------------------
     // Score - big outlined digits, right-aligned
@@ -35,11 +34,9 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
     const score = dmd.addLayerGroup('score', {
         width: scoreWidth,
         height: scoreHeight,
-        position: {hAlign: 'end', vAlign: 'center'},
-        renderers: [
-            rendererEntry('noise', NoiseEffectRenderer,  { duration: 200, noises: noiseData }, true)
-        ]
-    });
+        position: { hAlign: 'end', vAlign: 'center' },
+        renderers: [rendererEntry('noise', NoiseEffectRenderer, { duration: 200, noises: noiseData }, true)],
+    })
 
     score.addLayer(TextLayer, 'value', {
         text: '0',
@@ -52,8 +49,8 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
         adjustDirection: 'shrink',
         color: Colors.White,
         outlineWidth: 2,
-        outlineColor: Colors.Blue
-    });
+        outlineColor: Colors.Blue,
+    })
 
     // ---------------------------------------------------------------------
     // Player indicator (bottom-left) - "P" label + player number
@@ -61,36 +58,46 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
     const player = dmd.addLayerGroup('player', {
         width: 35,
         height: 18,
-        position: {left: 4, vAlign: 'end'}
-    });
+        position: { left: 4, vAlign: 'end' },
+    })
 
-    player.addLayer(CanvasLayer, 'icon', {
-        width: 18,
-        height: 18,
-        position: {top: 0, left: 0},
-    }, {loaded: async (playerIcon) => {
-        const bgURI = `${imagesPath}/scott-face.webp`;
-        const bitmap = await fetch(bgURI).then(r => r.blob()).then(createImageBitmap);
-        playerIcon.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap));
-        playerIcon.draw();
-    }});
+    player.addLayer(
+        CanvasLayer,
+        'icon',
+        {
+            width: 18,
+            height: 18,
+            position: { top: 0, left: 0 },
+        },
+        {
+            loaded: async playerIcon => {
+                const bgURI = `${imagesPath}/scott-face.webp`
+                const bitmap = await fetch(bgURI)
+                    .then(r => r.blob())
+                    .then(createImageBitmap)
+                playerIcon.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap))
+                playerIcon.draw()
+            },
+        },
+    )
 
     player.addLayer(TextLayer, 'number', {
         width: 10,
         height: 18,
         position: {
-            hAlign: 'constraint', leftToRightOf: 'icon',
-            vAlign: 'constraint', topToTopOf: 'icon',
-            hOffset: 1, vOffset: 1
+            hAlign: 'constraint',
+            leftToRightOf: 'icon',
+            vAlign: 'constraint',
+            topToTopOf: 'icon',
+            hOffset: 1,
+            vOffset: 1,
         },
         text: '1',
         fontSize: 100,
         adjustWidth: true,
         color: Colors.Yellow,
-        renderers: [
-            rendererEntry('shake', ShakyRenderer, {intensity: 1, speed: 12, mode: 'random'}, false)
-        ],
-    });
+        renderers: [rendererEntry('shake', ShakyRenderer, { intensity: 1, speed: 12, mode: 'random' }, false)],
+    })
 
     // ---------------------------------------------------------------------
     // Ball indicator (bottom-right) - "B" label + ball number
@@ -98,34 +105,44 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
     const ball = dmd.addLayerGroup('ball', {
         width: 35,
         height: 20,
-        position: {hAlign: 'end', vAlign: 'end'}
-    });
+        position: { hAlign: 'end', vAlign: 'end' },
+    })
 
-    ball.addLayer(CanvasLayer, 'icon', {
-        width: 18,
-        height: 18,
-        position: {top: 1, left: 2}
-    }, {loaded: async (ballIcon) => {
-        const bgURI = `${imagesPath}/ball.webp`;
-        const bitmap = await fetch(bgURI).then(r => r.blob()).then(createImageBitmap);
-        ballIcon.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap));
-        ballIcon.draw();
-    }});
+    ball.addLayer(
+        CanvasLayer,
+        'icon',
+        {
+            width: 18,
+            height: 18,
+            position: { top: 1, left: 2 },
+        },
+        {
+            loaded: async ballIcon => {
+                const bgURI = `${imagesPath}/ball.webp`
+                const bitmap = await fetch(bgURI)
+                    .then(r => r.blob())
+                    .then(createImageBitmap)
+                ballIcon.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap))
+                ballIcon.draw()
+            },
+        },
+    )
 
     ball.addLayer(TextLayer, 'number', {
         width: 10,
         height: 20,
         position: {
-            hAlign: 'constraint', leftToRightOf: 'icon',
-            vAlign: 'constraint', topToTopOf: 'icon',
-            hOffset: 2, vOffset: -1
+            hAlign: 'constraint',
+            leftToRightOf: 'icon',
+            vAlign: 'constraint',
+            topToTopOf: 'icon',
+            hOffset: 2,
+            vOffset: -1,
         },
         text: '1',
         fontSize: 70,
         color: Colors.Yellow,
         hAlign: 'start',
-        renderers: [
-            rendererEntry('shake', ShakyRenderer, {intensity: 1, speed: 12, mode: 'random'}, false)
-        ],
-    });
+        renderers: [rendererEntry('shake', ShakyRenderer, { intensity: 1, speed: 12, mode: 'random' }, false)],
+    })
 }

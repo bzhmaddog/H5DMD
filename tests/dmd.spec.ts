@@ -1,29 +1,28 @@
-import {readFileSync} from 'node:fs';
-import {resolve} from 'node:path';
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
-import {beforeEach, describe, expect, test, vi} from 'vitest';
-import {setupVitestCanvasMock} from 'vitest-canvas-mock';
+import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {ChangeAlphaRenderer, DmdRenderer} from '../src/renderers';
-import {Dmd} from '../src'
-import {DmdOptions} from '../src/interfaces';
-import {Options} from '../src/utils';
-import {AnimationLayer, CanvasLayer, SpritesLayer} from '../src/layers';
-import {DotShape} from "../src/enums";
+import { ChangeAlphaRenderer, DmdRenderer } from '../src/renderers'
+import { Dmd } from '../src'
+import { DmdOptions } from '../src/interfaces'
+import { Options } from '../src/utils'
+import { AnimationLayer, CanvasLayer, SpritesLayer } from '../src/layers'
+import { DotShape } from '../src/enums'
 
-vi.mock('../src/renderers/dmd-renderer');
+vi.mock('../src/renderers/dmd-renderer')
 vi.mock('../src/renderers/change-alpha-renderer')
 
 describe('testing entry file', () => {
-
     const canvas = document.createElement('canvas')
 
     canvas.width = 1280
     canvas.height = 390
 
     beforeEach(() => {
-        vi.resetAllMocks();
-        setupVitestCanvasMock();
+        vi.resetAllMocks()
+        setupVitestCanvasMock()
 
         const mockInit = vi.fn()
         DmdRenderer.prototype.init = mockInit
@@ -32,14 +31,20 @@ describe('testing entry file', () => {
         const mockRenderFrame = vi.fn()
         DmdRenderer.prototype.renderFrame = mockRenderFrame
         ChangeAlphaRenderer.prototype.renderFrame = mockRenderFrame
-    });
-
+    })
 
     test('Class should be created', () => {
-        const dmd = new Dmd(canvas, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: true })
+        const dmd = new Dmd(canvas, {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: true,
+        })
         expect(dmd).toBeTruthy()
         expect(dmd).toBeInstanceOf(Dmd)
-    });
+    })
 
     test('Class should be created with options object', () => {
         const options: DmdOptions = {
@@ -48,63 +53,104 @@ describe('testing entry file', () => {
             dotShape: DotShape.Square,
             backgroundBrightness: 14,
             brightness: 1,
-            showFPS: true
+            showFPS: true,
         }
         const dmd = new Dmd(canvas, options)
         expect(dmd).toBeTruthy()
         expect(dmd).toBeInstanceOf(Dmd)
-    });
+    })
 
     test('Created Layer should exist and match class CanvasLayer', () => {
-
-
-        const dmd = new Dmd(canvas, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: true })
-
-        const layer = dmd.addLayer(CanvasLayer, 'test', new Options(), (l) => {
-            expect(l).toBe(layer)
-        }, () => {
+        const dmd = new Dmd(canvas, {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: true,
         })
+
+        const layer = dmd.addLayer(
+            CanvasLayer,
+            'test',
+            new Options(),
+            l => {
+                expect(l).toBe(layer)
+            },
+            () => {},
+        )
 
         expect(layer).toBeTruthy()
         expect(layer instanceof CanvasLayer).toBe(true)
-    });
+    })
 
     test('Created Layer should exist and match class AnimationLayer', () => {
-        const dmd = new Dmd(canvas, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: true })
-        const layer = dmd.addLayer(AnimationLayer, 'test', new Options(), (l) => {
-            expect(l).toBe(layer)
-        }, () => {
+        const dmd = new Dmd(canvas, {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: true,
         })
+        const layer = dmd.addLayer(
+            AnimationLayer,
+            'test',
+            new Options(),
+            l => {
+                expect(l).toBe(layer)
+            },
+            () => {},
+        )
 
         expect(layer).toBeTruthy()
         expect(layer instanceof AnimationLayer).toBe(true)
-    });
+    })
 
     test('Created Layer should exist and match class SpritesLayer', () => {
-        const dmd = new Dmd(canvas, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: true })
-        const layer = dmd.addLayer(SpritesLayer, 'test', new Options(), (l) => {
-            expect(l).toBe(layer)
-        }, () => {
+        const dmd = new Dmd(canvas, {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: true,
         })
+        const layer = dmd.addLayer(
+            SpritesLayer,
+            'test',
+            new Options(),
+            l => {
+                expect(l).toBe(layer)
+            },
+            () => {},
+        )
 
         expect(layer).toBeTruthy()
-        expect(layer instanceof SpritesLayer).toBe(true);
-    });
+        expect(layer instanceof SpritesLayer).toBe(true)
+    })
 
     test('Dmd.version should be a non-empty semver string', () => {
         expect(typeof Dmd.version).toBe('string')
         expect(Dmd.version).toMatch(/^\d+\.\d+\.\d+$/)
-    });
+    })
 
     test('Instance version getter should return the static version', () => {
-        const dmd = new Dmd(canvas, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: true })
+        const dmd = new Dmd(canvas, {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: true,
+        })
         expect(dmd.version).toBe(Dmd.version)
-    });
+    })
 
     test('Dmd.version should stay in sync with package.json', () => {
         const pkg = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8'))
         expect(Dmd.version).toBe(pkg.version)
-    });
+    })
 
     /*test('Created Layer should exist and match class TextLayer', () => {
         const dmd = new Dmd(canvas, 2, 1, DotShape.Square, 14, 1, true)
@@ -115,4 +161,4 @@ describe('testing entry file', () => {
         expect(layer).toBeTruthy()
         expect(layer instanceof TextLayer).toBe(true)
     });*/
-});
+})

@@ -4,15 +4,14 @@
  *   - fadeOut eases opacity from its current value to 0.
  *   - Both step via requestAnimationFrame (not setTimeout).
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {CanvasLayer} from '../src/layers'
-import {ChangeAlphaRenderer} from '../src/renderers'
-import {Easing} from '../src/utils'
+import { CanvasLayer } from '../src/layers'
+import { ChangeAlphaRenderer } from '../src/renderers'
+import { Easing } from '../src/utils'
 
 describe('BaseLayer fades', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)

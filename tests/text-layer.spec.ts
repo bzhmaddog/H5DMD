@@ -8,18 +8,17 @@
  * `measureText` is instrumented to ALWAYS report the text as too wide, so a
  * correct implementation must still terminate thanks to the minimum-size floor.
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {TextLayer} from '../src/layers'
-import {ChangeAlphaRenderer, OutlineRenderer, RemoveAliasingRenderer} from '../src/renderers'
-import {Options} from '../src/utils'
+import { TextLayer } from '../src/layers'
+import { ChangeAlphaRenderer, OutlineRenderer, RemoveAliasingRenderer } from '../src/renderers'
+import { Options } from '../src/utils'
 
 // Generous ceiling: a converging loop for a single short string stays far below this.
 const SANITY_CEILING = 200
 
 describe('TextLayer.adjustWidth terminates and makes progress', () => {
-
     const originalGetContext = HTMLCanvasElement.prototype.getContext
 
     let measureCalls = 0
@@ -49,12 +48,12 @@ describe('TextLayer.adjustWidth terminates and makes progress', () => {
                     measureCalls++
                     seenFonts.push(this.font)
                     // Always wider than the layer: the text can never fully fit.
-                    return {width: 9999} as TextMetrics
+                    return { width: 9999 } as TextMetrics
                 }
             }
 
             return ctx
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any
     })
 
@@ -65,12 +64,7 @@ describe('TextLayer.adjustWidth terminates and makes progress', () => {
 
     test('the loop terminates even when the text never fits', () => {
         // If the loop did not terminate this construction would hang forever.
-        new TextLayer(
-            'loop',
-            64,
-            32,
-            new Options({text: 'this text is far too wide', adjustWidth: true})
-        )
+        new TextLayer('loop', 64, 32, new Options({ text: 'this text is far too wide', adjustWidth: true }))
 
         // Bounded number of measurements => the loop terminated.
         expect(measureCalls).toBeLessThan(SANITY_CEILING)

@@ -10,8 +10,8 @@
  * renderers; only ChangeAlphaRenderer is tested exhaustively for those since the
  * DmdRenderer spec already proves the pattern works.
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
 import {
     ChangeAlphaRenderer,
@@ -22,15 +22,16 @@ import {
     RemoveAliasingRenderer,
     RemoveAlphaRenderer,
 } from '../src/renderers'
-import {Renderer} from '../src/renderers/renderer'
-import {Options, Utils} from '../src/utils'
-import {errorMsg, makeFakeGpu, warnMsg} from './helpers/fake-gpu'
+import { Renderer } from '../src/renderers/renderer'
+import { Options, Utils } from '../src/utils'
+import { errorMsg, makeFakeGpu, warnMsg } from './helpers/fake-gpu'
 
 // ---------------------------------------------------------------------------
 // Shared GPU stub
 // ---------------------------------------------------------------------------
 
-const W = 4, H = 4
+const W = 4,
+    H = 4
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const nav = globalThis.navigator as any
@@ -40,7 +41,7 @@ function stubGpu() {
     savedGpu = nav.gpu
     vi.stubGlobal('GPUBufferUsage', { STORAGE: 0x80, COPY_SRC: 0x04, COPY_DST: 0x08, MAP_READ: 0x01, UNIFORM: 0x40 })
     vi.stubGlobal('GPUShaderStage', { COMPUTE: 0x4 })
-    vi.stubGlobal('GPUMapMode',     { READ: 0x1 })
+    vi.stubGlobal('GPUMapMode', { READ: 0x1 })
     nav.gpu = makeFakeGpu()
 }
 
@@ -56,7 +57,6 @@ const makeImageData = () => new ImageData(new Uint8ClampedArray(W * H * 4), W, H
 // ---------------------------------------------------------------------------
 
 describe('ChangeAlphaRenderer', () => {
-
     beforeEach(stubGpu)
     afterEach(restoreGpu)
 
@@ -132,7 +132,6 @@ describe('ChangeAlphaRenderer', () => {
 // ---------------------------------------------------------------------------
 
 describe('ChromaKeyRenderer', () => {
-
     beforeEach(stubGpu)
     afterEach(restoreGpu)
 
@@ -197,7 +196,6 @@ describe('ChromaKeyRenderer', () => {
 // ---------------------------------------------------------------------------
 
 describe('DummyRenderer', () => {
-
     beforeEach(stubGpu)
     afterEach(restoreGpu)
 
@@ -263,7 +261,6 @@ describe('DummyRenderer', () => {
 // ---------------------------------------------------------------------------
 
 describe('NoiseEffectRenderer', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         stubGpu()
@@ -341,7 +338,6 @@ describe('NoiseEffectRenderer', () => {
 // ---------------------------------------------------------------------------
 
 describe('OutlineRenderer', () => {
-
     beforeEach(stubGpu)
     afterEach(restoreGpu)
 
@@ -388,7 +384,9 @@ describe('OutlineRenderer', () => {
     test('renderFrame returns ImageData with valid outline options', async () => {
         const r = new OutlineRenderer(W, H)
         await r.init()
-        await expect(r.renderFrame(makeImageData(), { innerColor: 'FF0000FF', outerColor: '000000FF', width: 1 })).resolves.toBeInstanceOf(ImageData)
+        await expect(
+            r.renderFrame(makeImageData(), { innerColor: 'FF0000FF', outerColor: '000000FF', width: 1 }),
+        ).resolves.toBeInstanceOf(ImageData)
     })
 
     test('renderFrame uses constructor defaults when no options are passed', async () => {
@@ -411,7 +409,6 @@ describe('OutlineRenderer', () => {
 // ---------------------------------------------------------------------------
 
 describe('RemoveAliasingRenderer', () => {
-
     beforeEach(stubGpu)
     afterEach(restoreGpu)
 
@@ -473,7 +470,6 @@ describe('RemoveAliasingRenderer', () => {
 // ---------------------------------------------------------------------------
 
 describe('RemoveAlphaRenderer', () => {
-
     beforeEach(stubGpu)
     afterEach(restoreGpu)
 
