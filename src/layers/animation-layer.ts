@@ -1,12 +1,18 @@
-import {BaseLayer} from "./base-layer"
+import {BaseLayer, LayerLifecycleListeners} from "./base-layer"
 import {Options} from "../utils"
 import {AnimationLayerOptions} from "../interfaces"
 
+type AnimationLayerListeners = LayerLifecycleListeners<AnimationLayer> & {
+    play?: ((layer: AnimationLayer) => void) | Array<(layer: AnimationLayer) => void>
+    pause?: ((layer: AnimationLayer) => void) | Array<(layer: AnimationLayer) => void>
+    stop?: ((layer: AnimationLayer) => void) | Array<(layer: AnimationLayer) => void>
+}
+
 class AnimationLayer extends BaseLayer {
 
-    private _onPlayListener?: (layer: AnimationLayer) => void
-    private _onPauseListener?: (layer: AnimationLayer) => void
-    private _onStopListener?: (layer: AnimationLayer) => void
+    private _playListeners: Array<(layer: AnimationLayer) => void> = []
+    private _pauseListeners: Array<(layer: AnimationLayer) => void> = []
+    private _stopListeners: Array<(layer: AnimationLayer) => void> = []
     private _images: ImageBitmap[]
     private _isPlaying: boolean
     private _isPaused: boolean
@@ -20,20 +26,20 @@ class AnimationLayer extends BaseLayer {
 		width: number,
 		height: number,
         options?: Partial<AnimationLayerOptions> | Options,
-        loadedListener?: (layer: AnimationLayer) => void | Promise<void>,
-        updatedListener?: (layer: AnimationLayer) => void | Promise<void>,
-        playListener?: (layer: AnimationLayer) => void,
-        pauseListener?: (layer: AnimationLayer) => void,
-        stopListener?: (layer: AnimationLayer) => void
+        listeners?: AnimationLayerListeners
     ) {
 
         const layerOptions = new Options({loop: false, autoplay: false, duration: 1000}).merge(options)
+        const normalized = AnimationLayer._normalizeListeners(listeners)
 
-        super(id, width, height, layerOptions, loadedListener, updatedListener)
+        super(id, width, height, layerOptions, {
+            loaded: normalized.loaded,
+            updated: normalized.updated,
+        })
 
-        this._onPlayListener = playListener
-        this._onPauseListener = pauseListener
-        this._onStopListener = stopListener
+        this._playListeners = normalized.play
+        this._pauseListeners = normalized.pause
+        this._stopListeners = normalized.stop
 
         this._images = []
         this._isPlaying = false
@@ -42,6 +48,27 @@ class AnimationLayer extends BaseLayer {
         this._loop = layerOptions.get('loop')
 
         setTimeout(this._layerLoaded.bind(this), 1)
+    }
+
+    private static _toArray<T>(value?: T | T[]): T[] {
+        if (typeof value === 'undefined') return []
+        return Array.isArray(value) ? value : [value]
+    }
+
+    private static _normalizeListeners(listeners?: AnimationLayerListeners): {
+        loaded: Array<(layer: AnimationLayer) => void | Promise<void>>,
+        updated: Array<(layer: AnimationLayer) => void | Promise<void>>,
+        play: Array<(layer: AnimationLayer) => void>,
+        pause: Array<(layer: AnimationLayer) => void>,
+        stop: Array<(layer: AnimationLayer) => void>,
+    } {
+        return {
+            loaded: AnimationLayer._toArray(listeners?.loaded),
+            updated: AnimationLayer._toArray(listeners?.updated),
+            play: AnimationLayer._toArray(listeners?.play),
+            pause: AnimationLayer._toArray(listeners?.pause),
+            stop: AnimationLayer._toArray(listeners?.stop),
+        }
     }
 
     setAnimationData(data: ImageBitmap[]) {
@@ -139,9 +166,7 @@ class AnimationLayer extends BaseLayer {
 
             this._startRendering()
 
-            if (typeof this._onPlayListener === 'function') {
-                this._onPlayListener(this)
-            }
+            for (const fn of this._playListeners) fn(this)
         }
     }
 
@@ -156,9 +181,7 @@ class AnimationLayer extends BaseLayer {
             this._stopContentLoop()
             this._stopRendering()
 
-            if (typeof this._onStopListener === 'function') {
-                this._onStopListener(this)
-            }
+            for (const fn of this._stopListeners) fn(this)
         }
     }
 
@@ -173,9 +196,7 @@ class AnimationLayer extends BaseLayer {
                 this._isPlaying = false
                 this._isPaused = true
                 this._stopContentLoop()
-                if (typeof this._onPauseListener === 'function') {
-                    this._onPauseListener(this)
-                }
+                for (const fn of this._pauseListeners) fn(this)
             } else {
                 console.log("Only looping animation can be paused")
                 this.stop()
@@ -218,6 +239,24 @@ class AnimationLayer extends BaseLayer {
         this._layerUpdated()
     }
 
+
+    on(event: 'loaded' | 'updated', handler: (layer: BaseLayer) => void | Promise<void>): this
+    on(event: 'play' | 'pause' | 'stop', handler: (layer: BaseLayer) => void): this
+    on(event: 'loaded' | 'updated' | 'play' | 'pause' | 'stop', handler: (layer: BaseLayer) => void | Promise<void>): this {
+        if (event === 'play') { this._playListeners.push(handler as (layer: AnimationLayer) => void); return this }
+        if (event === 'pause') { this._pauseListeners.push(handler as (layer: AnimationLayer) => void); return this }
+        if (event === 'stop') { this._stopListeners.push(handler as (layer: AnimationLayer) => void); return this }
+        return super.on(event as 'loaded' | 'updated', handler)
+    }
+
+    off(event: 'loaded' | 'updated', handler: (layer: BaseLayer) => void | Promise<void>): this
+    off(event: 'play' | 'pause' | 'stop', handler: (layer: BaseLayer) => void): this
+    off(event: 'loaded' | 'updated' | 'play' | 'pause' | 'stop', handler: (layer: BaseLayer) => void | Promise<void>): this {
+        if (event === 'play') { this._playListeners = this._playListeners.filter(h => h !== handler); return this }
+        if (event === 'pause') { this._pauseListeners = this._pauseListeners.filter(h => h !== handler); return this }
+        if (event === 'stop') { this._stopListeners = this._stopListeners.filter(h => h !== handler); return this }
+        return super.off(event as 'loaded' | 'updated', handler)
+    }
 
     protected _onVisibilityChanged(): void {
         if (!this.isVisible() && this._isPlaying) {

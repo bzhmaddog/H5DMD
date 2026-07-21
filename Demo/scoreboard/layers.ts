@@ -64,21 +64,16 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
         position: {left: 4, vAlign: 'end'}
     });
 
-    player.addLayer(
-        CanvasLayer,
-        'icon',
-        {
-            width: 18,
-            height: 18,
-            position: {top: 0, left: 0},
-        },
-        async (layer) => {
-            const bgURI = `${imagesPath}/scott-face.webp`;
-            const bitmap = await fetch(bgURI).then(r => r.blob()).then(createImageBitmap);
-            layer.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap));
-            layer.draw();
-        }
-    );
+    player.addLayer(CanvasLayer, 'icon', {
+        width: 18,
+        height: 18,
+        position: {top: 0, left: 0},
+    }, async (playerIcon) => {
+        const bgURI = `${imagesPath}/scott-face.webp`;
+        const bitmap = await fetch(bgURI).then(r => r.blob()).then(createImageBitmap);
+        playerIcon.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap));
+        playerIcon.draw();
+    });
 
     player.addLayer(TextLayer, 'number', {
         width: 10,
@@ -106,21 +101,16 @@ export async function setupScoreboardLayers(dmd: Dmd, imagesPath: string): Promi
         position: {hAlign: 'end', vAlign: 'end'}
     });
 
-    ball.addLayer(
-        CanvasLayer,
-        'icon',
-        {
-            width: 18,
-            height: 18,
-            position: {top: 1, left: 2}
-        },
-        async (layer) => {
-            const bgURI = `${imagesPath}/ball.webp`;
-            const bitmap = await fetch(bgURI).then(r => r.blob()).then(createImageBitmap);
-            layer.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap));
-            layer.draw();
-        }
-    );
+    ball.addLayer(CanvasLayer, 'icon', {
+        width: 18,
+        height: 18,
+        position: {top: 1, left: 2}
+    }, async (ballIcon) => {
+        const bgURI = `${imagesPath}/ball.webp`;
+        const bitmap = await fetch(bgURI).then(r => r.blob()).then(createImageBitmap);
+        ballIcon.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap));
+        ballIcon.draw();
+    });
 
     ball.addLayer(TextLayer, 'number', {
         width: 10,

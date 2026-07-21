@@ -52,32 +52,24 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
     // and so do the children unless they say otherwise.
     const backdrop = dmd.addLayerGroup('backdrop');
 
-    backdrop.addLayer(
-        CanvasLayer,
-        'bg',
-        {},
-        async (layer) => {
-            const bgURI = `${imagesPath}/boss-mode-bg.png`;
-            console.log(`Fetching background image from: ${bgURI}`);
-            const bitmap = await fetch(bgURI).then(r => r.blob()).then(createImageBitmap);
-            layer.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap));
-            layer.draw();
-        });
+    backdrop.addLayer(CanvasLayer, 'bg', {}, async (bg) => {
+        const bgURI = `${imagesPath}/boss-mode-bg.png`;
+        console.log(`Fetching background image from: ${bgURI}`);
+        const bitmap = await fetch(bgURI).then(r => r.blob()).then(createImageBitmap);
+        bg.setDrawFunction(({ drawBitmap }) => drawBitmap(bitmap));
+        bg.draw();
+    });
 
-    backdrop.addLayer(
-        AnimationLayer,
-        'animation',
-        {
-            height: 90,
-            position: { top: 20 },
-            duration: 800,
-            autoplay: true,
-            loop: true
-        },
-        async (layer) => {
-            const bitmaps = await Utils.loadImagesOrdered(animationImagesUrls);
-            layer.setAnimationData(bitmaps);
-        });
+    backdrop.addLayer(AnimationLayer, 'animation', {
+        height: 90,
+        position: { top: 20 },
+        duration: 800,
+        autoplay: true,
+        loop: true
+    }, async (animation) => {
+        const bitmaps = await Utils.loadImagesOrdered(animationImagesUrls);
+        animation.setAnimationData(bitmaps);
+    });
 
 
     // The two demo videos are alternatives sharing the same slot - grouped so the shared
@@ -89,60 +81,37 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
         position: { left: 110 },
     });
 
-    videos.addLayer(
-        VideoLayer,
-        'video-transparent',
-        {
-            autoplay: true,
-            loop: true,
-            visible: false
-        },
-        (layer) => {
+    videos.addLayer(VideoLayer, 'video-transparent', {
+        autoplay: true,
+        loop: true,
+        visible: false
+    }, (videoTransparent) => {
+        const video = document.createElement('video');
+        video.addEventListener('loadeddata', () => videoTransparent.setVideo(video));
+        video.src = `${imagesPath}/transparent-video.webm`;
+    });
 
-            const video = document.createElement('video');
+    videos.addLayer(VideoLayer, 'video-chromakey', {
+        autoplay: true,
+        loop: true,
+        visible: false,
+        renderers: [
+            rendererEntry('chroma-key', ChromaKeyRenderer, { color: [0, 0, 0], threshold: 9 })
+        ]
+    }, (videoChromakey) => {
+        const video = document.createElement('video');
+        video.addEventListener('loadeddata', () => videoChromakey.setVideo(video));
+        video.src = `${imagesPath}/sample.webm`;
+    });
 
-            video.addEventListener('loadeddata', function () {
-                layer.setVideo(video);
-            });
-
-            video.src = `${imagesPath}/transparent-video.webm`;
-        });
-
-    videos.addLayer(
-        VideoLayer,
-        'video-chromakey',
-        {
-            autoplay: true,
-            loop: true,
-            visible: false,
-            renderers: [
-                rendererEntry('chroma-key', ChromaKeyRenderer, { color: [0, 0, 0], threshold: 9 })
-            ]
-        },
-        (l) => {
-
-            const video = document.createElement('video');
-
-            video.addEventListener('loadeddata', function () {
-                l.setVideo(video);
-            });
-
-            video.src = `${imagesPath}/sample.webm`;
-        });
-
-    dmd.addLayer(
-        CanvasLayer,
-        'matthew',
-        {
-            width: 218,
-            height: 91,
-            position: { hAlign: 'end', vAlign: 'center', hOffset: -1 }
-        },
-        async (layer) => {
-            const bitmap = await fetch(matthewImageUrl).then(r => r.blob()).then(createImageBitmap);
-            layer.drawBitmap(bitmap);
-        }
-    );
+    dmd.addLayer(CanvasLayer, 'matthew', {
+        width: 218,
+        height: 91,
+        position: { hAlign: 'end', vAlign: 'center', hOffset: -1 }
+    }, async (matthew) => {
+        const bitmap = await fetch(matthewImageUrl).then(r => r.blob()).then(createImageBitmap);
+        matthew.drawBitmap(bitmap);
+    });
 
     // The two character-name captions, one per corner - grouped so they show/hide/fade
     // as one unit. The group spans the whole DMD (default dimensions); each child aligns
@@ -184,50 +153,36 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
         position: { hAlign: 'center', vAlign: 'center', hOffset: -60 },
     });
 
-    vs.addLayer(
-        TextLayer,
-        'vsin',
-        {
-            text: "VS",
-            fontSize: 95,
-            fontStyle: 'italic bold',
-            adjustWidth: true,
-        },
-        async (layer) => {
-            const bitmaps = await Utils.loadImagesOrdered(noiseUrls);
-            const noiseData = Utils.bitmapsToPixelData(bitmaps, layer.width, layer.height);
-            await layer.addRenderer('noise-effect', NoiseEffectRenderer, { duration: 200, noises: noiseData });
-        }
-    );
+    vs.addLayer(TextLayer, 'vsin', {
+        text: "VS",
+        fontSize: 95,
+        fontStyle: 'italic bold',
+        adjustWidth: true,
+    }, async (vsin) => {
+        const bitmaps = await Utils.loadImagesOrdered(noiseUrls);
+        const noiseData = Utils.bitmapsToPixelData(bitmaps, vsin.width, vsin.height);
+        await vsin.addRenderer('noise-effect', NoiseEffectRenderer, { duration: 200, noises: noiseData });
+    });
 
-    vs.addLayer(
-        TextLayer,
-        'vsout',
-        {
-            text: "VS",
-            fontSize: 95,
-            fontStyle: 'italic bold',
-            color: '#00000000',
-            strokeWidth: 2,
-            strokeColor: Colors.Red,
-            adjustWidth: true
-        },
-        async (l) => {
-            await l.addRenderer('shaky-effect', ShakyRenderer, { intensity: 0.8, speed: 160, mode: "random" });
-        }
-    );
+    vs.addLayer(TextLayer, 'vsout', {
+        text: "VS",
+        fontSize: 95,
+        fontStyle: 'italic bold',
+        color: '#00000000',
+        strokeWidth: 2,
+        strokeColor: Colors.Red,
+        adjustWidth: true
+    }, async (vsout) => {
+        await vsout.addRenderer('shaky-effect', ShakyRenderer, { intensity: 0.8, speed: 160, mode: "random" });
+    });
 
-    dmd.addLayer(
-        SpritesLayer,
-        'sprite',
-        {
-            width: 110,
-            height: 130
-        },
-        async (layer) => {
+    dmd.addLayer(SpritesLayer, 'sprite', {
+        width: 110,
+        height: 130
+    }, async (sprite) => {
             const bitmap = await fetch(scottSpriteSheetUrl).then(r => r.blob()).then(createImageBitmap);
 
-            await layer.createSprite(
+            await sprite.createSprite(
                         'scott',
                         bitmap,
                         6,
@@ -299,25 +254,20 @@ export function setupAdvancedLayers(dmd: Dmd, imagesPath: string): void {
                 {key: 'run', nbLoop: 4},
                 {key: 'taunt', nbLoop: 1}
             ];
-            layer.enqueueSequence('scott', seq, true);
-            layer.run('scott');
-        });
+            sprite.enqueueSequence('scott', seq, true);
+            sprite.run('scott');
+    });
 
     // SVG title layer — centered, initially hidden
-    dmd.addLayer(
-        CanvasLayer,
-        'svg-title',
-        { visible: false },
-        async (layer) => {
-            const img = new Image();
-            await new Promise<void>(resolve => { img.onload = () => resolve(); img.src = `${imagesPath}/sptitle.svg`; });
-            const bitmap = await createImageBitmap(img);
-            layer.setDrawFunction(({ drawBitmap }) => {
-                drawBitmap(bitmap, { hAlign: 'center', vAlign: 'center', margin: 5 });
-            });
-            layer.draw();
-        }
-    );
+    dmd.addLayer(CanvasLayer, 'svg-title', { visible: false }, async (svgTitle) => {
+        const img = new Image();
+        await new Promise<void>(resolve => { img.onload = () => resolve(); img.src = `${imagesPath}/sptitle.svg`; });
+        const bitmap = await createImageBitmap(img);
+        svgTitle.setDrawFunction(({ drawBitmap }) => {
+            drawBitmap(bitmap, { hAlign: 'center', vAlign: 'center', margin: 5 });
+        });
+        svgTitle.draw();
+    });
 
     // Interactive text demo layer — shows text options (outline, shaky, adjustWidth)
     dmd.addLayer(

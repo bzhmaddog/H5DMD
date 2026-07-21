@@ -1,4 +1,4 @@
-import {BaseLayer} from "./base-layer"
+import {BaseLayer, LayerLifecycleListeners} from "./base-layer"
 import {BitmapOptions, CanvasLayerOptions} from "../interfaces"
 import {Options} from "../utils"
 
@@ -53,10 +53,9 @@ class CanvasLayer extends BaseLayer {
         width: number,
         height: number,
         options?: Partial<CanvasLayerOptions> | Options,
-        loadedListener?: (layer: CanvasLayer) => void | Promise<void>,
-        updatedListener?: (layer: CanvasLayer) => void | Promise<void>
+        listeners?: LayerLifecycleListeners<CanvasLayer>
     ) {
-        super(id, width, height, new Options(options as Record<string, unknown>), loadedListener, updatedListener)
+        super(id, width, height, new Options(options as Record<string, unknown>), listeners as unknown as LayerLifecycleListeners<BaseLayer>)
         setTimeout(this._layerLoaded.bind(this), 1)
     }
 

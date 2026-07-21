@@ -356,8 +356,7 @@ describe('BaseLayer protected helpers', () => {
         const instance = new ChangeAlphaRenderer(4, 4)
         const layer = new CanvasLayer('c', 4, 4,
             new Options({ renderers: [{ id: 'r', instance }] }),
-            undefined,
-            cb   // 6th arg = updatedListener
+            { updated: cb }
         )
         priv(layer)._layerUpdated()
         expect(cb).toHaveBeenCalledWith(layer)
@@ -406,7 +405,7 @@ describe('BaseLayer._layerLoaded', () => {
 
     test('calls the loadedListener when one is provided', async () => {
         const cb = vi.fn()
-        const layer = new CanvasLayer('c', 4, 4, undefined, cb)  // 5th arg = loadedListener
+        const layer = new CanvasLayer('c', 4, 4, undefined, { loaded: cb })
         // Flush renderer init microtasks so _renderersReady = true before _layerLoaded
         await Promise.resolve()
         await Promise.resolve()

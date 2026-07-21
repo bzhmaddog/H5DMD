@@ -1,6 +1,12 @@
-import {BaseLayer} from "./base-layer"
+import {BaseLayer, LayerLifecycleListeners} from "./base-layer"
 import {Options} from "../utils"
 import {VideoLayerOptions} from "../interfaces"
+
+type VideoLayerListeners = LayerLifecycleListeners<VideoLayer> & {
+	play?: ((layer: VideoLayer) => void) | Array<(layer: VideoLayer) => void>
+	pause?: ((layer: VideoLayer) => void) | Array<(layer: VideoLayer) => void>
+	stop?: ((layer: VideoLayer) => void) | Array<(layer: VideoLayer) => void>
+}
 
 enum VideoState {
 	STOPPED,
@@ -11,9 +17,9 @@ enum VideoState {
 class VideoLayer extends BaseLayer {
 
     private _video: HTMLVideoElement
-	private _onPlayListener?: (layer: VideoLayer) => void
-	private _onPauseListener?: (layer: VideoLayer) => void
-	private _onStopListener?: (layer: VideoLayer) => void
+	private _playListeners: Array<(layer: VideoLayer) => void> = []
+	private _pauseListeners: Array<(layer: VideoLayer) => void> = []
+	private _stopListeners: Array<(layer: VideoLayer) => void> = []
 	private _internalAction: boolean
 
 	private _state: VideoState = VideoState.STOPPED
@@ -23,11 +29,7 @@ class VideoLayer extends BaseLayer {
 		width: number,
 		height: number,
 		options?: Partial<VideoLayerOptions> | Options,
-		loadedListener?: (layer: VideoLayer) => void | Promise<void>,
-		updatedListener?: (layer: VideoLayer) => void | Promise<void>,
-		playListener?: (layer: VideoLayer) => void,
-		pauseListener?: (layer: VideoLayer) => void,
-		stopListener?: (layer: VideoLayer) => void
+		listeners?: VideoLayerListeners
     ) {
 		const layerOptions = new Options({
 			loop: false,
@@ -35,12 +37,16 @@ class VideoLayer extends BaseLayer {
 			pauseOnHide: true,
 			stopOnHide: false
 		}).merge(options)
+		const normalized = VideoLayer._normalizeListeners(listeners)
 
-		super(id, width, height, layerOptions, loadedListener, updatedListener)
+		super(id, width, height, layerOptions, {
+			loaded: normalized.loaded,
+			updated: normalized.updated,
+		})
 
-		this._onPlayListener = playListener
-		this._onPauseListener = pauseListener
-		this._onStopListener = stopListener
+		this._playListeners = normalized.play
+		this._pauseListeners = normalized.pause
+		this._stopListeners = normalized.stop
 
 		if (this._options.get('stopOnHide') === true) {
 			this._options.set('pauseOnHide', false)
@@ -55,6 +61,27 @@ class VideoLayer extends BaseLayer {
 
 		setTimeout(this._layerLoaded.bind(this), 1)
     }
+
+	private static _toArray<T>(value?: T | T[]): T[] {
+		if (typeof value === 'undefined') return []
+		return Array.isArray(value) ? value : [value]
+	}
+
+	private static _normalizeListeners(listeners?: VideoLayerListeners): {
+		loaded: Array<(layer: VideoLayer) => void | Promise<void>>,
+		updated: Array<(layer: VideoLayer) => void | Promise<void>>,
+		play: Array<(layer: VideoLayer) => void>,
+		pause: Array<(layer: VideoLayer) => void>,
+		stop: Array<(layer: VideoLayer) => void>,
+	} {
+		return {
+			loaded: VideoLayer._toArray(listeners?.loaded),
+			updated: VideoLayer._toArray(listeners?.updated),
+			play: VideoLayer._toArray(listeners?.play),
+			pause: VideoLayer._toArray(listeners?.pause),
+			stop: VideoLayer._toArray(listeners?.stop),
+		}
+	}
 
 	private _onVideoError(error: Event) {
 		console.error(error)
@@ -75,18 +102,14 @@ class VideoLayer extends BaseLayer {
 	private _onVideoPlayed() {
 		this._startContentLoop(this.__renderFrame.bind(this))
 
-		if (typeof this._onPlayListener === 'function') {
-			this._onPlayListener(this)
-		}
+		for (const fn of this._playListeners) fn(this)
 	}
 
 	private _onVideoPaused() {
 		this._stopContentLoop()
 		this._stopRendering()
 
-		if (typeof this._onPauseListener === 'function') {
-			this._onPauseListener(this)
-		}
+		for (const fn of this._pauseListeners) fn(this)
 	}
 
 	private __renderFrame() {
@@ -157,6 +180,25 @@ class VideoLayer extends BaseLayer {
 		this._video.pause()
 		this._video.currentTime = 0
 		this._stopContentLoop()
+		if (!isInternal) for (const fn of this._stopListeners) fn(this)
+	}
+
+	on(event: 'loaded' | 'updated', handler: (layer: BaseLayer) => void | Promise<void>): this
+	on(event: 'play' | 'pause' | 'stop', handler: (layer: BaseLayer) => void): this
+	on(event: 'loaded' | 'updated' | 'play' | 'pause' | 'stop', handler: (layer: BaseLayer) => void | Promise<void>): this {
+		if (event === 'play') { this._playListeners.push(handler as (layer: VideoLayer) => void); return this }
+		if (event === 'pause') { this._pauseListeners.push(handler as (layer: VideoLayer) => void); return this }
+		if (event === 'stop') { this._stopListeners.push(handler as (layer: VideoLayer) => void); return this }
+		return super.on(event as 'loaded' | 'updated', handler)
+	}
+
+	off(event: 'loaded' | 'updated', handler: (layer: BaseLayer) => void | Promise<void>): this
+	off(event: 'play' | 'pause' | 'stop', handler: (layer: BaseLayer) => void): this
+	off(event: 'loaded' | 'updated' | 'play' | 'pause' | 'stop', handler: (layer: BaseLayer) => void | Promise<void>): this {
+		if (event === 'play') { this._playListeners = this._playListeners.filter(h => h !== handler); return this }
+		if (event === 'pause') { this._pauseListeners = this._pauseListeners.filter(h => h !== handler); return this }
+		if (event === 'stop') { this._stopListeners = this._stopListeners.filter(h => h !== handler); return this }
+		return super.off(event as 'loaded' | 'updated', handler)
 	}
 
 	protected _onVisibilityChanged(): void {

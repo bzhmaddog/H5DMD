@@ -1,6 +1,6 @@
 import {Options} from "../utils"
 import {Layer, LayerGroupOptions, LayerPosition, AnimationLayerOptions, CanvasLayerOptions, SpritesLayerOptions, TextLayerOptions, VideoLayerOptions} from "../interfaces"
-import {BaseLayer} from "./base-layer"
+import {BaseLayer, LayerLifecycleListeners} from "./base-layer"
 import {AnimationLayer} from "./animation-layer"
 import {CanvasLayer} from "./canvas-layer"
 import {SpritesLayer} from "./sprites-layer"
@@ -57,10 +57,9 @@ class LayerGroup extends BaseLayer {
         width: number,
         height: number,
         options?: Partial<LayerGroupOptions> | Options,
-        loadedListener?: (layer: LayerGroup) => void | Promise<void>,
-        updatedListener?: (layer: LayerGroup) => void | Promise<void>
+        listeners?: LayerLifecycleListeners<LayerGroup>
     ) {
-        super(id, width, height, new Options(options as Record<string, unknown>), loadedListener, updatedListener)
+        super(id, width, height, new Options(options as Record<string, unknown>), listeners as unknown as LayerLifecycleListeners<BaseLayer>)
         // Pass startRenderingLoop:true - a group can't tell whether its children are static
         // (CanvasLayer/TextLayer, which explicitly call _layerUpdated() on every redraw) or
         // continuously self-updating (VideoLayer/AnimationLayer/SpritesLayer, which refresh
@@ -182,18 +181,10 @@ class LayerGroup extends BaseLayer {
         const onPause      = layerOnPauseListener as unknown as ((layer: BaseLayer) => void) | undefined
         const onStop        = layerOnStopListener  as unknown as ((layer: BaseLayer) => void) | undefined
 
-        // Chain the caller's listeners with a poke that keeps this group's own output in
-        // sync whenever a child loads or redraws.
-        const onLoaded = (layer: BaseLayer) => {
-            this._scheduleRecomposite()
-            return userLoaded?.(layer)
-        }
-        const onUpdated = (layer: BaseLayer) => {
-            this._scheduleRecomposite()
-            return userUpdated?.(layer)
-        }
-
-        const layer = createLayerInstance(layerClass, id, layerWidth, layerHeight, opts, onLoaded, onUpdated, onPlay, onPause, onStop)
+        const layer = createLayerInstance(layerClass, id, layerWidth, layerHeight, opts, userLoaded, userUpdated, onPlay, onPause, onStop)
+        // Register recomposite hooks as separate listeners so no wrapper closures are needed.
+        layer.on('loaded', () => this._scheduleRecomposite())
+        layer.on('updated', () => this._scheduleRecomposite())
 
         // If the group is currently hidden, a newly added child must start hidden too, so
         // it doesn't render/decode for a frame before the visibility cascade catches it.

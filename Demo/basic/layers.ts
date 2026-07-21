@@ -57,9 +57,9 @@ export function setupBasicLayers(dmd: Dmd, imagesPath: string): void {
         renderers: [
             rendererEntry('chroma-key', ChromaKeyRenderer, {color: [0, 0, 0], threshold: 9})
         ],
-    }, (layer) => {
+    }, (clip) => {
         const video = document.createElement('video');
-        video.addEventListener('loadeddata', () => layer.setVideo(video));
+        video.addEventListener('loadeddata', () => clip.setVideo(video));
         video.src = `${imagesPath}/sample.webm`;
     });
 
@@ -165,27 +165,22 @@ export function setupBasicLayers(dmd: Dmd, imagesPath: string): void {
         //backgroundOpacity: 0.3,
     });
 
-    info.addLayer(
-        CanvasLayer,
-        'cat',
-        {
-            width: 60,
-            height: 78,
-            // Centered in the group by constraining both of the layer's centers to the
-            // group's own centers ('parent' = the containing LayerGroup).
-            position: {
-                hAlign: 'constraint',
-                hCenterToCenterOf: 'parent',
-                vAlign: 'constraint',
-                vCenterToCenterOf: 'parent',
-            },
-            //backgroundColor: Colors.White,
+    info.addLayer(CanvasLayer, 'cat', {
+        width: 60,
+        height: 78,
+        // Centered in the group by constraining both of the layer's centers to the
+        // group's own centers ('parent' = the containing LayerGroup).
+        position: {
+            hAlign: 'constraint',
+            hCenterToCenterOf: 'parent',
+            vAlign: 'constraint',
+            vCenterToCenterOf: 'parent',
         },
-        async (layer) => {
-            const bitmap = await fetch(catImageUrl).then(r => r.blob()).then(createImageBitmap);
-            layer.drawBitmap(bitmap, {hAlign: 'center', vAlign: 'center'});
-        }
-    );
+        //backgroundColor: Colors.White,
+    }, async (cat) => {
+        const bitmap = await fetch(catImageUrl).then(r => r.blob()).then(createImageBitmap);
+        cat.drawBitmap(bitmap, {hAlign: 'center', vAlign: 'center'});
+    });
 
     // ---------------------------------------------------------------------
     // Constraint marker - a small top-level layer the "Constraints" control panel
