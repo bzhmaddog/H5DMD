@@ -14,6 +14,7 @@ import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
 import {setupVitestCanvasMock} from 'vitest-canvas-mock'
 
 import {CanvasLayer} from '../src/layers'
+import {BaseLayer, LayerLifecycleListeners} from '../src/layers/base-layer'
 import {ChangeAlphaRenderer, ChromaKeyRenderer} from '../src/renderers'
 import {rendererEntry} from '../src/interfaces'
 import {Options} from '../src/utils'
@@ -26,6 +27,20 @@ const makeBitmap = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(c as any).close = vi.fn()
     return c as unknown as ImageBitmap
+}
+
+class TestLayer extends BaseLayer {
+    constructor(listeners?: LayerLifecycleListeners<TestLayer>) {
+        super('test-layer', 4, 4, new Options(), listeners as unknown as LayerLifecycleListeners<BaseLayer>)
+    }
+
+    emitLoaded() {
+        this._layerLoaded()
+    }
+
+    emitUpdated() {
+        this._layerUpdated()
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -360,6 +375,77 @@ describe('BaseLayer protected helpers', () => {
         )
         priv(layer)._layerUpdated()
         expect(cb).toHaveBeenCalledWith(layer)
+    })
+})
+
+// ---------------------------------------------------------------------------
+// on / off listeners
+// ---------------------------------------------------------------------------
+
+describe('BaseLayer listeners API (on/off + multi-listener dispatch)', () => {
+
+    beforeEach(stdBeforeEach)
+    afterEach(stdAfterEach)
+
+    test('on() dispatches loaded handlers in registration order', async () => {
+        const layer = new TestLayer()
+        const calls: string[] = []
+
+        const first = vi.fn(() => calls.push('first'))
+        const second = vi.fn(() => calls.push('second'))
+
+        layer.on('loaded', first)
+        layer.on('loaded', second)
+
+        // Wait for constructor renderer init to settle so loaded listeners can fire.
+        await Promise.resolve()
+        await Promise.resolve()
+
+        layer.emitLoaded()
+
+        expect(first).toHaveBeenCalledWith(layer)
+        expect(second).toHaveBeenCalledWith(layer)
+        expect(calls).toEqual(['first', 'second'])
+    })
+
+    test('off() removes only the specified updated handler', () => {
+        const layer = new TestLayer()
+
+        const kept = vi.fn()
+        const removed = vi.fn()
+
+        layer.on('updated', removed)
+        layer.on('updated', kept)
+        layer.off('updated', removed)
+
+        layer.emitUpdated()
+
+        expect(removed).not.toHaveBeenCalled()
+        expect(kept).toHaveBeenCalledTimes(1)
+        expect(kept).toHaveBeenCalledWith(layer)
+    })
+
+    test('constructor listener arrays are all dispatched for loaded and updated', async () => {
+        const calls: string[] = []
+        const layer = new TestLayer({
+            loaded: [
+                () => calls.push('loaded-1'),
+                () => calls.push('loaded-2'),
+            ],
+            updated: [
+                () => calls.push('updated-1'),
+                () => calls.push('updated-2'),
+            ],
+        })
+
+        // Wait for constructor renderer init to settle so loaded listeners can fire.
+        await Promise.resolve()
+        await Promise.resolve()
+
+        layer.emitLoaded()
+        layer.emitUpdated()
+
+        expect(calls).toEqual(['loaded-1', 'loaded-2', 'updated-1', 'updated-2'])
     })
 })
 
