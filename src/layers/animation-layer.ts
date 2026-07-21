@@ -249,13 +249,13 @@ class AnimationLayer extends BaseLayer {
         return super.on(event as 'loaded' | 'updated', handler as unknown as (layer: BaseLayer) => void | Promise<void>)
     }
 
-    off(event: 'loaded' | 'updated', handler: (layer: BaseLayer) => void | Promise<void>): this
-    off(event: 'play' | 'pause' | 'stop', handler: (layer: BaseLayer) => void): this
-    off(event: 'loaded' | 'updated' | 'play' | 'pause' | 'stop', handler: (layer: BaseLayer) => void | Promise<void>): this {
+    off(event: 'loaded' | 'updated', handler: (layer: AnimationLayer) => void | Promise<void>): this
+    off(event: 'play' | 'pause' | 'stop', handler: (layer: AnimationLayer) => void): this
+    off(event: 'loaded' | 'updated' | 'play' | 'pause' | 'stop', handler: (layer: AnimationLayer) => void | Promise<void>): this {
         if (event === 'play') { this._playListeners = this._playListeners.filter(h => h !== handler); return this }
         if (event === 'pause') { this._pauseListeners = this._pauseListeners.filter(h => h !== handler); return this }
         if (event === 'stop') { this._stopListeners = this._stopListeners.filter(h => h !== handler); return this }
-        return super.off(event as 'loaded' | 'updated', handler)
+        return super.off(event as 'loaded' | 'updated', handler as unknown as (layer: BaseLayer) => void | Promise<void>)
     }
 
     protected _onVisibilityChanged(): void {
