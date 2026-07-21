@@ -1,4 +1,4 @@
-import {BaseLayer} from "./base-layer"
+import {BaseLayer, LayerLifecycleListeners} from "./base-layer"
 import {SpritesLayerOptions, SpriteAnimationItem, SpriteSequenceItem} from "../interfaces"
 import {Options, Sprite} from "../utils"
 
@@ -23,12 +23,11 @@ class SpritesLayer extends BaseLayer {
         width: number,
         height: number,
         options?: Partial<SpritesLayerOptions> | Options,
-        loadedListener?: (layer: SpritesLayer) => void | Promise<void>,
-        updatedListener?: (layer: SpritesLayer) => void | Promise<void>
+    listeners?: LayerLifecycleListeners<SpritesLayer>
     ) {
         const layerOptions = new Options({loop: false, autoplay: false}).merge(options)
 
-        super(id, width, height, layerOptions, loadedListener, updatedListener)
+    super(id, width, height, layerOptions, listeners as unknown as LayerLifecycleListeners<BaseLayer>)
 
         this._sprites = {} as ISpriteDictionary
         this._runningSprites = 0

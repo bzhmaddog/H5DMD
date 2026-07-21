@@ -220,19 +220,20 @@ export function createLayerInstance<T extends BaseLayer>(
 ): T {
     const cls = layerClass as unknown
     let layer
+    const lifecycle = { loaded: onLoaded, updated: onUpdated }
 
     if (cls === CanvasLayer) {
-        layer = new CanvasLayer(id, width, height, opts, onLoaded, onUpdated)
+        layer = new CanvasLayer(id, width, height, opts, lifecycle)
     } else if (cls === VideoLayer) {
-        layer = new VideoLayer(id, width, height, opts, onLoaded, onUpdated, onPlay, onPause)
+        layer = new VideoLayer(id, width, height, opts, { ...lifecycle, play: onPlay, pause: onPause, stop: onStop })
     } else if (cls === AnimationLayer) {
-        layer = new AnimationLayer(id, width, height, opts, onLoaded, onUpdated, onPlay, onPause, onStop)
+        layer = new AnimationLayer(id, width, height, opts, { ...lifecycle, play: onPlay, pause: onPause, stop: onStop })
     } else if (cls === SpritesLayer) {
-        layer = new SpritesLayer(id, width, height, opts, onLoaded, onUpdated)
+        layer = new SpritesLayer(id, width, height, opts, lifecycle)
     } else if (cls === TextLayer) {
-        layer = new TextLayer(id, width, height, opts, onLoaded, onUpdated)
+        layer = new TextLayer(id, width, height, opts, lifecycle)
     } else if (cls === LayerGroup) {
-        layer = new LayerGroup(id, width, height, opts, onLoaded, onUpdated)
+        layer = new LayerGroup(id, width, height, opts, lifecycle)
     } else {
         throw new TypeError('Unsupported layer class')
     }

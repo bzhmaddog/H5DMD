@@ -1,4 +1,4 @@
-import {BaseLayer} from './base-layer'
+import {BaseLayer, LayerLifecycleListeners} from './base-layer'
 import {OffscreenBuffer, Options, Utils} from '../utils'
 import {Colors} from '../enums'
 import {RendererClassEntry, RendererEntry, TextLayerOptions} from '../interfaces'
@@ -27,8 +27,7 @@ class TextLayer extends BaseLayer {
         width: number,
         height: number,
         options: Partial<TextLayerOptions> | Options,
-        loadedListener?: (layer: TextLayer) => void | Promise<void>,
-        updatedListener?: (layer: TextLayer) => void | Promise<void>
+        listeners?: LayerLifecycleListeners<TextLayer>
     ) {
 
         // top/left are deliberately not defaulted: "unset" is what lets hAlign/vAlign place
@@ -63,18 +62,25 @@ class TextLayer extends BaseLayer {
         ]
         layerOptions.set('renderers', [...builtinRenderers, ...userRenderers])
 
-        // Wrap the loaded listener so the text is redrawn once renderers are
-        // initialised — the first _drawText() call below happens before GPU init
-        // finishes, so outline/anti-aliasing only takes effect on this second pass.
+        // Wrap loaded handlers so text is redrawn once renderers are initialised.
+        const loadedHandlers = listeners?.loaded
+        const loadedArray = Array.isArray(loadedHandlers)
+            ? loadedHandlers
+            : (loadedHandlers ? [loadedHandlers] : [])
         const onReady = async (layer: TextLayer) => {
             if (this._text !== '') {
                 await this._drawText()
                 this._layerUpdated()
             }
-            await loadedListener?.(layer)
+            for (const handler of loadedArray) {
+                await handler(layer)
+            }
         }
 
-        super(id, width, height, layerOptions, onReady, updatedListener)
+        super(id, width, height, layerOptions, {
+            loaded: onReady,
+            updated: listeners?.updated as ((layer: BaseLayer) => void | Promise<void>) | Array<(layer: BaseLayer) => void | Promise<void>> | undefined,
+        })
 
         this._textBuffer = new OffscreenBuffer(this.width, this.height)
 

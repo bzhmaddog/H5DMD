@@ -84,7 +84,7 @@ describe('AnimationLayer playback', () => {
 
     test('play() starts a loaded animation and fires the play listener', () => {
         const onPlay = vi.fn()
-        const layer = new AnimationLayer('a', 64, 16, undefined, undefined, undefined, onPlay)
+        const layer = new AnimationLayer('a', 64, 16, undefined, { play: onPlay })
         layer.setAnimationData(frames(3))
         markLoaded(layer)
 
@@ -115,7 +115,7 @@ describe('AnimationLayer playback', () => {
 
     test('stop() halts playback and resets the frame index', () => {
         const onStop = vi.fn()
-        const layer = new AnimationLayer('a', 64, 16, undefined, undefined, undefined, undefined, undefined, onStop)
+        const layer = new AnimationLayer('a', 64, 16, undefined, { stop: onStop })
         layer.setAnimationData(frames(3))
         markLoaded(layer)
         layer.play()
@@ -130,8 +130,7 @@ describe('AnimationLayer playback', () => {
 
     test('pause() suspends a looping animation', () => {
         const onPause = vi.fn()
-        const layer = new AnimationLayer('a', 64, 16, new Options({loop: true}),
-            undefined, undefined, undefined, onPause)
+        const layer = new AnimationLayer('a', 64, 16, new Options({loop: true}), { pause: onPause })
         layer.setAnimationData(frames(3))
         markLoaded(layer)
         layer.play()

@@ -178,7 +178,7 @@ export function buildBasicControlPanel(dmd: Dmd): void {
             const color = colors[Math.floor(Math.random() * colors.length)];
             const top = Math.floor(Math.random() * (sandbox.height - 24));
             const left = Math.floor(Math.random() * (sandbox.width - 24));
-            sandbox.addLayer(CanvasLayer, id, {width: 24, height: 24, position: {top, left}}, (layer) => layer.fillColor(color));
+            sandbox.addLayer(CanvasLayer, id, {width: 24, height: 24, position: {top, left}}, {loaded: (layer) => layer.fillColor(color)});
             ids.push(id);
             syncCount();
         }),

@@ -14,6 +14,7 @@ export default defineConfig({
             exclude: [
                 'src/**/*.d.ts',
                 'src/interfaces/**',
+                'src/**/index.ts',
             ],
             // Fail the run if coverage drops below these floors (set a few points
             // under the current ~90% to catch regressions without being flaky).

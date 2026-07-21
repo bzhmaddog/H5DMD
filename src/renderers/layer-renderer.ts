@@ -116,7 +116,6 @@ export abstract class LayerRenderer<O = never> extends Renderer {
     /* @param {ImageData} frameData
      * @returns {Promise<ImageData>}
      */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     protected _doNothing(frameData: ImageData): Promise<ImageData> {
         return new Promise((resolve) => {
             resolve(frameData);

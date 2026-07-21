@@ -10,6 +10,10 @@ interface RenderQueueItem {
     active: boolean
 }
 
+export type LayerLifecycleEvent = 'loaded' | 'updated'
+export type LayerLifecycleListener<TLayer> = (layer: TLayer) => void | Promise<void>
+export type LayerLifecycleListeners<TLayer> = Partial<Record<LayerLifecycleEvent, LayerLifecycleListener<TLayer> | Array<LayerLifecycleListener<TLayer>>>>
+
 abstract class BaseLayer {
 
     protected _contentBuffer: OffscreenBuffer
@@ -22,8 +26,10 @@ abstract class BaseLayer {
     private _renderNextFrame: () => void
     private _contentLoopGen: number = 0
 
-    private _loadedListener?: (layer: BaseLayer) => void | Promise<void>
-    private _updatedListener?: (layer: BaseLayer) => void | Promise<void>
+    private _listeners: Record<LayerLifecycleEvent, Array<LayerLifecycleListener<BaseLayer>>> = {
+        loaded: [],
+        updated: []
+    }
     private _availableRenderers: LayerRendererDictionary
     private _defaultRenderQueue: RenderQueueItem[]
     private _renderQueue: RenderQueueItem[]
@@ -37,16 +43,14 @@ abstract class BaseLayer {
         width: number,
         height: number,
         options?: Options,
-        loadedListener?: (layer: BaseLayer) => void | Promise<void>,
-        updatedListener?: (layer: BaseLayer) => void | Promise<void>
+        listeners?: LayerLifecycleListeners<BaseLayer>
     ) {
         this._id = id
 
         this._contentBuffer = new OffscreenBuffer(width, height, true)
         this._outputBuffer = new OffscreenBuffer(width, height)
 
-        this._loadedListener = loadedListener
-        this._updatedListener = updatedListener
+        if (listeners) this._addInitialListeners(listeners)
         this._defaultRenderQueue = []
         this._renderQueue = []
         this._availableRenderers = {
@@ -112,9 +116,19 @@ abstract class BaseLayer {
                     this._renderNextFrame = this._requestAnimationFrame
                     this._requestAnimationFrame()
                 }
-                this._fireLoadedListener()
+                this._fireLoadedListeners()
             }
         })
+    }
+
+    private _addInitialListeners(listeners: LayerLifecycleListeners<BaseLayer>) {
+        const toArray = <T>(value?: T | T[]): T[] => {
+            if (typeof value === 'undefined') return []
+            return Array.isArray(value) ? value : [value]
+        }
+
+        this._listeners.loaded.push(...toArray(listeners.loaded))
+        this._listeners.updated.push(...toArray(listeners.updated))
     }
 
     /**
@@ -398,19 +412,17 @@ abstract class BaseLayer {
         // If renderer init hasn't resolved yet, the callback is deferred to
         // Promise.all.then() via _fireLoadedListener().
         if (this._renderersReady) {
-            this._fireLoadedListener()
+            this._fireLoadedListeners()
         }
     }
 
     /**
-     * Fires the loaded listener exactly once, after both content and all renderer
+     * Fires all loaded listeners once, after both content and all renderer
      * init() calls are complete. Called from _layerLoaded (if renderers are already
      * ready) or from the Promise.all.then() callback (if _layerLoaded fired first).
      */
-    private _fireLoadedListener() {
-        if (typeof this._loadedListener === 'function') {
-            this._loadedListener(this)
-        }
+    private _fireLoadedListeners() {
+        for (const fn of this._listeners.loaded) fn(this)
     }
 
     /**
@@ -462,9 +474,7 @@ abstract class BaseLayer {
         }
 
         // Callback parent if available
-        if (typeof this._updatedListener === 'function') {
-            this._updatedListener(this)
-        }
+        for (const fn of this._listeners.updated) fn(this)
     }
 
     /**
@@ -539,6 +549,25 @@ abstract class BaseLayer {
 
     haveRenderer() {
         return this._defaultRenderQueue.some(r => r.active)
+    }
+
+    /**
+     * Register a handler for a layer lifecycle event. Multiple handlers may be
+     * registered for the same event; they fire in registration order.
+     * Returns `this` for chaining.
+     */
+    on(event: LayerLifecycleEvent, handler: LayerLifecycleListener<this>): this {
+        this._listeners[event].push(handler as unknown as LayerLifecycleListener<BaseLayer>)
+        return this
+    }
+
+    /**
+     * Remove a previously registered event handler. No-op if the handler was not
+     * registered for that event.
+     */
+    off(event: LayerLifecycleEvent, handler: LayerLifecycleListener<this>): this {
+        this._listeners[event] = this._listeners[event].filter(h => h !== (handler as unknown as LayerLifecycleListener<BaseLayer>))
+        return this
     }
 
     setVisibility(isVisible: boolean) {
