@@ -17,8 +17,7 @@ class SpritesLayer extends BaseLayer {
 
     private _sprites: ISpriteDictionary
     private _runningSprites: number
-    private __renderNextFrame: () => void
-    
+
 	constructor(
         id: string,
         width: number,
@@ -33,7 +32,6 @@ class SpritesLayer extends BaseLayer {
 
         this._sprites = {} as ISpriteDictionary
         this._runningSprites = 0
-        this.__renderNextFrame = function(){}
 
         setTimeout(this._layerLoaded.bind(this), 1)
 	}
@@ -56,15 +54,6 @@ class SpritesLayer extends BaseLayer {
                 )
             }
         })
-
-        this.__renderNextFrame() // if needed
-    }
-
-    /**
-     * Request rendering of next frame
-     */
-    private _requestRenderNextFrame() {
-        requestAnimationFrame(this.__renderFrame.bind(this))
     }
 
     /**
@@ -183,7 +172,7 @@ class SpritesLayer extends BaseLayer {
         // If not more sprite is running then no need to keep rendering new frames
         if (this._runningSprites <= 0) {
             this._runningSprites = 0
-            this.__renderNextFrame = function(){}
+            this._stopContentLoop()
             this._stopRendering()
         }
     }
@@ -238,8 +227,7 @@ class SpritesLayer extends BaseLayer {
                 this._sprites[id].sprite.run()
 
                 if (this._runningSprites === 1) {
-                    this.__renderNextFrame = this._requestRenderNextFrame
-                    this._requestRenderNextFrame()
+                    this._startContentLoop(this.__renderFrame.bind(this))
                 }
             }
         } else {
@@ -264,7 +252,7 @@ class SpritesLayer extends BaseLayer {
         // Stop rendering if no sprite running
         if (this._runningSprites <= 0) {
             this._runningSprites = 0
-            this.__renderNextFrame = function(){}
+            this._stopContentLoop()
             this._stopRendering()
         }
     }
@@ -275,12 +263,8 @@ class SpritesLayer extends BaseLayer {
      * stopped and the output frozen when the layer is shown while sprites are
      * running (they keep animating while hidden). Resume compositing on show.
      */
-    setVisibility(isVisible: boolean) {
-        const becameVisible = isVisible && !this.isVisible()
-
-        super.setVisibility(isVisible)
-
-        if (becameVisible && this._runningSprites > 0) {
+    protected _onVisibilityChanged(): void {
+        if (this.isVisible() && this._runningSprites > 0) {
             this._startRendering()
         }
     }

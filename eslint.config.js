@@ -4,7 +4,7 @@ import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 
 export default [
-  { ignores: ['**/dist/**'] },
+  { ignores: ['**/dist/**', '**/docs/**'] },
   js.configs.recommended,
   tsPlugin.configs['flat/eslint-recommended'],
   {
