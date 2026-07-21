@@ -3,12 +3,11 @@
  * points (t = 0 and t = d) where the closed forms are exact, as well as
  * mid-point behaviour to verify each curve has a distinct shape.
  */
-import {describe, expect, test} from 'vitest'
+import { describe, expect, test } from 'vitest'
 
-import {Easing} from '../src/utils'
+import { Easing } from '../src/utils'
 
 describe('Easing', () => {
-
     // --- Boundary tests (t = 0 and t = d) ---
 
     test('easeLinear interpolates proportionally', () => {
@@ -61,7 +60,10 @@ describe('Easing', () => {
     })
 
     test('all four easings produce different values at the midpoint', () => {
-        const t = 0.5, b = 0, c = 1, d = 1
+        const t = 0.5,
+            b = 0,
+            c = 1,
+            d = 1
         const values = [
             Easing.easeLinear(t, b, c, d),
             Easing.easeOutQuad(t, b, c, d),

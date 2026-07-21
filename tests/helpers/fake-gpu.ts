@@ -3,12 +3,12 @@
  * Provides a fake GPUDevice and fake navigator.gpu that satisfy every API call
  * made by LayerRenderer subclasses without requiring a real GPU.
  */
-import {vi} from 'vitest'
+import { vi } from 'vitest'
 
 export type FakeMessage = { type: 'error' | 'warning' | 'info'; message: string; lineNum: number }
 
-export const warnMsg  = (): FakeMessage => ({ type: 'warning', message: 'unused variable', lineNum: 1 })
-export const errorMsg = (): FakeMessage => ({ type: 'error',   message: 'undefined symbol', lineNum: 2 })
+export const warnMsg = (): FakeMessage => ({ type: 'warning', message: 'unused variable', lineNum: 1 })
+export const errorMsg = (): FakeMessage => ({ type: 'error', message: 'undefined symbol', lineNum: 2 })
 
 /**
  * Build a fake GPUDevice that satisfies every API call made by LayerRenderer subclasses.
@@ -25,7 +25,7 @@ export function makeFakeDevice(compilationMessages: FakeMessage[] = [], byteLeng
 
     return {
         createShaderModule: () => ({
-            getCompilationInfo: () => Promise.resolve({ messages: compilationMessages })
+            getCompilationInfo: () => Promise.resolve({ messages: compilationMessages }),
         }),
         createBuffer: () => makeBuffer(),
         createBindGroupLayout: () => ({}),
@@ -48,8 +48,9 @@ export function makeFakeDevice(compilationMessages: FakeMessage[] = [], byteLeng
 
 /** Build a fake navigator.gpu object that resolves to makeFakeDevice(compilationMessages). */
 export const makeFakeGpu = (compilationMessages: FakeMessage[] = []) => ({
-    requestAdapter: () => Promise.resolve({
-        features: { has: () => false },
-        requestDevice: () => Promise.resolve(makeFakeDevice(compilationMessages))
-    })
+    requestAdapter: () =>
+        Promise.resolve({
+            features: { has: () => false },
+            requestDevice: () => Promise.resolve(makeFakeDevice(compilationMessages)),
+        }),
 })

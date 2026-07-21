@@ -1,11 +1,6 @@
-import {
-    BaseLayer,
-    LayerLifecycleEvent,
-    LayerLifecycleListener,
-    LayerLifecycleListeners,
-} from './base-layer'
-import {Options} from "../utils"
-import {AnimationLayerOptions} from "../interfaces"
+import { BaseLayer, LayerLifecycleEvent, LayerLifecycleListener, LayerLifecycleListeners } from './base-layer'
+import { Options } from '../utils'
+import { AnimationLayerOptions } from '../interfaces'
 
 type AnimationLayerListeners = LayerLifecycleListeners<AnimationLayer> & {
     play?: ((layer: AnimationLayer) => void) | Array<(layer: AnimationLayer) => void>
@@ -14,7 +9,6 @@ type AnimationLayerListeners = LayerLifecycleListeners<AnimationLayer> & {
 }
 
 class AnimationLayer extends BaseLayer {
-
     private _playListeners: Array<(layer: AnimationLayer) => void> = []
     private _pauseListeners: Array<(layer: AnimationLayer) => void> = []
     private _stopListeners: Array<(layer: AnimationLayer) => void> = []
@@ -27,14 +21,13 @@ class AnimationLayer extends BaseLayer {
     private _frameDuration: number
 
     constructor(
-		id: string,
-		width: number,
-		height: number,
+        id: string,
+        width: number,
+        height: number,
         options?: Partial<AnimationLayerOptions> | Options,
-        listeners?: AnimationLayerListeners
+        listeners?: AnimationLayerListeners,
     ) {
-
-        const layerOptions = new Options({loop: false, autoplay: false, duration: 1000}).merge(options)
+        const layerOptions = new Options({ loop: false, autoplay: false, duration: 1000 }).merge(options)
         const normalized = AnimationLayer._normalizeListeners(listeners)
 
         super(id, width, height, layerOptions, {
@@ -61,11 +54,11 @@ class AnimationLayer extends BaseLayer {
     }
 
     private static _normalizeListeners(listeners?: AnimationLayerListeners): {
-        loaded: Array<(layer: AnimationLayer) => void | Promise<void>>,
-        updated: Array<(layer: AnimationLayer) => void | Promise<void>>,
-        play: Array<(layer: AnimationLayer) => void>,
-        pause: Array<(layer: AnimationLayer) => void>,
-        stop: Array<(layer: AnimationLayer) => void>,
+        loaded: Array<(layer: AnimationLayer) => void | Promise<void>>
+        updated: Array<(layer: AnimationLayer) => void | Promise<void>>
+        play: Array<(layer: AnimationLayer) => void>
+        pause: Array<(layer: AnimationLayer) => void>
+        stop: Array<(layer: AnimationLayer) => void>
     } {
         return {
             loaded: AnimationLayer._toArray(listeners?.loaded),
@@ -81,12 +74,10 @@ class AnimationLayer extends BaseLayer {
         this._onImagesLoaded()
     }
 
-
     /**
      * Called when all images are finished loading
      */
     private _onImagesLoaded() {
-
         // calculate how long each frame should be displayed
         this._frameDuration = this._options.get('duration') / this._images.length
 
@@ -97,19 +88,17 @@ class AnimationLayer extends BaseLayer {
 
         this._layerUpdated()
 
-		if (this._options.get('autoplay')) {
-			this.play()
-		}
-
+        if (this._options.get('autoplay')) {
+            this.play()
+        }
     }
 
     /**
      * Render current frame in content buffer
-     * @param {number} t 
-     * @returns 
+     * @param {number} t
+     * @returns
      */
     private __renderFrame(t: number) {
-
         const now = t
         const previousFrameIndex = this._frameIndex
 
@@ -120,7 +109,6 @@ class AnimationLayer extends BaseLayer {
         const position = now - this._startTime
 
         let frameIndex = Math.floor(position / this._frameDuration)
-
 
         // If not looping stop at the last image in the array
         if (!this._loop && frameIndex >= this._images.length) {
@@ -150,15 +138,14 @@ class AnimationLayer extends BaseLayer {
 
     /**
      * Play animation with current images array
-     * @param {boolean} loop 
+     * @param {boolean} loop
      */
     play(loop?: boolean) {
         if (this.isLoaded() && !this._isPlaying) {
-            
             // if loop param provided then set animation loop to value
             if (typeof loop !== 'undefined') {
                 this._loop = !!loop
-            // Otherwise if animation is not paused reset loop state to initial options
+                // Otherwise if animation is not paused reset loop state to initial options
             } else if (!this._isPaused) {
                 this._loop = this._options.get('loop')
             }
@@ -203,7 +190,7 @@ class AnimationLayer extends BaseLayer {
                 this._stopContentLoop()
                 for (const fn of this._pauseListeners) fn(this)
             } else {
-                console.log("Only looping animation can be paused")
+                console.log('Only looping animation can be paused')
                 this.stop()
             }
         }
@@ -216,7 +203,7 @@ class AnimationLayer extends BaseLayer {
         if (this._isPaused) {
             this.play()
         } else {
-            console.log("This video is not paused")
+            console.log('This video is not paused')
         }
     }
 
@@ -243,7 +230,6 @@ class AnimationLayer extends BaseLayer {
         requestAnimationFrame(this._drawImage.bind(this))
         this._layerUpdated()
     }
-
 
     on(event: LayerLifecycleEvent, handler: LayerLifecycleListener<this>): this
     on(event: 'play' | 'pause' | 'stop', handler: (layer: this) => void): this
@@ -302,7 +288,6 @@ class AnimationLayer extends BaseLayer {
     get isPaused() {
         return this._isPaused
     }
-
 }
 
 export { AnimationLayer }

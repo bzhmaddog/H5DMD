@@ -10,14 +10,14 @@
  *   - fadeIn / fadeOut RAF step continuation
  *   - renderer init failure catch in constructor
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {CanvasLayer} from '../src/layers'
-import {BaseLayer, LayerLifecycleListeners} from '../src/layers/base-layer'
-import {ChangeAlphaRenderer, ChromaKeyRenderer} from '../src/renderers'
-import {rendererEntry} from '../src/interfaces'
-import {Options} from '../src/utils'
+import { CanvasLayer } from '../src/layers'
+import { BaseLayer, LayerLifecycleListeners } from '../src/layers/base-layer'
+import { ChangeAlphaRenderer, ChromaKeyRenderer } from '../src/renderers'
+import { rendererEntry } from '../src/interfaces'
+import { Options } from '../src/utils'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const priv = (layer: CanvasLayer): any => layer as any
@@ -50,7 +50,10 @@ class TestLayer extends BaseLayer {
 const stdBeforeEach = () => {
     setupVitestCanvasMock()
     vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)
-    vi.stubGlobal('requestAnimationFrame', vi.fn(() => 0))
+    vi.stubGlobal(
+        'requestAnimationFrame',
+        vi.fn(() => 0),
+    )
     vi.stubGlobal('createImageBitmap', () => Promise.resolve(makeBitmap()))
 }
 
@@ -64,39 +67,53 @@ const stdAfterEach = () => {
 // ---------------------------------------------------------------------------
 
 describe('BaseLayer constructor — RendererEntry in options.renderers', () => {
-
     beforeEach(stdBeforeEach)
     afterEach(stdAfterEach)
 
     test('RendererInstanceEntry (active by default) adds renderer to queue', async () => {
         const instance = new ChangeAlphaRenderer(4, 4)
-        const layer = new CanvasLayer('c', 4, 4, new Options({
-            renderers: [{ id: 'r', instance }]
-        }))
+        const layer = new CanvasLayer(
+            'c',
+            4,
+            4,
+            new Options({
+                renderers: [{ id: 'r', instance }],
+            }),
+        )
         // Queue is built after init resolves — flush the microtask chain
         await Promise.resolve()
         await Promise.resolve()
-        expect(priv(layer)._defaultRenderQueue.some((q: {id: string}) => q.id === 'r')).toBe(true)
+        expect(priv(layer)._defaultRenderQueue.some((q: { id: string }) => q.id === 'r')).toBe(true)
     })
 
     test('RendererClassEntry instantiates with layer dimensions and adds to queue', async () => {
-        const layer = new CanvasLayer('c', 4, 4, new Options({
-            renderers: [{ id: 'r', rendererClass: ChangeAlphaRenderer }]
-        }))
+        const layer = new CanvasLayer(
+            'c',
+            4,
+            4,
+            new Options({
+                renderers: [{ id: 'r', rendererClass: ChangeAlphaRenderer }],
+            }),
+        )
         expect(priv(layer)._availableRenderers['r']).toBeInstanceOf(ChangeAlphaRenderer)
         // Queue is built after init resolves — flush the microtask chain
         await Promise.resolve()
         await Promise.resolve()
-        expect(priv(layer)._defaultRenderQueue.some((q: {id: string}) => q.id === 'r')).toBe(true)
+        expect(priv(layer)._defaultRenderQueue.some((q: { id: string }) => q.id === 'r')).toBe(true)
     })
 
     test('RendererClassEntry params are forwarded to the renderer constructor', () => {
         // Verifies that params reach the renderer — if the field name were wrong
         // the renderer would silently fall back to its defaults.
         vi.spyOn(ChromaKeyRenderer.prototype, 'init').mockResolvedValue(undefined)
-        const layer = new CanvasLayer('c', 4, 4, new Options({
-            renderers: [rendererEntry('chroma', ChromaKeyRenderer, { color: [10, 20, 30], threshold: 7 })]
-        }))
+        const layer = new CanvasLayer(
+            'c',
+            4,
+            4,
+            new Options({
+                renderers: [rendererEntry('chroma', ChromaKeyRenderer, { color: [10, 20, 30], threshold: 7 })],
+            }),
+        )
         const renderer = priv(layer)._availableRenderers['chroma']
         expect(renderer._keyR).toBe(10)
         expect(renderer._keyG).toBe(20)
@@ -106,16 +123,20 @@ describe('BaseLayer constructor — RendererEntry in options.renderers', () => {
 
     test('inactive RendererEntry registers renderer but does not queue it', () => {
         const instance = new ChangeAlphaRenderer(4, 4)
-        const layer = new CanvasLayer('c', 4, 4, new Options({
-            renderers: [{ id: 'r', instance, active: false }]
-        }))
+        const layer = new CanvasLayer(
+            'c',
+            4,
+            4,
+            new Options({
+                renderers: [{ id: 'r', instance, active: false }],
+            }),
+        )
         expect(priv(layer)._availableRenderers['r']).toBe(instance)
-        expect(priv(layer)._defaultRenderQueue.some((q: {id: string}) => q.id === 'r')).toBe(false)
+        expect(priv(layer)._defaultRenderQueue.some((q: { id: string }) => q.id === 'r')).toBe(false)
     })
 })
 
 describe('BaseLayer constructor — renderer init failure', () => {
-
     beforeEach(stdBeforeEach)
     afterEach(stdAfterEach)
 
@@ -129,10 +150,7 @@ describe('BaseLayer constructor — renderer init failure', () => {
         new CanvasLayer('c', 4, 4, new Options({ renderers: [{ id: 'r', instance }] }))
 
         await vi.waitFor(() => {
-            expect(errSpy).toHaveBeenCalledWith(
-                expect.stringContaining('init failed'),
-                expect.any(Error)
-            )
+            expect(errSpy).toHaveBeenCalledWith(expect.stringContaining('init failed'), expect.any(Error))
         })
     })
 })
@@ -142,7 +160,6 @@ describe('BaseLayer constructor — renderer init failure', () => {
 // ---------------------------------------------------------------------------
 
 describe('BaseLayer.addRenderer', () => {
-
     beforeEach(stdBeforeEach)
     afterEach(stdAfterEach)
 
@@ -158,8 +175,9 @@ describe('BaseLayer.addRenderer', () => {
         const layer = new CanvasLayer('c', 4, 4)
         await layer.addRenderer('r', ChangeAlphaRenderer)
 
-        await expect(layer.addRenderer('r', ChangeAlphaRenderer))
-            .rejects.toThrow(/already exists in the list of available renderers/)
+        await expect(layer.addRenderer('r', ChangeAlphaRenderer)).rejects.toThrow(
+            /already exists in the list of available renderers/,
+        )
     })
 
     test('active:false registers but does not activate the renderer', async () => {
@@ -208,7 +226,6 @@ describe('BaseLayer.addRenderer', () => {
 // ---------------------------------------------------------------------------
 
 describe('BaseLayer.removeRenderer', () => {
-
     beforeEach(stdBeforeEach)
     afterEach(stdAfterEach)
 
@@ -219,7 +236,7 @@ describe('BaseLayer.removeRenderer', () => {
         layer.removeRenderer('r')
 
         expect(priv(layer)._availableRenderers['r']).toBeUndefined()
-        expect(priv(layer)._defaultRenderQueue.some((q: {id: string}) => q.id === 'r')).toBe(false)
+        expect(priv(layer)._defaultRenderQueue.some((q: { id: string }) => q.id === 'r')).toBe(false)
     })
 
     test('is a no-op for an unknown id', () => {
@@ -233,7 +250,6 @@ describe('BaseLayer.removeRenderer', () => {
 // ---------------------------------------------------------------------------
 
 describe('BaseLayer.deactivateRenderer / activateRenderer / isRendererActive', () => {
-
     beforeEach(stdBeforeEach)
     afterEach(stdAfterEach)
 
@@ -274,9 +290,14 @@ describe('BaseLayer.deactivateRenderer / activateRenderer / isRendererActive', (
     test('activateRenderer pushes to queue when renderer was never in the queue (options RendererEntry active:false)', () => {
         // active:false RendererEntry registers in _availableRenderers but skips _defaultRenderQueue
         const instance = new ChangeAlphaRenderer(4, 4)
-        const layer = new CanvasLayer('c', 4, 4, new Options({
-            renderers: [{ id: 'r', instance, active: false }]
-        }))
+        const layer = new CanvasLayer(
+            'c',
+            4,
+            4,
+            new Options({
+                renderers: [{ id: 'r', instance, active: false }],
+            }),
+        )
         expect(layer.isRendererActive('r')).toBe(false)
 
         layer.activateRenderer('r')
@@ -326,21 +347,24 @@ describe('BaseLayer.deactivateRenderer / activateRenderer / isRendererActive', (
 // ---------------------------------------------------------------------------
 
 describe('BaseLayer protected helpers', () => {
-
     beforeEach(stdBeforeEach)
     afterEach(stdAfterEach)
 
     test('_getRendererInstance throws for an unregistered id', () => {
         const layer = new CanvasLayer('c', 4, 4)
-        expect(() => priv(layer)._getRendererInstance('ghost'))
-            .toThrow('This renderer is not available')
+        expect(() => priv(layer)._getRendererInstance('ghost')).toThrow('This renderer is not available')
     })
 
     test('_getRendererInstance returns instance for a registered id', () => {
         const instance = new ChangeAlphaRenderer(4, 4)
-        const layer = new CanvasLayer('c', 4, 4, new Options({
-            renderers: [{ id: 'r', instance, active: false }]
-        }))
+        const layer = new CanvasLayer(
+            'c',
+            4,
+            4,
+            new Options({
+                renderers: [{ id: 'r', instance, active: false }],
+            }),
+        )
         expect(priv(layer)._getRendererInstance('r')).toBe(instance)
     })
 
@@ -369,10 +393,7 @@ describe('BaseLayer protected helpers', () => {
         const cb = vi.fn()
         // Give the layer a renderer so haveRenderer()=true and _renderFrame is NOT called
         const instance = new ChangeAlphaRenderer(4, 4)
-        const layer = new CanvasLayer('c', 4, 4,
-            new Options({ renderers: [{ id: 'r', instance }] }),
-            { updated: cb }
-        )
+        const layer = new CanvasLayer('c', 4, 4, new Options({ renderers: [{ id: 'r', instance }] }), { updated: cb })
         priv(layer)._layerUpdated()
         expect(cb).toHaveBeenCalledWith(layer)
     })
@@ -383,7 +404,6 @@ describe('BaseLayer protected helpers', () => {
 // ---------------------------------------------------------------------------
 
 describe('BaseLayer listeners API (on/off + multi-listener dispatch)', () => {
-
     beforeEach(stdBeforeEach)
     afterEach(stdAfterEach)
 
@@ -428,14 +448,8 @@ describe('BaseLayer listeners API (on/off + multi-listener dispatch)', () => {
     test('constructor listener arrays are all dispatched for loaded and updated', async () => {
         const calls: string[] = []
         const layer = new TestLayer({
-            loaded: [
-                () => calls.push('loaded-1'),
-                () => calls.push('loaded-2'),
-            ],
-            updated: [
-                () => calls.push('updated-1'),
-                () => calls.push('updated-2'),
-            ],
+            loaded: [() => calls.push('loaded-1'), () => calls.push('loaded-2')],
+            updated: [() => calls.push('updated-1'), () => calls.push('updated-2')],
         })
 
         // Wait for constructor renderer init to settle so loaded listeners can fire.
@@ -454,7 +468,6 @@ describe('BaseLayer listeners API (on/off + multi-listener dispatch)', () => {
 // ---------------------------------------------------------------------------
 
 describe('BaseLayer._layerLoaded', () => {
-
     beforeEach(stdBeforeEach)
     afterEach(stdAfterEach)
 
@@ -463,9 +476,14 @@ describe('BaseLayer._layerLoaded', () => {
         vi.stubGlobal('requestAnimationFrame', raf)
 
         const instance = new ChangeAlphaRenderer(4, 4)
-        const layer = new CanvasLayer('c', 4, 4, new Options({
-            renderers: [{ id: 'r', instance }]   // active: true
-        }))
+        const layer = new CanvasLayer(
+            'c',
+            4,
+            4,
+            new Options({
+                renderers: [{ id: 'r', instance }], // active: true
+            }),
+        )
         raf.mockClear()
 
         priv(layer)._layerLoaded()
@@ -505,7 +523,6 @@ describe('BaseLayer._layerLoaded', () => {
 // ---------------------------------------------------------------------------
 
 describe('BaseLayer.setVisibility with active renderers', () => {
-
     beforeEach(stdBeforeEach)
     afterEach(stdAfterEach)
 
@@ -514,10 +531,15 @@ describe('BaseLayer.setVisibility with active renderers', () => {
         vi.stubGlobal('requestAnimationFrame', raf)
 
         const instance = new ChangeAlphaRenderer(4, 4)
-        const layer = new CanvasLayer('c', 4, 4, new Options({
-            visible: true,
-            renderers: [{ id: 'r', instance }]
-        }))
+        const layer = new CanvasLayer(
+            'c',
+            4,
+            4,
+            new Options({
+                visible: true,
+                renderers: [{ id: 'r', instance }],
+            }),
+        )
 
         // Wait for init so the queue is populated before we test visibility changes
         await Promise.resolve()
@@ -537,7 +559,6 @@ describe('BaseLayer.setVisibility with active renderers', () => {
 // ---------------------------------------------------------------------------
 
 describe('BaseLayer.fadeIn / fadeOut RAF continuation', () => {
-
     beforeEach(stdBeforeEach)
     afterEach(stdAfterEach)
 
@@ -549,7 +570,7 @@ describe('BaseLayer.fadeIn / fadeOut RAF continuation', () => {
 
         let calls = 0
         vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
-            if (++calls <= 1) cb(0)   // invoke once to let the second step run
+            if (++calls <= 1) cb(0) // invoke once to let the second step run
             return 0
         })
 

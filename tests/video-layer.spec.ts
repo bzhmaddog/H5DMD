@@ -4,15 +4,14 @@
  *   - a visible layer starts playback normally.
  *   - hiding a playing layer pauses it (pauseOnHide default).
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {VideoLayer} from '../src/layers'
-import {ChangeAlphaRenderer} from '../src/renderers'
-import {Options} from '../src/utils'
+import { VideoLayer } from '../src/layers'
+import { ChangeAlphaRenderer } from '../src/renderers'
+import { Options } from '../src/utils'
 
 describe('VideoLayer visibility', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         // BaseLayer constructor calls the opacity renderer's init(); stub it.
@@ -27,7 +26,7 @@ describe('VideoLayer visibility', () => {
     })
 
     test('play() on a hidden layer is a no-op', () => {
-        const layer = new VideoLayer('hidden', 32, 32, new Options({visible: false}))
+        const layer = new VideoLayer('hidden', 32, 32, new Options({ visible: false }))
 
         const video = document.createElement('video')
         video.play = vi.fn().mockResolvedValue(undefined)
@@ -44,7 +43,7 @@ describe('VideoLayer visibility', () => {
     })
 
     test('play() on a visible layer starts playback', () => {
-        const layer = new VideoLayer('shown', 32, 32, new Options({visible: true}))
+        const layer = new VideoLayer('shown', 32, 32, new Options({ visible: true }))
 
         const video = document.createElement('video')
         video.play = vi.fn().mockResolvedValue(undefined)
@@ -61,7 +60,7 @@ describe('VideoLayer visibility', () => {
         const layer = new VideoLayer('v', 64, 16)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const internal = layer as any
-        internal._video = {pause: vi.fn(), play: vi.fn()}
+        internal._video = { pause: vi.fn(), play: vi.fn() }
         internal._state = 2 // VideoState.PLAYING
         const pauseSpy = vi.spyOn(internal, '_pause').mockImplementation(() => {})
 
@@ -79,11 +78,13 @@ const fakeVideo = () => {
 }
 
 describe('VideoLayer playback control', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)
-        vi.stubGlobal('requestAnimationFrame', vi.fn(() => 0))
+        vi.stubGlobal(
+            'requestAnimationFrame',
+            vi.fn(() => 0),
+        )
     })
 
     afterEach(() => {
@@ -92,7 +93,7 @@ describe('VideoLayer playback control', () => {
     })
 
     test('setVideo wires the loop option and draws the first frame', () => {
-        const layer = new VideoLayer('v', 64, 16, new Options({loop: true}))
+        const layer = new VideoLayer('v', 64, 16, new Options({ loop: true }))
         const video = fakeVideo()
 
         layer.setVideo(video)
@@ -101,7 +102,7 @@ describe('VideoLayer playback control', () => {
     })
 
     test('autoplay on a visible layer plays once the video is loaded', () => {
-        const layer = new VideoLayer('v', 64, 16, new Options({autoplay: true, visible: true}))
+        const layer = new VideoLayer('v', 64, 16, new Options({ autoplay: true, visible: true }))
         const video = fakeVideo()
 
         layer.setVideo(video)
@@ -111,7 +112,7 @@ describe('VideoLayer playback control', () => {
     })
 
     test('pause() pauses a playing video', () => {
-        const layer = new VideoLayer('v', 64, 16, new Options({visible: true}))
+        const layer = new VideoLayer('v', 64, 16, new Options({ visible: true }))
         const video = fakeVideo()
         layer.setVideo(video)
         layer.play()
@@ -123,7 +124,7 @@ describe('VideoLayer playback control', () => {
     })
 
     test('stop() pauses and rewinds the video', () => {
-        const layer = new VideoLayer('v', 64, 16, new Options({visible: true}))
+        const layer = new VideoLayer('v', 64, 16, new Options({ visible: true }))
         const video = fakeVideo()
         layer.setVideo(video)
         layer.play()
@@ -136,7 +137,7 @@ describe('VideoLayer playback control', () => {
     })
 
     test('playing an already-playing video warns and does not replay', () => {
-        const layer = new VideoLayer('v', 64, 16, new Options({visible: true}))
+        const layer = new VideoLayer('v', 64, 16, new Options({ visible: true }))
         const video = fakeVideo()
         layer.setVideo(video)
         layer.play()
@@ -157,7 +158,7 @@ describe('VideoLayer playback control', () => {
     })
 
     test('stopOnHide stops the video when the layer is hidden', () => {
-        const layer = new VideoLayer('v', 64, 16, new Options({visible: true, stopOnHide: true}))
+        const layer = new VideoLayer('v', 64, 16, new Options({ visible: true, stopOnHide: true }))
         const video = fakeVideo()
         layer.setVideo(video)
         layer.play()
@@ -181,7 +182,7 @@ describe('VideoLayer playback control', () => {
 
     test('the play event fires the onPlay listener', () => {
         const onPlay = vi.fn()
-        const layer = new VideoLayer('v', 64, 16, new Options({visible: true}), { play: onPlay })
+        const layer = new VideoLayer('v', 64, 16, new Options({ visible: true }), { play: onPlay })
         const video = fakeVideo()
         layer.setVideo(video)
 
@@ -192,7 +193,7 @@ describe('VideoLayer playback control', () => {
 
     test('the pause event fires the onPause listener', () => {
         const onPause = vi.fn()
-        const layer = new VideoLayer('v', 64, 16, new Options({visible: true}), { pause: onPause })
+        const layer = new VideoLayer('v', 64, 16, new Options({ visible: true }), { pause: onPause })
         const video = fakeVideo()
         layer.setVideo(video)
 
@@ -214,7 +215,7 @@ describe('VideoLayer playback control', () => {
     })
 
     test('an autoplay layer hidden at creation resumes playback when shown', () => {
-        const layer = new VideoLayer('v', 64, 16, new Options({autoplay: true, visible: false}))
+        const layer = new VideoLayer('v', 64, 16, new Options({ autoplay: true, visible: false }))
         const video = fakeVideo()
         layer.setVideo(video)
 
@@ -227,7 +228,7 @@ describe('VideoLayer playback control', () => {
     })
 
     test('stop() on a non-playing video warns but still rewinds', () => {
-        const layer = new VideoLayer('v', 64, 16, new Options({visible: true}))
+        const layer = new VideoLayer('v', 64, 16, new Options({ visible: true }))
         const video = fakeVideo()
         layer.setVideo(video)
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})

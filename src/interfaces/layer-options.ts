@@ -1,4 +1,4 @@
-import type {RendererEntry} from './layer-renderer-dictionary'
+import type { RendererEntry } from './layer-renderer-dictionary'
 
 /**
  * Horizontal alignment, shared by every option object that aligns something horizontally:

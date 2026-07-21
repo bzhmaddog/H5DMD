@@ -1,6 +1,6 @@
 export interface Layer {
-    id: string,
-    zIndex: number,
-    top: number,
+    id: string
+    zIndex: number
+    top: number
     left: number
 }

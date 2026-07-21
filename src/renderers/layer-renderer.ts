@@ -1,26 +1,26 @@
-import {Renderer} from "./renderer";
+import { Renderer } from './renderer'
 
 export abstract class LayerRenderer<O = never> extends Renderer {
-    protected _width: number;
-    protected _height: number;
-    protected _bufferByteLength: number;
-    private _outputBuffers: [GPUBuffer, GPUBuffer];
-    private _activeOutputIndex: number;
+    protected _width: number
+    protected _height: number
+    protected _bufferByteLength: number
+    private _outputBuffers: [GPUBuffer, GPUBuffer]
+    private _activeOutputIndex: number
     /** Last successfully read-back frame, reused when both output buffers are busy. */
-    private _lastReadback?: ImageData;
+    private _lastReadback?: ImageData
 
     constructor(name: string, width: number, height: number) {
-        super(name);
-        this._width = width;
-        this._height = height;
-        this._bufferByteLength = width * height * 4;
-        this._activeOutputIndex = 0;
-        this.renderFrame = this._doNothing;
+        super(name)
+        this._width = width
+        this._height = height
+        this._bufferByteLength = width * height * 4
+        this._activeOutputIndex = 0
+        this.renderFrame = this._doNothing
     }
 
-    abstract init(): Promise<void>;
+    abstract init(): Promise<void>
 
-    renderFrame: (frameData: ImageData, options?: O extends never ? never : O) => Promise<ImageData>;
+    renderFrame: (frameData: ImageData, options?: O extends never ? never : O) => Promise<ImageData>
 
     /**
      * Create the double-buffered output buffers. Must be called in _createResources()
@@ -30,13 +30,13 @@ export abstract class LayerRenderer<O = never> extends Renderer {
         this._outputBuffers = [
             this._device.createBuffer({
                 size: this._bufferByteLength,
-                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
             }),
             this._device.createBuffer({
                 size: this._bufferByteLength,
-                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
-            })
-        ];
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+            }),
+        ]
     }
 
     /**
@@ -58,28 +58,25 @@ export abstract class LayerRenderer<O = never> extends Renderer {
      * @param {GPUCommandEncoder} commandEncoder the encoder with the compute pass already ended
      * @returns {Promise<ImageData> | null} null if the buffer is busy and no frame has completed yet
      */
-    protected _submitAndReadback(
-        tempBuffer: GPUBuffer,
-        commandEncoder: GPUCommandEncoder
-    ): Promise<ImageData> | null {
-        const outputBuffer = this._outputBuffers[this._activeOutputIndex];
+    protected _submitAndReadback(tempBuffer: GPUBuffer, commandEncoder: GPUCommandEncoder): Promise<ImageData> | null {
+        const outputBuffer = this._outputBuffers[this._activeOutputIndex]
 
         if (outputBuffer.mapState !== 'unmapped') {
-            return this._lastReadback ? Promise.resolve(this._lastReadback) : null;
+            return this._lastReadback ? Promise.resolve(this._lastReadback) : null
         }
 
-        this._activeOutputIndex = 1 - this._activeOutputIndex;
+        this._activeOutputIndex = 1 - this._activeOutputIndex
 
-        commandEncoder.copyBufferToBuffer(tempBuffer, 0, outputBuffer, 0, this._bufferByteLength);
-        this._device.queue.submit([commandEncoder.finish()]);
+        commandEncoder.copyBufferToBuffer(tempBuffer, 0, outputBuffer, 0, this._bufferByteLength)
+        this._device.queue.submit([commandEncoder.finish()])
 
         return outputBuffer.mapAsync(GPUMapMode.READ).then(() => {
-            const pixelsBuffer = new Uint8Array(outputBuffer.getMappedRange());
-            const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), this._width, this._height);
-            outputBuffer.unmap();
-            this._lastReadback = imageData;
-            return imageData;
-        });
+            const pixelsBuffer = new Uint8Array(outputBuffer.getMappedRange())
+            const imageData = new ImageData(new Uint8ClampedArray(pixelsBuffer), this._width, this._height)
+            outputBuffer.unmap()
+            this._lastReadback = imageData
+            return imageData
+        })
     }
 
     /**
@@ -99,9 +96,7 @@ export abstract class LayerRenderer<O = never> extends Renderer {
 
         const errors = info.messages.filter((m: GPUCompilationMessage) => m.type === 'error')
         if (errors.length > 0) {
-            const details = errors.map((e: GPUCompilationMessage) =>
-                `line ${e.lineNum}: ${e.message}`
-            ).join('\n')
+            const details = errors.map((e: GPUCompilationMessage) => `line ${e.lineNum}: ${e.message}`).join('\n')
             reject(new Error(`${this.name}: shader compilation failed\n${details}`))
             return false
         }
@@ -117,8 +112,8 @@ export abstract class LayerRenderer<O = never> extends Renderer {
      * @returns {Promise<ImageData>}
      */
     protected _doNothing(frameData: ImageData): Promise<ImageData> {
-        return new Promise((resolve) => {
-            resolve(frameData);
+        return new Promise(resolve => {
+            resolve(frameData)
         })
     }
 }

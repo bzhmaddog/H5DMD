@@ -2,18 +2,20 @@
  * Unit tests for CanvasLayer drawing methods: fillColor, clear, drawRect,
  * drawLine, fillGradient, drawGradientRect, setDrawFunction, and draw().
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {CanvasLayer} from '../src/layers'
-import {ChangeAlphaRenderer} from '../src/renderers'
+import { CanvasLayer } from '../src/layers'
+import { ChangeAlphaRenderer } from '../src/renderers'
 
 describe('CanvasLayer drawing methods', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)
-        vi.stubGlobal('requestAnimationFrame', vi.fn(() => 0))
+        vi.stubGlobal(
+            'requestAnimationFrame',
+            vi.fn(() => 0),
+        )
     })
 
     afterEach(() => {
@@ -130,7 +132,7 @@ describe('CanvasLayer drawing methods', () => {
         const ctx = getCtx(layer)
         const clearSpy = vi.spyOn(ctx, 'clearRect')
 
-        const fn = vi.fn((draw) => {
+        const fn = vi.fn(draw => {
             draw.fillColor('#FF0000')
             expect(draw.width).toBe(64)
             expect(draw.height).toBe(16)
@@ -170,7 +172,7 @@ describe('CanvasLayer drawing methods', () => {
         const fillRectSpy = vi.spyOn(ctx, 'fillRect')
         const strokeSpy = vi.spyOn(ctx, 'stroke')
 
-        layer.setDrawFunction((draw) => {
+        layer.setDrawFunction(draw => {
             draw.drawRect(0, 0, 10, 10, '#F00')
             draw.drawLine(0, 0, 10, 10, '#0F0', 3)
             draw.fillGradient(['#000', '#FFF'])

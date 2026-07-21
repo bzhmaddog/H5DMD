@@ -1,10 +1,4 @@
-import {
-    CanvasLayer,
-    Colors,
-    Dmd,
-    LayerGroup,
-    TextLayer,
-} from "h5dmd";
+import { CanvasLayer, Colors, Dmd, LayerGroup, TextLayer } from 'h5dmd'
 
 /**
  * A static, no-controls showcase of how TextLayer places its text *inside its own layer box*
@@ -24,45 +18,44 @@ import {
  */
 
 // The DMD grid is 426x130 dots (1280x390 canvas at dotSize:2/dotSpace:1).
-const DMD_WIDTH = 426;
-const DMD_HEIGHT = 130;
+const DMD_WIDTH = 426
+const DMD_HEIGHT = 130
 
 // The manual column only needs to be as wide as its longest label; the alignment grid is the
 // point of the page, so it gets everything left over. Move this one number to re-split the
 // DMD - both groups and all their children follow.
-const MANUAL_GROUP_WIDTH = 170;
+const MANUAL_GROUP_WIDTH = 170
 
 // --- Left group: the 3x3 alignment grid ---
-const ALIGN_GROUP_WIDTH = DMD_WIDTH - MANUAL_GROUP_WIDTH;
-const GRID_LEFT = 6;
-const GRID_TOP = 14;
-const CELL_GAP = 3;
+const ALIGN_GROUP_WIDTH = DMD_WIDTH - MANUAL_GROUP_WIDTH
+const GRID_LEFT = 6
+const GRID_TOP = 14
+const CELL_GAP = 3
 // Three cells + two gaps fill the group between its left/right margins.
-const CELL_WIDTH = Math.floor((ALIGN_GROUP_WIDTH - GRID_LEFT * 2 - CELL_GAP * 2) / 3);
-const CELL_HEIGHT = 36;
+const CELL_WIDTH = Math.floor((ALIGN_GROUP_WIDTH - GRID_LEFT * 2 - CELL_GAP * 2) / 3)
+const CELL_HEIGHT = 36
 // Uniform across all nine cells, in px (see the addLayer call below): the widest label,
 // 'center middle', measures ~72 of the 79 dots at this size.
-const CELL_FONT_SIZE = 10;
+const CELL_FONT_SIZE = 10
 // Keeps flush-aligned text from being overdrawn by the cell border.
-const CELL_PAD = 3;
+const CELL_PAD = 3
 
 // --- Right group: the manual-positioning column ---
-const MANUAL_MARGIN = 8;
-const MANUAL_TOP = 14;
-const MANUAL_WIDTH = MANUAL_GROUP_WIDTH - MANUAL_MARGIN * 2;
-const MANUAL_LEFT = MANUAL_MARGIN;
-const MANUAL_HEIGHT = 26;
-const MANUAL_GAP = 4;
+const MANUAL_MARGIN = 8
+const MANUAL_TOP = 14
+const MANUAL_WIDTH = MANUAL_GROUP_WIDTH - MANUAL_MARGIN * 2
+const MANUAL_LEFT = MANUAL_MARGIN
+const MANUAL_HEIGHT = 26
+const MANUAL_GAP = 4
 // In px, uniform across the four boxes: the longest label measures ~130 of the 154 dots.
-const MANUAL_FONT_SIZE = 10;
+const MANUAL_FONT_SIZE = 10
 
 // The preferred spellings. 'left'/'right' and 'top'/'middle'/'bottom' still work as aliases,
 // but a reference page should show the names the library leads with.
-const H_ALIGNS = ['start', 'center', 'end'] as const;
-const V_ALIGNS = ['start', 'center', 'end'] as const;
+const H_ALIGNS = ['start', 'center', 'end'] as const
+const V_ALIGNS = ['start', 'center', 'end'] as const
 
 export function setupTextLayers(dmd: Dmd): void {
-
     // ---------------------------------------------------------------------
     // Left: every hAlign/vAlign pair. No left/top is given, so alignment alone places the
     // text - and each cell's text names the corner it lands in.
@@ -70,10 +63,10 @@ export function setupTextLayers(dmd: Dmd): void {
     const alignments = dmd.addLayerGroup('alignments', {
         width: ALIGN_GROUP_WIDTH,
         height: DMD_HEIGHT,
-        position: {top: 0, left: 0},
-    });
+        position: { top: 0, left: 0 },
+    })
 
-    heading(alignments, 'align-heading', GRID_LEFT, ALIGN_GROUP_WIDTH - GRID_LEFT * 2, 'hAlign x vAlign', Colors.Blue);
+    heading(alignments, 'align-heading', GRID_LEFT, ALIGN_GROUP_WIDTH - GRID_LEFT * 2, 'hAlign x vAlign', Colors.Blue)
 
     V_ALIGNS.forEach((vAlign, row) => {
         H_ALIGNS.forEach((hAlign, col) => {
@@ -107,9 +100,9 @@ export function setupTextLayers(dmd: Dmd): void {
                 color: Colors.White,
                 borderWidth: 1,
                 borderColor: Colors.Blue,
-            });
-        });
-    });
+            })
+        })
+    })
 
     // ---------------------------------------------------------------------
     // Right: manual positioning. An explicit left/top is used verbatim and overrides the
@@ -119,39 +112,44 @@ export function setupTextLayers(dmd: Dmd): void {
     const manual = dmd.addLayerGroup('manual', {
         width: MANUAL_GROUP_WIDTH,
         height: DMD_HEIGHT,
-        position: {top: 0, left: ALIGN_GROUP_WIDTH},
-    });
+        position: { top: 0, left: ALIGN_GROUP_WIDTH },
+    })
 
     // Rule between the two halves, at the manual group's own left edge.
-    manual.addLayer(CanvasLayer, 'divider', {
-        width: 1,
-        height: DMD_HEIGHT,
-        position: {left: 0, top: 0},
-    }, (layer) => layer.fillColor(Colors.DarkOrange));
+    manual.addLayer(
+        CanvasLayer,
+        'divider',
+        {
+            width: 1,
+            height: DMD_HEIGHT,
+            position: { left: 0, top: 0 },
+        },
+        layer => layer.fillColor(Colors.DarkOrange),
+    )
 
-    heading(manual, 'manual-heading', MANUAL_LEFT, MANUAL_WIDTH, 'manual left / top', Colors.Orange);
+    heading(manual, 'manual-heading', MANUAL_LEFT, MANUAL_WIDTH, 'manual left / top', Colors.Orange)
 
-    const cases: Array<{id: string, text: string, options: Record<string, unknown>}> = [
+    const cases: Array<{ id: string; text: string; options: Record<string, unknown> }> = [
         {
             // Both axes explicit: the 'center' alignment defaults are overridden, and the text
             // is drawn at exactly (4, 2) in the layer.
             id: 'manual-pixels',
             text: 'left 4 / top 2',
-            options: {left: 4, top: 2},
+            options: { left: 4, top: 2 },
         },
         {
             // Percentages resolve against the *layer's* width/height (not the DMD's), so this
             // one starts a quarter of the way across its own box.
             id: 'manual-percent',
             text: "left '25%' / top '50%'",
-            options: {left: '25%', top: '50%'},
+            options: { left: '25%', top: '50%' },
         },
         {
             // One axis each way: hAlign still centers horizontally because no `left` was given,
             // while the explicit `top` overrides vAlign's 'center' default.
             id: 'manual-mixed',
             text: 'hAlign center + top 3',
-            options: {hAlign: 'center', top: 3},
+            options: { hAlign: 'center', top: 3 },
         },
         {
             // Offsets are added *after* whichever mode placed the text, so they nudge an
@@ -159,9 +157,9 @@ export function setupTextLayers(dmd: Dmd): void {
             // end-aligned ink clear of the border drawn over it.
             id: 'manual-offsets',
             text: 'vAlign end + offsets',
-            options: {hAlign: 'start', vAlign: 'end', hOffset: 12, vOffset: -3},
+            options: { hAlign: 'start', vAlign: 'end', hOffset: 12, vOffset: -3 },
         },
-    ];
+    ]
 
     cases.forEach((entry, i) => {
         manual.addLayer(TextLayer, entry.id, {
@@ -181,8 +179,8 @@ export function setupTextLayers(dmd: Dmd): void {
             borderWidth: 1,
             borderColor: Colors.Orange,
             ...entry.options,
-        });
-    });
+        })
+    })
 }
 
 /** Section title at the top of one of the two groups. */
@@ -190,7 +188,7 @@ function heading(group: LayerGroup, id: string, left: number, width: number, tex
     group.addLayer(TextLayer, id, {
         width,
         height: 10,
-        position: {left, top: 2},
+        position: { left, top: 2 },
         text,
         hAlign: 'start',
         vAlign: 'center',
@@ -198,5 +196,5 @@ function heading(group: LayerGroup, id: string, left: number, width: number, tex
         fontSize: 9,
         fontUnit: 'px',
         color,
-    });
+    })
 }

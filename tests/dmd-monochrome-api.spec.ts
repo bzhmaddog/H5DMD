@@ -3,14 +3,13 @@
  * These tests use a real (non-mocked) DmdRenderer because all exercised methods
  * operate purely in CPU/JS space and do not require a GPU device.
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {Dmd} from '../src'
-import {DotShape} from '../src/enums'
+import { Dmd } from '../src'
+import { DotShape } from '../src/enums'
 
 describe('Dmd — monochrome and off-dot color API', () => {
-
     const canvas = document.createElement('canvas')
     canvas.width = 640
     canvas.height = 200
@@ -25,7 +24,14 @@ describe('Dmd — monochrome and off-dot color API', () => {
     })
 
     function makeDmd(): Dmd {
-        return new Dmd(canvas, { dotSize: 5, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 0, brightness: 1, showFPS: false })
+        return new Dmd(canvas, {
+            dotSize: 5,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 0,
+            brightness: 1,
+            showFPS: false,
+        })
     }
 
     // ── bgHSP / bgBrightness ────────────────────────────────────────────────
@@ -91,8 +97,12 @@ describe('Dmd — monochrome and off-dot color API', () => {
 
     test('DmdOptions with RgbColor enables monochrome and sets tint', () => {
         const dmd = new Dmd(canvas, {
-            dotSize: 5, dotSpace: 1, dotShape: DotShape.Square,
-            backgroundBrightness: 0, brightness: 1, showFPS: false,
+            dotSize: 5,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 0,
+            brightness: 1,
+            showFPS: false,
             color: { r: 1, g: 0.5, b: 0 },
         })
         expect(dmd.monochrome).toBe(true)
@@ -101,8 +111,12 @@ describe('Dmd — monochrome and off-dot color API', () => {
 
     test('DmdOptions with hex color string enables monochrome', () => {
         const dmd = new Dmd(canvas, {
-            dotSize: 5, dotSpace: 1, dotShape: DotShape.Square,
-            backgroundBrightness: 0, brightness: 1, showFPS: false,
+            dotSize: 5,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 0,
+            brightness: 1,
+            showFPS: false,
             color: '#FF8000',
         })
         expect(dmd.monochrome).toBe(true)
@@ -110,8 +124,12 @@ describe('Dmd — monochrome and off-dot color API', () => {
 
     test('DmdOptions with monoLevels sets the level', () => {
         const dmd = new Dmd(canvas, {
-            dotSize: 5, dotSpace: 1, dotShape: DotShape.Square,
-            backgroundBrightness: 0, brightness: 1, showFPS: false,
+            dotSize: 5,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 0,
+            brightness: 1,
+            showFPS: false,
             monoLevels: 4,
         })
         expect(dmd.monoLevels).toBe(4)
@@ -119,8 +137,12 @@ describe('Dmd — monochrome and off-dot color API', () => {
 
     test('DmdOptions with offDotColor as RgbColor sets the off-dot color', () => {
         const dmd = new Dmd(canvas, {
-            dotSize: 5, dotSpace: 1, dotShape: DotShape.Square,
-            backgroundBrightness: 0, brightness: 1, showFPS: false,
+            dotSize: 5,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 0,
+            brightness: 1,
+            showFPS: false,
             offDotColor: { r: 0.5, g: 0, b: 0 },
         })
         expect(dmd.offDotColor.r).toBeGreaterThan(0.49)
@@ -129,8 +151,12 @@ describe('Dmd — monochrome and off-dot color API', () => {
 
     test('DmdOptions with offDotColor as hex string sets the off-dot color', () => {
         const dmd = new Dmd(canvas, {
-            dotSize: 5, dotSpace: 1, dotShape: DotShape.Square,
-            backgroundBrightness: 0, brightness: 1, showFPS: false,
+            dotSize: 5,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 0,
+            brightness: 1,
+            showFPS: false,
             offDotColor: '#FF0000',
         })
         expect(dmd.offDotColor.r).toBeCloseTo(1, 2)

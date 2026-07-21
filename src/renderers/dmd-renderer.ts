@@ -1,5 +1,5 @@
-import {Renderer} from "./renderer"
-import {DotShape} from "../enums";
+import { Renderer } from './renderer'
+import { DotShape } from '../enums'
 
 /** Minimum pixelSize for each dot shape to be visually distinguishable. */
 const MIN_DOT_SIZE: Record<DotShape, number> = {
@@ -24,7 +24,6 @@ const MIN_DOT_SPACE: Record<DotShape, number> = {
 }
 
 class DmdRenderer extends Renderer {
-
     private _dmdWidth: number
     private _dmdHeight: number
     private _visibleDotsX: number
@@ -35,9 +34,9 @@ class DmdRenderer extends Renderer {
     private _maxBufferByteLength: number
     private _screenWidth: number
     private _screenHeight: number
-	private _dotSpace: number
-	private _pixelSize: number
-	private _dotShape: DotShape
+    private _dotSpace: number
+    private _pixelSize: number
+    private _dotShape: DotShape
     private _paddedBytesPerRow: number
     private _bgHSP: number
     private _bgR: number
@@ -81,17 +80,16 @@ class DmdRenderer extends Renderer {
 
     renderFrame: (frameData: ImageData) => Promise<void>
 
-
     /**
-     * 
-     * @param {number} dmdWidth 
-     * @param {number} dmdHeight 
-     * @param {number} screenWidth 
-     * @param {number} screenHeight 
+     *
+     * @param {number} dmdWidth
+     * @param {number} dmdHeight
+     * @param {number} screenWidth
+     * @param {number} screenHeight
      * @param {number} pixelSize
-     * @param {number} dotSpace 
-     * @param {DotShape} dotShape 
-     * @param {number} bgBrightness 
+     * @param {number} dotSpace
+     * @param {DotShape} dotShape
+     * @param {number} bgBrightness
      * @param {number} brightness
      * @param {HTMLCanvasElement} canvas
      */
@@ -105,18 +103,18 @@ class DmdRenderer extends Renderer {
         dotShape: DotShape,
         bgBrightness: number,
         brightness: number,
-        canvas: HTMLCanvasElement
+        canvas: HTMLCanvasElement,
     ) {
-        super("DmdRenderer")
+        super('DmdRenderer')
 
         this._dmdWidth = dmdWidth
         this._dmdHeight = dmdHeight
         this._screenWidth = screenWidth
-		this._screenHeight = screenHeight
+        this._screenHeight = screenHeight
         this._pixelSize = pixelSize
         this._dotSpace = dotSpace
         this._dotShape = dotShape
-        this._paddedBytesPerRow = Math.ceil(dmdWidth * 4 / 256) * 256
+        this._paddedBytesPerRow = Math.ceil((dmdWidth * 4) / 256) * 256
 
         // Visible dot count on screen (changes with dot size)
         this._visibleDotsX = Math.floor(screenWidth / (pixelSize + dotSpace))
@@ -125,12 +123,11 @@ class DmdRenderer extends Renderer {
         // Max DMD resolution (at dotSize=1) — used for GPU buffer/texture allocation
         this._maxDmdWidth = Math.floor(screenWidth / (1 + dotSpace))
         this._maxDmdHeight = Math.floor(screenHeight / (1 + dotSpace))
-        this._maxPaddedBytesPerRow = Math.ceil(this._maxDmdWidth * 4 / 256) * 256
+        this._maxPaddedBytesPerRow = Math.ceil((this._maxDmdWidth * 4) / 256) * 256
         this._maxBufferByteLength = this._maxPaddedBytesPerRow * this._maxDmdHeight
 
         this._canvas = canvas
         this.renderFrame = this._doNothing
-
 
         this._bgR = 14
         this._bgG = 14
@@ -153,16 +150,16 @@ class DmdRenderer extends Renderer {
         this._lastGpuFrameTime = 0
 
         if (typeof bgBrightness === 'number') {
-                this._bgR = Math.max(0, Math.min(255, Math.round(bgBrightness)))
-                this._bgG = this._bgR
-                this._bgB = this._bgR
+            this._bgR = Math.max(0, Math.min(255, Math.round(bgBrightness)))
+            this._bgG = this._bgR
+            this._bgB = this._bgR
         }
 
         if (typeof brightness === 'number') {
             this.setBrightness(brightness)
         }
 
-        this._bgHSP = Math.sqrt(0.299 * this._bgR**2 + 0.587 * this._bgG**2 + 0.114 * this._bgB**2)
+        this._bgHSP = Math.sqrt(0.299 * this._bgR ** 2 + 0.587 * this._bgG ** 2 + 0.114 * this._bgB ** 2)
     }
 
     private _int2Hex(n: number): string {
@@ -172,28 +169,27 @@ class DmdRenderer extends Renderer {
         let hex = clamped.toString(16)
 
         if (hex.length < 2) {
-            hex = "0" + hex
+            hex = '0' + hex
         }
-        
+
         return hex
     }
 
     init(): Promise<void> {
-
         return new Promise((resolve, reject) => {
-
-            Renderer.requestSharedDevice().then( device => {
+            Renderer.requestSharedDevice()
+                .then(device => {
                     this._device = device
                     this._hasTimestampQuery = device.features.has('timestamp-query')
 
                     this._shaderModule = device.createShaderModule({
-                        code: this._buildComputeShaderCode()
+                        code: this._buildComputeShaderCode(),
                     })
 
-                    console.log("GPURenderer:init()")
+                    console.log('GPURenderer:init()')
 
-                    this._shaderModule.getCompilationInfo()?.then(i=>{
-                        if (i.messages.length > 0 ) {
+                    this._shaderModule.getCompilationInfo()?.then(i => {
+                        if (i.messages.length > 0) {
                             console.warn('GPURenderer:compilationInfo()', i.messages)
                         }
                     })
@@ -202,9 +198,9 @@ class DmdRenderer extends Renderer {
 
                     this.renderFrame = this._doRendering
                     resolve()
-                }).catch(reject)
-       })
-    
+                })
+                .catch(reject)
+        })
     }
 
     /**
@@ -322,9 +318,9 @@ class DmdRenderer extends Renderer {
      * Do nothing (placeholder until init is done)
      * @param {ImageData} _frameData
      */
-     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-     private _doNothing(_frameData: ImageData): Promise<void> {
-        console.log("Init not done cannot apply filter")
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private _doNothing(_frameData: ImageData): Promise<void> {
+        console.log('Init not done cannot apply filter')
         return Promise.resolve()
     }
 
@@ -333,7 +329,6 @@ class DmdRenderer extends Renderer {
      * Done once after init to avoid per-frame allocations (memory leak / GC churn).
      */
     private _createResources() {
-
         // --- Compute pipeline resources ---
 
         this._uboBuffer = this._device.createBuffer({
@@ -343,13 +338,13 @@ class DmdRenderer extends Renderer {
 
         this._inputBuffer = this._device.createBuffer({
             size: this._maxBufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         })
 
         // Output at max DMD resolution (allocated for largest possible grid)
         this._tempBuffer = this._device.createBuffer({
             size: this._maxBufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         })
 
         const computeBindGroupLayout = this._device.createBindGroupLayout({
@@ -357,19 +352,19 @@ class DmdRenderer extends Renderer {
                 {
                     binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: "read-only-storage" }
+                    buffer: { type: 'read-only-storage' },
                 } as GPUBindGroupLayoutEntry,
                 {
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: "storage" }
+                    buffer: { type: 'storage' },
                 } as GPUBindGroupLayoutEntry,
                 {
                     binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: "uniform" }
-                } as GPUBindGroupLayoutEntry
-            ]
+                    buffer: { type: 'uniform' },
+                } as GPUBindGroupLayoutEntry,
+            ],
         })
 
         this._bindGroup = this._device.createBindGroup({
@@ -377,18 +372,18 @@ class DmdRenderer extends Renderer {
             entries: [
                 { binding: 0, resource: { buffer: this._inputBuffer } },
                 { binding: 1, resource: { buffer: this._tempBuffer } },
-                { binding: 2, resource: { buffer: this._uboBuffer } }
-            ]
+                { binding: 2, resource: { buffer: this._uboBuffer } },
+            ],
         })
 
         this._computePipeline = this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
-                bindGroupLayouts: [computeBindGroupLayout]
+                bindGroupLayouts: [computeBindGroupLayout],
             }),
             compute: {
                 module: this._shaderModule,
-                entryPoint: "main"
-            }
+                entryPoint: 'main',
+            },
         })
 
         // --- Render-to-canvas resources ---
@@ -399,25 +394,25 @@ class DmdRenderer extends Renderer {
         this._canvasContext.configure({
             device: this._device,
             format: this._canvasFormat,
-            alphaMode: 'opaque'
+            alphaMode: 'opaque',
         })
 
         // DMD-resolution texture (allocated at max size; only active portion is used)
         this._renderTexture = this._device.createTexture({
             size: { width: this._maxDmdWidth, height: this._maxDmdHeight },
             format: 'rgba8unorm',
-            usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+            usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
         })
 
         this._sampler = this._device.createSampler({
             magFilter: 'nearest',
-            minFilter: 'nearest'
+            minFilter: 'nearest',
         })
 
         // Render uniform buffer: [pixelSize, dotSpace, dotShape, visibleDotsX, visibleDotsY, pad, pad, pad]
         this._renderUniformBuffer = this._device.createBuffer({
             size: 32,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
         this._renderUniformData[0] = this._pixelSize
         this._renderUniformData[1] = this._dotSpace
@@ -554,7 +549,7 @@ class DmdRenderer extends Renderer {
 
                     return dotColor;
                 }
-            `
+            `,
         })
 
         const renderBindGroupLayout = this._device.createBindGroupLayout({
@@ -562,19 +557,19 @@ class DmdRenderer extends Renderer {
                 {
                     binding: 0,
                     visibility: GPUShaderStage.FRAGMENT,
-                    sampler: { type: 'filtering' }
+                    sampler: { type: 'filtering' },
                 },
                 {
                     binding: 1,
                     visibility: GPUShaderStage.FRAGMENT,
-                    texture: { sampleType: 'float' }
+                    texture: { sampleType: 'float' },
                 },
                 {
                     binding: 2,
                     visibility: GPUShaderStage.FRAGMENT,
-                    buffer: { type: 'uniform' }
-                }
-            ]
+                    buffer: { type: 'uniform' },
+                },
+            ],
         })
 
         this._renderBindGroup = this._device.createBindGroup({
@@ -582,31 +577,31 @@ class DmdRenderer extends Renderer {
             entries: [
                 { binding: 0, resource: this._sampler },
                 { binding: 1, resource: this._renderTexture.createView() },
-                { binding: 2, resource: { buffer: this._renderUniformBuffer } }
-            ]
+                { binding: 2, resource: { buffer: this._renderUniformBuffer } },
+            ],
         })
 
         this._renderPipeline = this._device.createRenderPipeline({
             layout: this._device.createPipelineLayout({
-                bindGroupLayouts: [renderBindGroupLayout]
+                bindGroupLayouts: [renderBindGroupLayout],
             }),
             vertex: {
                 module: renderShaderModule,
-                entryPoint: 'vs'
+                entryPoint: 'vs',
             },
             fragment: {
                 module: renderShaderModule,
                 entryPoint: 'fs',
-                targets: [{ format: this._canvasFormat }]
+                targets: [{ format: this._canvasFormat }],
             },
             primitive: {
-                topology: 'triangle-list'
-            }
+                topology: 'triangle-list',
+            },
         })
 
         // --- P9: Pre-record the render pass as a render bundle ---
         const bundleEncoder = this._device.createRenderBundleEncoder({
-            colorFormats: [this._canvasFormat]
+            colorFormats: [this._canvasFormat],
         })
         bundleEncoder.setPipeline(this._renderPipeline)
         bundleEncoder.setBindGroup(0, this._renderBindGroup)
@@ -617,15 +612,15 @@ class DmdRenderer extends Renderer {
         if (this._hasTimestampQuery) {
             this._querySet = this._device.createQuerySet({
                 type: 'timestamp',
-                count: 2
+                count: 2,
             })
             this._queryResolveBuffer = this._device.createBuffer({
                 size: 16, // 2 × BigUint64
-                usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC
+                usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC,
             })
             this._queryResultBuffer = this._device.createBuffer({
                 size: 16,
-                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
             })
         }
     }
@@ -639,7 +634,6 @@ class DmdRenderer extends Renderer {
      * @param {ImageData} frameData
      */
     private _doRendering(frameData: ImageData): Promise<void> {
-
         // Upload frame pixels into the persistent input buffer
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
@@ -653,7 +647,7 @@ class DmdRenderer extends Renderer {
         this._uboF32[6] = this._monoColorG
         this._uboF32[7] = this._monoColorB
         this._uboU32[8] = this._monoLevels
-        this._uboU32[9]  = this._bgR
+        this._uboU32[9] = this._bgR
         this._uboU32[10] = this._bgG
         this._uboU32[11] = this._bgB
         this._uboF32[12] = this._bgHSP
@@ -670,7 +664,7 @@ class DmdRenderer extends Renderer {
             computePassDescriptor.timestampWrites = {
                 querySet: this._querySet,
                 beginningOfPassWriteIndex: 0,
-                endOfPassWriteIndex: 1
+                endOfPassWriteIndex: 1,
             }
         }
         const computePass = commandEncoder.beginComputePass(computePassDescriptor)
@@ -684,20 +678,22 @@ class DmdRenderer extends Renderer {
             {
                 buffer: this._tempBuffer,
                 bytesPerRow: this._paddedBytesPerRow,
-                rowsPerImage: this._dmdHeight
+                rowsPerImage: this._dmdHeight,
             },
             { texture: this._renderTexture },
-            { width: this._dmdWidth, height: this._dmdHeight }
+            { width: this._dmdWidth, height: this._dmdHeight },
         )
 
         // --- Render pass: execute pre-recorded bundle ---
         const renderPass = commandEncoder.beginRenderPass({
-            colorAttachments: [{
-                view: this._canvasContext.getCurrentTexture().createView(),
-                loadOp: 'clear' as GPULoadOp,
-                storeOp: 'store' as GPUStoreOp,
-                clearValue: { r: 0, g: 0, b: 0, a: 1 }
-            }]
+            colorAttachments: [
+                {
+                    view: this._canvasContext.getCurrentTexture().createView(),
+                    loadOp: 'clear' as GPULoadOp,
+                    storeOp: 'store' as GPUStoreOp,
+                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                },
+            ],
         })
         renderPass.executeBundles([this._renderBundle])
         renderPass.end()
@@ -712,15 +708,20 @@ class DmdRenderer extends Renderer {
 
         // Read back GPU timestamps (non-blocking, updates _lastGpuFrameTime)
         if (this._hasTimestampQuery && this._queryResultBuffer.mapState === 'unmapped') {
-            this._queryResultBuffer.mapAsync(GPUMapMode.READ).then(() => {
-                const times = new BigUint64Array(this._queryResultBuffer.getMappedRange())
-                this._lastGpuFrameTime = Number(times[1] - times[0]) / 1_000_000 // ns → ms
-                this._queryResultBuffer.unmap()
-            }).catch(() => { /* mapping failed — skip this sample */ })
+            this._queryResultBuffer
+                .mapAsync(GPUMapMode.READ)
+                .then(() => {
+                    const times = new BigUint64Array(this._queryResultBuffer.getMappedRange())
+                    this._lastGpuFrameTime = Number(times[1] - times[0]) / 1_000_000 // ns → ms
+                    this._queryResultBuffer.unmap()
+                })
+                .catch(() => {
+                    /* mapping failed — skip this sample */
+                })
         }
 
         return this._device.queue.onSubmittedWorkDone()
-	}
+    }
     /* c8 ignore stop */
 
     /**
@@ -817,11 +818,11 @@ class DmdRenderer extends Renderer {
         this._bgR = Math.round(Math.max(0, Math.min(1, r)) * 255)
         this._bgG = Math.round(Math.max(0, Math.min(1, g)) * 255)
         this._bgB = Math.round(Math.max(0, Math.min(1, b)) * 255)
-        this._bgHSP = Math.sqrt(0.299 * this._bgR**2 + 0.587 * this._bgG**2 + 0.114 * this._bgB**2)
+        this._bgHSP = Math.sqrt(0.299 * this._bgR ** 2 + 0.587 * this._bgG ** 2 + 0.114 * this._bgB ** 2)
     }
 
     /** Get the current off-dot color (RGB, each component 0–1). */
-    get offDotColor(): { r: number, g: number, b: number } {
+    get offDotColor(): { r: number; g: number; b: number } {
         return { r: this._bgR / 255, g: this._bgG / 255, b: this._bgB / 255 }
     }
 
@@ -834,8 +835,8 @@ class DmdRenderer extends Renderer {
     }
 
     /**
-	 * Set brightness of the dots between 0 and 1 (does not affect the background color)
-     * @param {number} b 
+     * Set brightness of the dots between 0 and 1 (does not affect the background color)
+     * @param {number} b
      */
     setBrightness(b: number) {
         const brightness = Math.max(0, Math.min(b, 1)) // normalize
@@ -873,7 +874,7 @@ class DmdRenderer extends Renderer {
         if (hsp <= this._bgHSP) {
             throw new RangeError(
                 `Monochrome color is too dark (HSP ${hsp.toFixed(2)} ≤ background HSP ${this._bgHSP.toFixed(2)}). ` +
-                `Choose a brighter color so lit dots remain distinguishable from off dots.`
+                    `Choose a brighter color so lit dots remain distinguishable from off dots.`,
             )
         }
         this._monoColorR = r255 / 255
@@ -881,7 +882,7 @@ class DmdRenderer extends Renderer {
         this._monoColorB = b255 / 255
     }
 
-    get monochromeColor(): { r: number, g: number, b: number } {
+    get monochromeColor(): { r: number; g: number; b: number } {
         return { r: this._monoColorR, g: this._monoColorG, b: this._monoColorB }
     }
 
@@ -913,7 +914,6 @@ class DmdRenderer extends Renderer {
     get gpuFrameTime(): number {
         return this._lastGpuFrameTime
     }
-
 }
 
-export {DmdRenderer}
+export { DmdRenderer }

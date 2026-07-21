@@ -1,5 +1,5 @@
-import {Renderer} from "./renderer"
-import {LayerRenderer} from "./layer-renderer"
+import { Renderer } from './renderer'
+import { LayerRenderer } from './layer-renderer'
 
 export interface ChromaKeyParams {
     /** RGB key color to make transparent (0–255 each). Default: `[0, 255, 0]` (green). */
@@ -9,7 +9,6 @@ export interface ChromaKeyParams {
 }
 
 class ChromaKeyRenderer extends LayerRenderer {
-
     private _uboBuffer: GPUBuffer
     private _inputBuffer: GPUBuffer
     private _tempBuffer: GPUBuffer
@@ -26,7 +25,7 @@ class ChromaKeyRenderer extends LayerRenderer {
      * @param {ChromaKeyParams} params Optional key color and threshold.
      */
     constructor(width: number, height: number, params?: ChromaKeyParams) {
-        super("ChromaKeyRenderer", width, height)
+        super('ChromaKeyRenderer', width, height)
         const color = params?.color ?? [0, 255, 0]
         this._keyR = color[0]
         this._keyG = color[1]
@@ -39,10 +38,9 @@ class ChromaKeyRenderer extends LayerRenderer {
      * @returns Promise
      */
     init(): Promise<void> {
-
         return new Promise((resolve, reject) => {
-
-            Renderer.requestSharedDevice().then(device => {
+            Renderer.requestSharedDevice()
+                .then(device => {
                     this._device = device
 
                     this._shaderModule = device.createShaderModule({
@@ -85,10 +83,12 @@ class ChromaKeyRenderer extends LayerRenderer {
 
                                 outputPixels.rgba[index] = (newA << 24u) | (b << 16u) | (g << 8u) | r;
                             }
-                        `
+                        `,
                     })
 
-                    console.log(`ChromaKeyRenderer:init([${this._keyR}, ${this._keyG}, ${this._keyB}], ${this._threshold})`)
+                    console.log(
+                        `ChromaKeyRenderer:init([${this._keyR}, ${this._keyG}, ${this._keyB}], ${this._threshold})`,
+                    )
 
                     this._validateShader(reject).then(valid => {
                         if (!valid) return
@@ -96,7 +96,8 @@ class ChromaKeyRenderer extends LayerRenderer {
                         this.renderFrame = this._doRendering
                         resolve()
                     })
-                }).catch(reject)
+                })
+                .catch(reject)
         })
     }
 
@@ -104,7 +105,6 @@ class ChromaKeyRenderer extends LayerRenderer {
      * Create and cache the GPU resources reused across frames.
      */
     private _createResources() {
-
         this._uboBuffer = this._device.createBuffer({
             size: 16, // 4 floats × 4 bytes
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -112,12 +112,12 @@ class ChromaKeyRenderer extends LayerRenderer {
 
         this._inputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         })
 
         this._tempBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         })
 
         this._createOutputBuffers()
@@ -127,19 +127,19 @@ class ChromaKeyRenderer extends LayerRenderer {
                 {
                     binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: "read-only-storage" }
+                    buffer: { type: 'read-only-storage' },
                 },
                 {
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: "storage" }
+                    buffer: { type: 'storage' },
                 },
                 {
                     binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: "uniform" }
-                }
-            ]
+                    buffer: { type: 'uniform' },
+                },
+            ],
         })
 
         this._bindGroup = this._device.createBindGroup({
@@ -147,18 +147,18 @@ class ChromaKeyRenderer extends LayerRenderer {
             entries: [
                 { binding: 0, resource: { buffer: this._inputBuffer } },
                 { binding: 1, resource: { buffer: this._tempBuffer } },
-                { binding: 2, resource: { buffer: this._uboBuffer } }
-            ]
+                { binding: 2, resource: { buffer: this._uboBuffer } },
+            ],
         })
 
         this._computePipeline = this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
-                bindGroupLayouts: [bindGroupLayout]
+                bindGroupLayouts: [bindGroupLayout],
             }),
             compute: {
                 module: this._shaderModule,
-                entryPoint: "main"
-            }
+                entryPoint: 'main',
+            },
         })
     }
 
@@ -169,15 +169,9 @@ class ChromaKeyRenderer extends LayerRenderer {
      * @returns {Promise<ImageData>}
      */
     private _doRendering(frameData: ImageData): Promise<ImageData> {
-
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
-        const uniformTypedArray = new Float32Array([
-            this._keyR,
-            this._keyG,
-            this._keyB,
-            this._threshold
-        ])
+        const uniformTypedArray = new Float32Array([this._keyR, this._keyG, this._keyB, this._threshold])
         this._device.queue.writeBuffer(this._uboBuffer, 0, uniformTypedArray.buffer)
 
         const commandEncoder = this._device.createCommandEncoder()

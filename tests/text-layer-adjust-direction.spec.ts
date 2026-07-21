@@ -12,12 +12,12 @@
  * the resulting font size can be asserted exactly, instead of depending on the canvas mock's
  * own text metrics.
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {TextLayer} from '../src/layers'
-import {ChangeAlphaRenderer, OutlineRenderer, RemoveAliasingRenderer} from '../src/renderers'
-import {Options} from '../src/utils'
+import { TextLayer } from '../src/layers'
+import { ChangeAlphaRenderer, OutlineRenderer, RemoveAliasingRenderer } from '../src/renderers'
+import { Options } from '../src/utils'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const priv = (layer: TextLayer): any => layer as any
@@ -28,7 +28,6 @@ const parsePx = (font: string): number => parseFloat(/(\d+(?:\.\d+)?)px/.exec(fo
 const usedFontPx = (layer: TextLayer): number => parsePx(priv(layer)._textBuffer.context.font)
 
 describe('TextLayer hAlign + outlineWidth margin / adjustDirection', () => {
-
     const originalGetContext = HTMLCanvasElement.prototype.getContext
 
     beforeEach(() => {
@@ -46,11 +45,11 @@ describe('TextLayer hAlign + outlineWidth margin / adjustDirection', () => {
             const ctx: any = (originalGetContext as any).apply(this, args)
             if (ctx && typeof ctx.measureText !== 'undefined') {
                 ctx.measureText = function (this: { font: string }, text: string) {
-                    return {width: text.length * parsePx(this.font)} as TextMetrics
+                    return { width: text.length * parsePx(this.font) } as TextMetrics
                 }
             }
             return ctx
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any
     })
 
@@ -64,9 +63,18 @@ describe('TextLayer hAlign + outlineWidth margin / adjustDirection', () => {
     // -----------------------------------------------------------------
 
     test("hAlign 'right' reserves outlineWidth as margin from the right edge", () => {
-        const layer = new TextLayer('t', 100, 32, new Options({
-            text: 'Hi', fontSize: 20, fontUnit: 'px', hAlign: 'right', outlineWidth: 3
-        }))
+        const layer = new TextLayer(
+            't',
+            100,
+            32,
+            new Options({
+                text: 'Hi',
+                fontSize: 20,
+                fontUnit: 'px',
+                hAlign: 'right',
+                outlineWidth: 3,
+            }),
+        )
         const fillSpy = vi.spyOn(priv(layer)._textBuffer.context, 'fillText')
         priv(layer)._drawText()
 
@@ -76,9 +84,18 @@ describe('TextLayer hAlign + outlineWidth margin / adjustDirection', () => {
     })
 
     test("hAlign 'left' reserves outlineWidth as margin from the left edge", () => {
-        const layer = new TextLayer('t', 100, 32, new Options({
-            text: 'Hi', fontSize: 20, fontUnit: 'px', hAlign: 'left', outlineWidth: 3
-        }))
+        const layer = new TextLayer(
+            't',
+            100,
+            32,
+            new Options({
+                text: 'Hi',
+                fontSize: 20,
+                fontUnit: 'px',
+                hAlign: 'left',
+                outlineWidth: 3,
+            }),
+        )
         const fillSpy = vi.spyOn(priv(layer)._textBuffer.context, 'fillText')
         priv(layer)._drawText()
 
@@ -87,9 +104,18 @@ describe('TextLayer hAlign + outlineWidth margin / adjustDirection', () => {
     })
 
     test('no outline means no margin (unchanged from before the fix)', () => {
-        const layer = new TextLayer('t', 100, 32, new Options({
-            text: 'Hi', fontSize: 20, fontUnit: 'px', hAlign: 'right', outlineWidth: 0
-        }))
+        const layer = new TextLayer(
+            't',
+            100,
+            32,
+            new Options({
+                text: 'Hi',
+                fontSize: 20,
+                fontUnit: 'px',
+                hAlign: 'right',
+                outlineWidth: 0,
+            }),
+        )
         const fillSpy = vi.spyOn(priv(layer)._textBuffer.context, 'fillText')
         priv(layer)._drawText()
 
@@ -102,9 +128,18 @@ describe('TextLayer hAlign + outlineWidth margin / adjustDirection', () => {
     // -----------------------------------------------------------------
 
     test("adjustDirection 'shrink' never lets the font grow back for a narrower text", () => {
-        const layer = new TextLayer('t', 100, 32, new Options({
-            text: 'WIDE', fontSize: 50, fontUnit: 'px', adjustWidth: true, adjustDirection: 'shrink'
-        }))
+        const layer = new TextLayer(
+            't',
+            100,
+            32,
+            new Options({
+                text: 'WIDE',
+                fontSize: 50,
+                fontUnit: 'px',
+                adjustWidth: true,
+                adjustDirection: 'shrink',
+            }),
+        )
         const shrunkSize = usedFontPx(layer)
         expect(shrunkSize).toBeLessThan(50)
 
@@ -113,9 +148,17 @@ describe('TextLayer hAlign + outlineWidth margin / adjustDirection', () => {
     })
 
     test("adjustDirection 'both' (default) lets the font grow back for a narrower text", () => {
-        const layer = new TextLayer('t', 100, 32, new Options({
-            text: 'WIDE', fontSize: 50, fontUnit: 'px', adjustWidth: true
-        }))
+        const layer = new TextLayer(
+            't',
+            100,
+            32,
+            new Options({
+                text: 'WIDE',
+                fontSize: 50,
+                fontUnit: 'px',
+                adjustWidth: true,
+            }),
+        )
         expect(layer.adjustDirection).toBe('both')
         const shrunkSize = usedFontPx(layer)
         expect(shrunkSize).toBeLessThan(50)
@@ -125,9 +168,18 @@ describe('TextLayer hAlign + outlineWidth margin / adjustDirection', () => {
     })
 
     test("adjustDirection 'expand' never shrinks the font below a previous size", () => {
-        const layer = new TextLayer('t', 100, 32, new Options({
-            text: 'W', fontSize: 50, fontUnit: 'px', adjustWidth: true, adjustDirection: 'expand'
-        }))
+        const layer = new TextLayer(
+            't',
+            100,
+            32,
+            new Options({
+                text: 'W',
+                fontSize: 50,
+                fontUnit: 'px',
+                adjustWidth: true,
+                adjustDirection: 'expand',
+            }),
+        )
         expect(usedFontPx(layer)).toBe(50)
 
         layer.setText('WIDE') // would need to shrink to fit - 'expand' keeps it at 50 instead
@@ -139,13 +191,13 @@ describe('TextLayer hAlign + outlineWidth margin / adjustDirection', () => {
     // -----------------------------------------------------------------
 
     test('resetFontSize restores the construction-time size when setFontSize was never called', () => {
-        const layer = new TextLayer('t', 100, 32, new Options({text: 'Hi', fontSize: 20, fontUnit: 'px'}))
+        const layer = new TextLayer('t', 100, 32, new Options({ text: 'Hi', fontSize: 20, fontUnit: 'px' }))
         layer.resetFontSize()
         expect(layer.fontSize).toBe(20)
     })
 
     test('setFontSize replaces the resetFontSize() baseline', () => {
-        const layer = new TextLayer('t', 100, 32, new Options({text: 'Hi', fontSize: 20, fontUnit: 'px'}))
+        const layer = new TextLayer('t', 100, 32, new Options({ text: 'Hi', fontSize: 20, fontUnit: 'px' }))
         layer.setFontSize(40)
         layer.setFontSize(30)
 
@@ -154,9 +206,18 @@ describe('TextLayer hAlign + outlineWidth margin / adjustDirection', () => {
     })
 
     test('resetFontSize clears adjustWidth shrink memory so the full baseline applies again', () => {
-        const layer = new TextLayer('t', 100, 32, new Options({
-            text: 'WIDE', fontSize: 50, fontUnit: 'px', adjustWidth: true, adjustDirection: 'shrink'
-        }))
+        const layer = new TextLayer(
+            't',
+            100,
+            32,
+            new Options({
+                text: 'WIDE',
+                fontSize: 50,
+                fontUnit: 'px',
+                adjustWidth: true,
+                adjustDirection: 'shrink',
+            }),
+        )
         const shrunkSize = usedFontPx(layer)
         expect(shrunkSize).toBeLessThan(50)
 

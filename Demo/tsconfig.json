@@ -1,34 +1,18 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "useDefineForClassFields": true,
-    "module": "ES2022",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
-    "skipLibCheck": true,
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "types": [
-      "vite/client",
-      "@webgpu/types"
-    ]
-  },
-  "include": [
-    "src",
-    "basic",
-    "advanced",
-    "scoreboard"
-  ],
-  "exclude": [
-    "node_modules",
-    "../src",
-    "../dist"
-  ]
+    "compilerOptions": {
+        "target": "ES2022",
+        "useDefineForClassFields": true,
+        "module": "ES2022",
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "skipLibCheck": true,
+        /* Bundler mode */
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noEmit": true,
+        "types": ["vite/client", "@webgpu/types"]
+    },
+    "include": ["src", "basic", "advanced", "scoreboard"],
+    "exclude": ["node_modules", "../src", "../dist"]
 }

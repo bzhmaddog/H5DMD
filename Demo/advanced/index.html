@@ -1,21 +1,24 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <title>H5DMD Demo - Advanced: all layer types</title>
-    <meta charset="UTF-8"/>
-    <link rel="icon" type="image/svg+xml" href="/webgpu.svg"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <head>
+        <title>H5DMD Demo - Advanced: all layer types</title>
+        <meta charset="UTF-8" />
+        <link rel="icon" type="image/svg+xml" href="/webgpu.svg" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    </head>
+    <body>
+        <canvas id="output" width="1280" height="390"></canvas>
+        <div id="version">
+            H5DMD version: <span id="version_value">?</span> &mdash; <a href="../">&larr; all demos</a> &mdash;
+            <a href="../text/">Text: alignment &amp; positioning</a> &mdash;
+            <a href="../basic/">Basic: Layer Groups</a> &mdash; <a href="../scoreboard/">Pinball Scoreboard</a>
+        </div>
 
-</head>
-<body>
-<canvas id="output" width="1280" height="390"></canvas>
-<div id="version">H5DMD version: <span id="version_value">?</span> &mdash; <a href="../">&larr; all demos</a> &mdash; <a href="../text/">Text: alignment &amp; positioning</a> &mdash; <a href="../basic/">Basic: Layer Groups</a> &mdash; <a href="../scoreboard/">Pinball Scoreboard</a></div>
+        <div id="layer-controls">
+            <div id="tab-bar"></div>
+            <div id="tab-panels"></div>
+        </div>
 
-<div id="layer-controls">
-    <div id="tab-bar"></div>
-    <div id="tab-panels"></div>
-</div>
-
-<script type="module" src="./main.ts"></script>
-</body>
+        <script type="module" src="./main.ts"></script>
+    </body>
 </html>

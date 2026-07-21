@@ -1,16 +1,15 @@
-import {OffscreenBuffer} from "./offscreen-buffer"
-import {SpriteAnimation} from "../interfaces/sprite-animation";
-import {SpriteSequenceItem} from "../interfaces";
+import { OffscreenBuffer } from './offscreen-buffer'
+import { SpriteAnimation } from '../interfaces/sprite-animation'
+import { SpriteSequenceItem } from '../interfaces'
 
 interface IAnimationQueueItem {
-    params: SpriteAnimation,
+    params: SpriteAnimation
     loop: number
 }
 
 interface IAnimationDictionary {
     [index: string]: SpriteAnimation
 }
-
 
 class Sprite {
     private _id: string
@@ -62,11 +61,7 @@ class Sprite {
      * @param {string} id Name of the animation (used to run/stop it)
      * @param animationParams
      */
-    addAnimation(
-        id: string,
-        animationParams: SpriteAnimation
-    ) {
-
+    addAnimation(id: string, animationParams: SpriteAnimation) {
         if (typeof this._animations[id] === 'undefined') {
             this._animations[id] = animationParams
 
@@ -116,17 +111,27 @@ class Sprite {
             this._startTime = undefined
         }
 
-
         // Only redraw buffer is frame is different
         if (this._frameIndex !== previousFrameIndex) {
-            const xOffset = this._frameIndex * (this._animation.params.width + this._hFrameOffset) + this._animation.params.xOffset
+            const xOffset =
+                this._frameIndex * (this._animation.params.width + this._hFrameOffset) + this._animation.params.xOffset
             // Shift vertical position so that sprites are aligned at the bottom
             const yPos = this._maxHeight - this._animation.params.height
 
             //console.log(`${this._frameIndex} / ${xOffset} / ${yPos}`)
-   
+
             this._buffer.clear()
-            this._buffer.context.drawImage(this._spriteSheet,  xOffset,  this._animation.params.yOffset, this._animation.params.width, this._animation.params.height, 0, yPos, this._animation.params.width, this._animation.params.height)
+            this._buffer.context.drawImage(
+                this._spriteSheet,
+                xOffset,
+                this._animation.params.yOffset,
+                this._animation.params.width,
+                this._animation.params.height,
+                0,
+                yPos,
+                this._animation.params.width,
+                this._animation.params.height,
+            )
         }
 
         requestAnimationFrame(this._doAnimation.bind(this))
@@ -136,11 +141,8 @@ class Sprite {
      * Pop animation from the queue and play it
      */
     private _processQueue() {
-
         if (this._queue.length > 0) {
-
             if (this._loopSequence) {
-
                 if (this._queue.length > 1) {
                     this._animation = this._queue.shift()
                     // Put this animation back at the bottom of the queue if needed
@@ -148,7 +150,6 @@ class Sprite {
                 } else {
                     this._animation = this._queue[0]
                 }
-
             } else {
                 this._animation = this._queue.shift()
             }
@@ -159,7 +160,6 @@ class Sprite {
             this._isAnimating = true
             this._loop = 1
 
-
             // Resizing will clear buffer so do it only if needed
             if (this._buffer.width !== this._animation.params.width) {
                 this._buffer.width = this._animation.params.width
@@ -167,7 +167,7 @@ class Sprite {
 
             // Resizing will clear buffer so do it only if needed
             if (this._buffer.height !== this._maxHeight) {
-                this._buffer.height =  this._maxHeight
+                this._buffer.height = this._maxHeight
             }
 
             requestAnimationFrame(this._doAnimation.bind(this))
@@ -179,7 +179,6 @@ class Sprite {
         }
     }
 
-
     /**
      * Play a single animation
      * @param {string} id
@@ -187,12 +186,10 @@ class Sprite {
      */
     enqueueSingle(id: string, nbLoop: number) {
         this._queue.push({
-            params : this._animations[id],
-            loop : (typeof nbLoop === 'number') ? nbLoop : 0
+            params: this._animations[id],
+            loop: typeof nbLoop === 'number' ? nbLoop : 0,
         })
     }
-
-
 
     /**
      *
@@ -200,15 +197,13 @@ class Sprite {
      * @param loop
      */
     enqueueSequence(seq: SpriteSequenceItem[], loop?: boolean) {
-
-      
         // Build array of animation
         // array[0] = animation id
         // array[1] = number of loop
         for (let i = 0; i < seq.length; i++) {
             this._queue.push({
                 params: this._animations[seq[i].key],
-                loop: Math.max(1, seq[i].nbLoop)
+                loop: Math.max(1, seq[i].nbLoop),
             })
         }
 
@@ -241,7 +236,7 @@ class Sprite {
      */
     get data() {
         return this._buffer.canvas
-	}
+    }
 
     /**
      * Get output buffer context
@@ -274,7 +269,7 @@ class Sprite {
 
     /**
      * Set the End of queue listener that will be called when current queue is empty
-     * @param {Function} listener 
+     * @param {Function} listener
      */
     setEndOfQueueListener(listener: (id: string) => void) {
         this._endOfQueueListener = listener

@@ -1,8 +1,8 @@
-import {Renderer} from "./renderer"
-import {LayerRenderer} from "./layer-renderer"
-import {Options} from "../utils"
+import { Renderer } from './renderer'
+import { LayerRenderer } from './layer-renderer'
+import { Options } from '../utils'
 
-type ShakyMode = "random" | "sine" | "perlin" | "circular" | "horizontal" | "vertical" | "decay"
+type ShakyMode = 'random' | 'sine' | 'perlin' | 'circular' | 'horizontal' | 'vertical' | 'decay'
 
 interface ShakyEffectParams {
     /** Max pixel displacement in either axis. Default 4. */
@@ -28,7 +28,6 @@ interface ShakyEffectParams {
 }
 
 class ShakyEffectRenderer extends LayerRenderer {
-
     private _inputBuffer: GPUBuffer
     private _tempBuffer: GPUBuffer
     private _uniformBuffer: GPUBuffer
@@ -57,10 +56,10 @@ class ShakyEffectRenderer extends LayerRenderer {
      * @param {ShakyEffectParams} params
      */
     constructor(width: number, height: number, params: ShakyEffectParams = {}) {
-        super("ShakyRenderer", width, height)
+        super('ShakyRenderer', width, height)
         this._intensity = params.intensity ?? 4
         this._speed = params.speed ?? 8
-        this._mode = params.mode ?? "random"
+        this._mode = params.mode ?? 'random'
         this._decayDuration = params.decayDuration ?? 0.6
         this._startTime = performance.now()
     }
@@ -87,10 +86,9 @@ class ShakyEffectRenderer extends LayerRenderer {
     }
 
     init(): Promise<void> {
-
         return new Promise((resolve, reject) => {
-
-            Renderer.requestSharedDevice().then( device => {
+            Renderer.requestSharedDevice()
+                .then(device => {
                     this._device = device
 
                     this._shaderModule = device.createShaderModule({
@@ -164,7 +162,7 @@ class ShakyEffectRenderer extends LayerRenderer {
                                 let dstIndex : u32 = global_id.x + global_id.y * u32(width);
                                 outputPixels.rgba[dstIndex] = pack(color);
                             }
-                        `
+                        `,
                     })
 
                     this._validateShader(reject).then(valid => {
@@ -173,9 +171,9 @@ class ShakyEffectRenderer extends LayerRenderer {
                         this.renderFrame = this._doRendering
                         resolve()
                     })
-                }).catch(reject)
-       })
-
+                })
+                .catch(reject)
+        })
     }
 
     /**
@@ -183,21 +181,20 @@ class ShakyEffectRenderer extends LayerRenderer {
      * Done once after init to avoid per-frame allocations (memory leak / GC churn).
      */
     private _createResources() {
-
         this._inputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         })
 
         this._tempBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         })
 
         // dx, dy — 2 x f32, padded to 16 bytes to satisfy uniform buffer alignment
         this._uniformBuffer = this._device.createBuffer({
             size: 16,
-            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
 
         this._createOutputBuffers()
@@ -208,24 +205,24 @@ class ShakyEffectRenderer extends LayerRenderer {
                     binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "read-only-storage"
-                    }
+                        type: 'read-only-storage',
+                    },
                 },
                 {
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "storage"
-                    }
+                        type: 'storage',
+                    },
                 },
                 {
                     binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "uniform"
-                    }
-                }
-            ]
+                        type: 'uniform',
+                    },
+                },
+            ],
         })
 
         this._bindGroup = this._device.createBindGroup({
@@ -234,32 +231,32 @@ class ShakyEffectRenderer extends LayerRenderer {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this._inputBuffer
-                    }
+                        buffer: this._inputBuffer,
+                    },
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this._tempBuffer
-                    }
+                        buffer: this._tempBuffer,
+                    },
                 },
                 {
                     binding: 2,
                     resource: {
-                        buffer: this._uniformBuffer
-                    }
-                }
-            ]
+                        buffer: this._uniformBuffer,
+                    },
+                },
+            ],
         })
 
         this._computePipeline = this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
-                bindGroupLayouts: [bindGroupLayout]
+                bindGroupLayouts: [bindGroupLayout],
             }),
             compute: {
                 module: this._shaderModule,
-                entryPoint: "main"
-            }
+                entryPoint: 'main',
+            },
         })
     }
 
@@ -291,38 +288,22 @@ class ShakyEffectRenderer extends LayerRenderer {
         const t = elapsedSeconds * this._speed
 
         switch (this._mode) {
+            case 'sine':
+                return [Math.sin(t) * this._intensity, Math.cos(t * 1.3) * this._intensity]
 
-            case "sine":
-                return [
-                    Math.sin(t) * this._intensity,
-                    Math.cos(t * 1.3) * this._intensity
-                ]
+            case 'perlin':
+                return [this._smoothNoise(t, 1) * this._intensity, this._smoothNoise(t, 2) * this._intensity]
 
-            case "perlin":
-                return [
-                    this._smoothNoise(t, 1) * this._intensity,
-                    this._smoothNoise(t, 2) * this._intensity
-                ]
+            case 'circular':
+                return [Math.cos(t) * this._intensity, Math.sin(t) * this._intensity]
 
-            case "circular":
-                return [
-                    Math.cos(t) * this._intensity,
-                    Math.sin(t) * this._intensity
-                ]
+            case 'horizontal':
+                return [Math.sin(t) * this._intensity, 0]
 
-            case "horizontal":
-                return [
-                    Math.sin(t) * this._intensity,
-                    0
-                ]
+            case 'vertical':
+                return [0, Math.sin(t) * this._intensity]
 
-            case "vertical":
-                return [
-                    0,
-                    Math.sin(t) * this._intensity
-                ]
-
-            case "decay": {
+            case 'decay': {
                 // One-shot: normalized progress 0..1 since the last trigger.
                 const since = (performance.now() - this._triggerTime) / 1000
                 if (since >= this._decayDuration || !isFinite(since)) {
@@ -331,13 +312,10 @@ class ShakyEffectRenderer extends LayerRenderer {
                 // Fast oscillation whose amplitude falls off linearly to zero.
                 const envelope = 1 - since / this._decayDuration
                 const osc = t * 3
-                return [
-                    Math.sin(osc) * this._intensity * envelope,
-                    Math.cos(osc * 1.3) * this._intensity * envelope
-                ]
+                return [Math.sin(osc) * this._intensity * envelope, Math.cos(osc * 1.3) * this._intensity * envelope]
             }
 
-            case "random":
+            case 'random':
             default: {
                 const step = Math.floor(t)
                 if (step !== this._lastStep) {
@@ -360,7 +338,6 @@ class ShakyEffectRenderer extends LayerRenderer {
      */
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private _doRendering(frameData: ImageData, _options?: Options): Promise<ImageData> {
-
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
         const elapsedSeconds = (performance.now() - this._startTime) / 1000
@@ -378,7 +355,6 @@ class ShakyEffectRenderer extends LayerRenderer {
 
         return this._submitAndReadback(this._tempBuffer, commandEncoder) || Promise.resolve(frameData)
     }
-
 }
 
 export { ShakyEffectRenderer as ShakyRenderer }

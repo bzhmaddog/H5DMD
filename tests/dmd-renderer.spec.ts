@@ -9,15 +9,14 @@
  *   - constructor computations (visible dots, padded bytes, etc.).
  *   - getters return expected values.
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {DmdRenderer} from '../src/renderers'
-import {Renderer} from '../src/renderers/renderer'
-import {DotShape} from '../src/enums'
+import { DmdRenderer } from '../src/renderers'
+import { Renderer } from '../src/renderers/renderer'
+import { DotShape } from '../src/enums'
 
 describe('DmdRenderer.init — WebGPU availability', () => {
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const nav = globalThis.navigator as any
     const originalGpu = nav.gpu
@@ -28,7 +27,7 @@ describe('DmdRenderer.init — WebGPU availability', () => {
     })
 
     test('rejects when no GPU adapter is available', async () => {
-        nav.gpu = {requestAdapter: () => Promise.resolve(null)}
+        nav.gpu = { requestAdapter: () => Promise.resolve(null) }
 
         const renderer = new DmdRenderer(4, 4, 8, 8, 2, 0, DotShape.Square, 14, 1)
 
@@ -44,24 +43,27 @@ describe('DmdRenderer.init — WebGPU availability', () => {
     })
 
     test('settles promptly rather than hanging', async () => {
-        nav.gpu = {requestAdapter: () => Promise.resolve(null)}
+        nav.gpu = { requestAdapter: () => Promise.resolve(null) }
 
         const renderer = new DmdRenderer(4, 4, 8, 8, 2, 0, DotShape.Square, 14, 1)
 
         let settled = false
-        const init = renderer.init().catch(() => { /* expected */ }).finally(() => { settled = true })
+        const init = renderer
+            .init()
+            .catch(() => {
+                /* expected */
+            })
+            .finally(() => {
+                settled = true
+            })
 
-        await Promise.race([
-            init,
-            new Promise(resolve => setTimeout(resolve, 50))
-        ])
+        await Promise.race([init, new Promise(resolve => setTimeout(resolve, 50))])
 
         expect(settled).toBe(true)
     })
 })
 
 describe('DmdRenderer — brightness and colour helpers', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
     })
@@ -72,10 +74,16 @@ describe('DmdRenderer — brightness and colour helpers', () => {
 
     test('honours the brightness argument when background brightness is omitted', () => {
         const renderer = new DmdRenderer(
-            32, 8, 64, 16, 1, 0, DotShape.Square,
+            32,
+            8,
+            64,
+            16,
+            1,
+            0,
+            DotShape.Square,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             undefined as any,
-            0.5
+            0.5,
         )
         expect(renderer.brightness).toBe(0.5)
     })
@@ -95,7 +103,6 @@ describe('DmdRenderer — brightness and colour helpers', () => {
 })
 
 describe('DmdRenderer — constructor computations', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
     })
@@ -157,7 +164,6 @@ describe('DmdRenderer — constructor computations', () => {
 })
 
 describe('DmdRenderer — setDotSize', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
     })
@@ -198,7 +204,6 @@ describe('DmdRenderer — setDotSize', () => {
 })
 
 describe('DmdRenderer — setDotSpace', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
     })
@@ -241,7 +246,6 @@ describe('DmdRenderer — setDotSpace', () => {
 })
 
 describe('DmdRenderer — setDotShape', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
     })
@@ -286,7 +290,6 @@ describe('DmdRenderer — setDotShape', () => {
 })
 
 describe('DmdRenderer — setBrightness', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
     })
@@ -312,7 +315,6 @@ describe('DmdRenderer — setBrightness', () => {
 })
 
 describe('DmdRenderer — minDotSpace getter', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
     })
@@ -336,7 +338,6 @@ describe('DmdRenderer — minDotSpace getter', () => {
 })
 
 describe('DmdRenderer — gpuFrameTime getter', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
     })
@@ -348,7 +349,6 @@ describe('DmdRenderer — gpuFrameTime getter', () => {
 })
 
 describe('DmdRenderer — off-dot color', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
     })
@@ -389,7 +389,6 @@ describe('DmdRenderer — off-dot color', () => {
 })
 
 describe('DmdRenderer — monochrome', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
     })

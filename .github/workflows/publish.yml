@@ -1,87 +1,87 @@
 name: Publish to GitHub Pages
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'Demo/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'tsconfig.json'
-      - 'typedoc.config.json'
-      - '.github/workflows/publish.yml'
+    push:
+        branches: [main]
+        paths:
+            - 'src/**'
+            - 'Demo/**'
+            - 'package.json'
+            - 'package-lock.json'
+            - 'tsconfig.json'
+            - 'typedoc.config.json'
+            - '.github/workflows/publish.yml'
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+    contents: read
+    pages: write
+    id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: true
+    group: pages
+    cancel-in-progress: true
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - run: npm ci
-      - run: npm run lint
-      - run: npm test
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 24
+                  cache: npm
+                  cache-dependency-path: package-lock.json
+            - run: npm ci
+            - run: npm run lint
+            - run: npm test
 
-  publish:
-    needs: test
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v5
+    publish:
+        needs: test
+        runs-on: ubuntu-latest
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+            - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            Demo/package-lock.json
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 24
+                  cache: npm
+                  cache-dependency-path: |
+                      package-lock.json
+                      Demo/package-lock.json
 
-      # Build the library locally so dist/ exists, then register it with
-      # `npm link` (this is what the Demo consumes via the bare "h5dmd" import).
-      - name: Build library
-        run: |
-          npm ci
-          npm run build
-          npm link
+            # Build the library locally so dist/ exists, then register it with
+            # `npm link` (this is what the Demo consumes via the bare "h5dmd" import).
+            - name: Build library
+              run: |
+                  npm ci
+                  npm run build
+                  npm link
 
-      # Generate the API documentation (TypeDoc -> docs/).
-      - name: Build documentation
-        run: npm run build:docs
+            # Generate the API documentation (TypeDoc -> docs/).
+            - name: Build documentation
+              run: npm run build:docs
 
-      # Build the Vite demo against the freshly built local library.
-      - name: Build demo
-        working-directory: ./Demo
-        run: |
-          npm ci
-          npm link h5dmd
-          npm run build
+            # Build the Vite demo against the freshly built local library.
+            - name: Build demo
+              working-directory: ./Demo
+              run: |
+                  npm ci
+                  npm link h5dmd
+                  npm run build
 
-      # Combine demo (site root) + docs (/docs) into one folder to publish.
-      - name: Combine outputs
-        run: |
-          mkdir -p publish/docs
-          cp -r Demo/dist/* publish/
-          cp -r docs/* publish/docs/
+            # Combine demo (site root) + docs (/docs) into one folder to publish.
+            - name: Combine outputs
+              run: |
+                  mkdir -p publish/docs
+                  cp -r Demo/dist/* publish/
+                  cp -r docs/* publish/docs/
 
-      # Publish the combined output (demo + docs) to GitHub Pages.
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./publish
-      - id: deployment
-        uses: actions/deploy-pages@v4
+            # Publish the combined output (demo + docs) to GitHub Pages.
+            - uses: actions/configure-pages@v5
+            - uses: actions/upload-pages-artifact@v3
+              with:
+                  path: ./publish
+            - id: deployment
+              uses: actions/deploy-pages@v4

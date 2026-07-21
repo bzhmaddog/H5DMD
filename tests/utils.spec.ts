@@ -2,12 +2,11 @@
  * Unit tests for the Utils static colour/string helpers and the ordered image
  * loader (with fetch / createImageBitmap stubbed).
  */
-import {afterEach, describe, expect, test, vi} from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 
-import {Utils} from '../src/utils'
+import { Utils } from '../src/utils'
 
 describe('Utils colour and string helpers', () => {
-
     test('hexRGBToHexRGBA appends a valid alpha byte', () => {
         expect(Utils.hexRGBToHexRGBA('#FF0000', '80')).toBe('#FF000080')
         expect(Utils.hexRGBToHexRGBA('#abcdef', 'ff')).toBe('#abcdefff')
@@ -18,14 +17,14 @@ describe('Utils colour and string helpers', () => {
     })
 
     test('hexColorToInt parses a hex colour, stripping the leading #', () => {
-        expect(Utils.hexColorToInt('#FFFFFF')).toBe(0xFFFFFF)
+        expect(Utils.hexColorToInt('#FFFFFF')).toBe(0xffffff)
         expect(Utils.hexColorToInt('#000000')).toBe(0)
-        expect(Utils.hexColorToInt('#0000FF')).toBe(0x0000FF)
+        expect(Utils.hexColorToInt('#0000FF')).toBe(0x0000ff)
     })
 
     test('hexColorToInt honours a custom prefix', () => {
         // The # is replaced by the prefix before parsing.
-        expect(Utils.hexColorToInt('#FF', 'FF')).toBe(0xFFFF)
+        expect(Utils.hexColorToInt('#FF', 'FF')).toBe(0xffff)
     })
 
     test('rgba2abgr reverses the four byte components', () => {
@@ -43,15 +42,12 @@ describe('Utils colour and string helpers', () => {
 })
 
 describe('Utils.loadImagesOrdered', () => {
-
     afterEach(() => {
         vi.unstubAllGlobals()
     })
 
     test('fetches each url and resolves to decoded bitmaps in order', async () => {
-        const fetchMock = vi.fn((url: string) =>
-            Promise.resolve({blob: () => Promise.resolve(`blob:${url}`)})
-        )
+        const fetchMock = vi.fn((url: string) => Promise.resolve({ blob: () => Promise.resolve(`blob:${url}`) }))
         const bitmapMock = vi.fn((blob: string) => Promise.resolve(`bitmap:${blob}`))
 
         vi.stubGlobal('fetch', fetchMock)
@@ -64,9 +60,7 @@ describe('Utils.loadImagesOrdered', () => {
     })
 
     test('loadImagesOrderedAsync resolves to decoded bitmaps', async () => {
-        const fetchMock = vi.fn((url: string) =>
-            Promise.resolve({blob: () => Promise.resolve(`blob:${url}`)})
-        )
+        const fetchMock = vi.fn((url: string) => Promise.resolve({ blob: () => Promise.resolve(`blob:${url}`) }))
         const bitmapMock = vi.fn((blob: string) => Promise.resolve(`bitmap:${blob}`))
 
         vi.stubGlobal('fetch', fetchMock)

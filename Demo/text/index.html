@@ -1,58 +1,105 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <title>H5DMD Demo - Text: alignment &amp; positioning</title>
-    <meta charset="UTF-8"/>
-    <link rel="icon" type="image/svg+xml" href="/webgpu.svg"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <head>
+        <title>H5DMD Demo - Text: alignment &amp; positioning</title>
+        <meta charset="UTF-8" />
+        <link rel="icon" type="image/svg+xml" href="/webgpu.svg" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    </head>
+    <body>
+        <canvas id="output" width="1280" height="390"></canvas>
+        <div id="version">
+            H5DMD version: <span id="version_value">?</span> &mdash; <a href="../">&larr; all demos</a> &mdash;
+            <a href="../basic/">Basic: Layer Groups</a> &mdash;
+            <a href="../advanced/">Advanced: all layer types</a> &mdash; <a href="../scoreboard/">Pinball Scoreboard</a>
+        </div>
 
-</head>
-<body>
-<canvas id="output" width="1280" height="390"></canvas>
-<div id="version">H5DMD version: <span id="version_value">?</span> &mdash; <a href="../">&larr; all demos</a> &mdash; <a href="../basic/">Basic: Layer Groups</a> &mdash; <a href="../advanced/">Advanced: all layer types</a> &mdash; <a href="../scoreboard/">Pinball Scoreboard</a></div>
-
-<!-- Static reference panel. This page has no controls on purpose: every option below is set
+        <!-- Static reference panel. This page has no controls on purpose: every option below is set
      at construction in text/layers.ts, so what the DMD shows is exactly what the code says. -->
-<div id="text-info">
+        <div id="text-info">
+            <section class="adv-section" style="border-left-color: #21a6df">
+                <h3>Alignment &mdash; the 3&times;3 grid</h3>
+                <div class="ctl-note">
+                    Places the text <em>inside its own layer</em>. Each cell is labelled <code>h / v</code>, and sits
+                    where it says.
+                </div>
 
-    <section class="adv-section" style="border-left-color: #21A6DF">
-        <h3>Alignment &mdash; the 3&times;3 grid</h3>
-        <div class="ctl-note">Places the text <em>inside its own layer</em>. Each cell is labelled <code>h / v</code>, and sits where it says.</div>
+                <table class="info-table">
+                    <tr>
+                        <th><code>hAlign</code></th>
+                        <td><code>'start'</code> &middot; <code>'center'</code> &middot; <code>'end'</code></td>
+                    </tr>
+                    <tr>
+                        <th><code>vAlign</code></th>
+                        <td><code>'start'</code> &middot; <code>'center'</code> &middot; <code>'end'</code></td>
+                    </tr>
+                    <tr>
+                        <th>aliases</th>
+                        <td>
+                            <code>'left'</code>/<code>'right'</code>, <code>'top'</code>/<code>'middle'</code>/<code
+                                >'bottom'</code
+                            >
+                            &mdash; exact synonyms, kept for existing code
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>defaults</th>
+                        <td>
+                            <code>hAlign: 'center'</code>, <code>vAlign: 'middle'</code> &mdash; so text centers unless
+                            you say otherwise
+                        </td>
+                    </tr>
+                </table>
 
-        <table class="info-table">
-            <tr><th><code>hAlign</code></th><td><code>'start'</code> &middot; <code>'center'</code> &middot; <code>'end'</code></td></tr>
-            <tr><th><code>vAlign</code></th><td><code>'start'</code> &middot; <code>'center'</code> &middot; <code>'end'</code></td></tr>
-            <tr><th>aliases</th><td><code>'left'</code>/<code>'right'</code>, <code>'top'</code>/<code>'middle'</code>/<code>'bottom'</code> &mdash; exact synonyms, kept for existing code</td></tr>
-            <tr><th>defaults</th><td><code>hAlign: 'center'</code>, <code>vAlign: 'middle'</code> &mdash; so text centers unless you say otherwise</td></tr>
-        </table>
+                <div class="ctl-note">
+                    Alignment is applied to the <strong>ink box</strong> (the glyphs actually drawn), not the font's
+                    design box. So <code>'end'</code> puts the lowest ink on the bottom edge: a word with a descender
+                    rides its baseline higher than one without.
+                </div>
+            </section>
 
-        <div class="ctl-note">
-            Alignment is applied to the <strong>ink box</strong> (the glyphs actually drawn), not the
-            font's design box. So <code>'end'</code> puts the lowest ink on the bottom edge: a word
-            with a descender rides its baseline higher than one without.
+            <section class="adv-section" style="border-left-color: #ffa500">
+                <h3>Manual positioning &mdash; the right column</h3>
+                <div class="ctl-note">
+                    An explicit coordinate <strong>overrides the alignment on that axis, and only that axis.</strong>
+                </div>
+
+                <table class="info-table">
+                    <tr>
+                        <th><code>left</code> / <code>top</code></th>
+                        <td>
+                            pixels (<code>4</code>) or a percentage string (<code>'25%'</code>, resolved against the
+                            <em>layer's</em> own size). Unset by default.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>mixing</th>
+                        <td><code>{hAlign: 'center', top: 3}</code> &mdash; centers horizontally, pins vertically.</td>
+                    </tr>
+                    <tr>
+                        <th><code>hOffset</code> / <code>vOffset</code></th>
+                        <td>
+                            added <em>after</em> whichever mode placed the text, so they nudge an aligned position just
+                            as well as an explicit one.
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><code>textBaseline</code></th>
+                        <td>
+                            decides what an explicit <code>top</code> anchors. With the default <code>'top'</code> it's
+                            the top of the em square, which sits slightly above the ink.
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="ctl-note">
+                    The cells above inset their text by a few dots via the offsets: alignment puts the ink flush against
+                    the edge, and a layer's <code>borderWidth</code> is drawn <em>over</em> its content &mdash; it does
+                    not push the text inward the way <code>outlineWidth</code> does.
+                </div>
+            </section>
         </div>
-    </section>
 
-    <section class="adv-section" style="border-left-color: #FFA500">
-        <h3>Manual positioning &mdash; the right column</h3>
-        <div class="ctl-note">An explicit coordinate <strong>overrides the alignment on that axis, and only that axis.</strong></div>
-
-        <table class="info-table">
-            <tr><th><code>left</code> / <code>top</code></th><td>pixels (<code>4</code>) or a percentage string (<code>'25%'</code>, resolved against the <em>layer's</em> own size). Unset by default.</td></tr>
-            <tr><th>mixing</th><td><code>{hAlign: 'center', top: 3}</code> &mdash; centers horizontally, pins vertically.</td></tr>
-            <tr><th><code>hOffset</code> / <code>vOffset</code></th><td>added <em>after</em> whichever mode placed the text, so they nudge an aligned position just as well as an explicit one.</td></tr>
-            <tr><th><code>textBaseline</code></th><td>decides what an explicit <code>top</code> anchors. With the default <code>'top'</code> it's the top of the em square, which sits slightly above the ink.</td></tr>
-        </table>
-
-        <div class="ctl-note">
-            The cells above inset their text by a few dots via the offsets: alignment puts the ink
-            flush against the edge, and a layer's <code>borderWidth</code> is drawn <em>over</em> its
-            content &mdash; it does not push the text inward the way <code>outlineWidth</code> does.
-        </div>
-    </section>
-
-</div>
-
-<script type="module" src="./main.ts"></script>
-</body>
+        <script type="module" src="./main.ts"></script>
+    </body>
 </html>

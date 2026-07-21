@@ -1,5 +1,5 @@
-import {Renderer} from "./renderer"
-import {LayerRenderer} from "./layer-renderer"
+import { Renderer } from './renderer'
+import { LayerRenderer } from './layer-renderer'
 
 /**
  * Example params interface — copy and adapt this when creating a new renderer.
@@ -14,7 +14,6 @@ interface DummyRendererParams {
 }
 
 class DummyRenderer extends LayerRenderer {
-
     private _inputBuffer: GPUBuffer
     private _tempBuffer: GPUBuffer
     private _bindGroup: GPUBindGroup
@@ -30,17 +29,16 @@ class DummyRenderer extends LayerRenderer {
      * @param {DummyRendererParams} params Optional configuration (example — replace with real params).
      */
     constructor(width: number, height: number, params?: DummyRendererParams) {
-        super("DummyRenderer", width, height)
+        super('DummyRenderer', width, height)
         // Example: read params with defaults
         this._exampleOption = params?.exampleOption ?? false
-        this._exampleValue  = params?.exampleValue  ?? 0
+        this._exampleValue = params?.exampleValue ?? 0
     }
 
     init(): Promise<void> {
-
         return new Promise((resolve, reject) => {
-
-            Renderer.requestSharedDevice().then( device => {
+            Renderer.requestSharedDevice()
+                .then(device => {
                     this._device = device
 
                     this._shaderModule = device.createShaderModule({
@@ -59,7 +57,7 @@ class DummyRenderer extends LayerRenderer {
                                 let pixelColor : u32 = inputPixels.rgba[index];
                                 outputPixels.rgba[index] = pixelColor;
                             }
-                        `
+                        `,
                     })
 
                     console.error('DummyRenderer:init() : Are you sure you wanted to use this renderer ?')
@@ -70,27 +68,24 @@ class DummyRenderer extends LayerRenderer {
                         this.renderFrame = this._doRendering
                         resolve()
                     })
-                }).catch(reject)
-       })
-    
+                })
+                .catch(reject)
+        })
     }
-
-
 
     /**
      * Create and cache the GPU resources reused across frames.
      * Done once after init to avoid per-frame allocations (memory leak / GC churn).
      */
     private _createResources() {
-
         this._inputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         })
 
         this._tempBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         })
 
         this._createOutputBuffers()
@@ -101,17 +96,17 @@ class DummyRenderer extends LayerRenderer {
                     binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "read-only-storage"
-                    }
+                        type: 'read-only-storage',
+                    },
                 },
                 {
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "storage"
-                    }
-                }
-            ]
+                        type: 'storage',
+                    },
+                },
+            ],
         })
 
         this._bindGroup = this._device.createBindGroup({
@@ -120,37 +115,36 @@ class DummyRenderer extends LayerRenderer {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this._inputBuffer
-                    }
+                        buffer: this._inputBuffer,
+                    },
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this._tempBuffer
-                    }
-                }
-            ]
+                        buffer: this._tempBuffer,
+                    },
+                },
+            ],
         })
 
         this._computePipeline = this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
-                bindGroupLayouts: [bindGroupLayout]
+                bindGroupLayouts: [bindGroupLayout],
             }),
             compute: {
                 module: this._shaderModule,
-                entryPoint: "main"
-            }
+                entryPoint: 'main',
+            },
         })
     }
 
     /**
      * This renderer serve as a template for other renderers. It does nothing but returning the exact array of pixels it was provided.
      * Reuses the GPU resources created in init() : only per-frame pixels are uploaded each call.
-     * @param {ImageData} frameData 
+     * @param {ImageData} frameData
      * @returns {Promise<ImageData>}
      */
     private _doRendering(frameData: ImageData): Promise<ImageData> {
-
         // Upload frame pixels into the persistent input buffer
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
@@ -163,8 +157,7 @@ class DummyRenderer extends LayerRenderer {
         passEncoder.end()
 
         return this._submitAndReadback(this._tempBuffer, commandEncoder) || Promise.resolve(frameData)
-	}
-
+    }
 }
 
 export { DummyRenderer }

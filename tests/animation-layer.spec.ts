@@ -3,15 +3,14 @@
  *   - previousFrame() from frame 1 lands on frame 0.
  *   - the per-frame duration is finite even when the duration option is unset.
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {AnimationLayer} from '../src/layers'
-import {ChangeAlphaRenderer} from '../src/renderers'
-import {Options} from '../src/utils'
+import { AnimationLayer } from '../src/layers'
+import { ChangeAlphaRenderer } from '../src/renderers'
+import { Options } from '../src/utils'
 
 describe('AnimationLayer frames', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)
@@ -46,14 +45,16 @@ describe('AnimationLayer frames', () => {
 })
 
 const frames = (n: number) =>
-    Array.from({length: n}, () => document.createElement('canvas') as unknown as ImageBitmap)
+    Array.from({ length: n }, () => document.createElement('canvas') as unknown as ImageBitmap)
 
 describe('AnimationLayer playback', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)
-        vi.stubGlobal('requestAnimationFrame', vi.fn(() => 0))
+        vi.stubGlobal(
+            'requestAnimationFrame',
+            vi.fn(() => 0),
+        )
         // A real canvas doubles as an ImageBitmap; give it a close() for _layerLoaded.
         vi.stubGlobal('createImageBitmap', () => {
             const c = document.createElement('canvas')
@@ -71,7 +72,7 @@ describe('AnimationLayer playback', () => {
     // Mark the layer as loaded without waiting on the constructor's setTimeout.
     const markLoaded = (layer: AnimationLayer) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (layer as any)._loaded = true
+        ;(layer as any)._loaded = true
     }
 
     test('setAnimationData computes the per-frame duration and draws frame 0', () => {
@@ -105,7 +106,7 @@ describe('AnimationLayer playback', () => {
     })
 
     test('autoplay starts playback once data is set on a loaded layer', () => {
-        const layer = new AnimationLayer('a', 64, 16, new Options({autoplay: true}))
+        const layer = new AnimationLayer('a', 64, 16, new Options({ autoplay: true }))
         markLoaded(layer)
 
         layer.setAnimationData(frames(3))
@@ -130,7 +131,7 @@ describe('AnimationLayer playback', () => {
 
     test('pause() suspends a looping animation', () => {
         const onPause = vi.fn()
-        const layer = new AnimationLayer('a', 64, 16, new Options({loop: true}), { pause: onPause })
+        const layer = new AnimationLayer('a', 64, 16, new Options({ loop: true }), { pause: onPause })
         layer.setAnimationData(frames(3))
         markLoaded(layer)
         layer.play()
@@ -143,7 +144,7 @@ describe('AnimationLayer playback', () => {
     })
 
     test('pause() on a non-looping animation stops it instead', () => {
-        const layer = new AnimationLayer('a', 64, 16, new Options({loop: false}))
+        const layer = new AnimationLayer('a', 64, 16, new Options({ loop: false }))
         layer.setAnimationData(frames(3))
         markLoaded(layer)
         layer.play()
@@ -155,7 +156,7 @@ describe('AnimationLayer playback', () => {
     })
 
     test('resume() replays a paused animation', () => {
-        const layer = new AnimationLayer('a', 64, 16, new Options({loop: true}))
+        const layer = new AnimationLayer('a', 64, 16, new Options({ loop: true }))
         layer.setAnimationData(frames(3))
         markLoaded(layer)
         layer.play()
@@ -180,21 +181,21 @@ describe('AnimationLayer playback', () => {
     })
 
     test('__renderFrame stops a one-shot animation past the last frame', () => {
-        const layer = new AnimationLayer('a', 64, 16, new Options({loop: false, duration: 1000}))
+        const layer = new AnimationLayer('a', 64, 16, new Options({ loop: false, duration: 1000 }))
         layer.setAnimationData(frames(2)) // frameDuration = 500
         markLoaded(layer)
         layer.play()
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const render = (t: number) => (layer as any).__renderFrame(t)
-        render(1)    // establishes startTime = 1 (a non-zero, truthy value)
+        render(1) // establishes startTime = 1 (a non-zero, truthy value)
         render(1001) // position 1000 → frameIndex 2 >= length → stop()
 
         expect(layer.isPlaying).toBe(false)
     })
 
     test('__renderFrame loops back to frame 0 when looping', () => {
-        const layer = new AnimationLayer('a', 64, 16, new Options({loop: true, duration: 1000}))
+        const layer = new AnimationLayer('a', 64, 16, new Options({ loop: true, duration: 1000 }))
         layer.setAnimationData(frames(2)) // frameDuration = 500
         markLoaded(layer)
         layer.play()
@@ -210,7 +211,7 @@ describe('AnimationLayer playback', () => {
     })
 
     test('hiding a playing looping layer pauses it; showing resumes', () => {
-        const layer = new AnimationLayer('a', 64, 16, new Options({loop: true}))
+        const layer = new AnimationLayer('a', 64, 16, new Options({ loop: true }))
         layer.setAnimationData(frames(3))
         markLoaded(layer)
         layer.play()

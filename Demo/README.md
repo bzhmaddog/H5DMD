@@ -12,8 +12,8 @@ example — each with its own `Dmd` instance and canvas:
 - **[basic/](basic/)** — the gentlest starting point: a focused `LayerGroup` showcase with a
   small, untabbed control panel (see [Basic demo: Layer Groups](#basic-demo-layer-groups)
   below).
-- **[text/](text/)** — a static `TextLayer` reference: how text is placed *inside its own
-  layer* (see [Text demo: alignment & positioning](#text-demo-alignment--positioning) below).
+- **[text/](text/)** — a static `TextLayer` reference: how text is placed _inside its own
+  layer_ (see [Text demo: alignment & positioning](#text-demo-alignment--positioning) below).
 - **[advanced/](advanced/)** — the big one. Renders a 256×78 dot display (on a
   1280×390 canvas) and stacks every layer type on top of each other, with a tabbed
   control panel below the canvas to tweak every aspect of the display and each layer in
@@ -33,7 +33,7 @@ example — each with its own `Dmd` instance and canvas:
 The demo imports the library as a package:
 
 ```ts
-import { Dmd, DotShape, Options /* … */ } from "h5dmd";
+import { Dmd, DotShape, Options /* … */ } from 'h5dmd'
 ```
 
 This package is **not** listed in `Demo/package.json`, so you must make it resolvable before
@@ -80,12 +80,12 @@ no child re-derives an absolute DMD coordinate. The left group is the 3×3 grid 
 `h / v` since both axes now share the same three names. Each cell's text is the name of its own
 alignment, so the label doubles as the demonstration. The right group is manual positioning:
 
-| Layer | Options | Shows |
-| --- | --- | --- |
-| `manual-pixels` | `left: 4, top: 2` | An explicit coordinate is used verbatim, overriding the `'center'` alignment defaults. |
-| `manual-percent` | `left: '25%', top: '50%'` | Percentages resolve against the **layer's** own width/height. |
-| `manual-mixed` | `hAlign: 'center', top: 3` | The two axes are independent: `hAlign` still centers horizontally because no `left` was given, while the explicit `top` overrides `vAlign`. |
-| `manual-offsets` | `vAlign: 'end', hOffset: 12` | `hOffset`/`vOffset` are added *after* whichever mode placed the text, so they nudge an aligned position just as well as an explicit one. |
+| Layer            | Options                      | Shows                                                                                                                                       |
+| ---------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `manual-pixels`  | `left: 4, top: 2`            | An explicit coordinate is used verbatim, overriding the `'center'` alignment defaults.                                                      |
+| `manual-percent` | `left: '25%', top: '50%'`    | Percentages resolve against the **layer's** own width/height.                                                                               |
+| `manual-mixed`   | `hAlign: 'center', top: 3`   | The two axes are independent: `hAlign` still centers horizontally because no `left` was given, while the explicit `top` overrides `vAlign`. |
+| `manual-offsets` | `vAlign: 'end', hOffset: 12` | `hOffset`/`vOffset` are added _after_ whichever mode placed the text, so they nudge an aligned position just as well as an explicit one.    |
 
 The rule the page exists to make obvious: **an explicit `left`/`top` overrides the alignment on
 that axis, and only that axis.** Leave an axis unset and `hAlign`/`vAlign` place it.
@@ -95,15 +95,15 @@ that axis, and only that axis.** Leave an axis unset and `hAlign`/`vAlign` place
 The whole scene is built in [advanced/layers.ts](advanced/layers.ts) after `DOMContentLoaded`. It creates a
 `Dmd` bound to the `#output` canvas, calls `dmd.init()`, then `dmd.run()`, and adds layers:
 
-| Layer name        | Type             | Content                                          |
-|-------------------|------------------|--------------------------------------------------|
-| `bg`              | Canvas layer     | Static background image                          |
-| `animation`       | Animation layer  | Looping frame-by-frame WebP animation            |
-| `video-transparent` | Video layer    | Transparent WebM video                           |
-| `video-chromakey` | Video layer      | WebM video with chroma-key background removal    |
-| `matthew`         | Canvas layer     | Aligned character image                          |
-| `sprite`          | Sprites layer    | Sprite sheet with queued animation sequences     |
-| `text1`–`text4`   | Text layers      | Styled text — `text2` with noise effect, `text3` with shaky effect |
+| Layer name          | Type            | Content                                                            |
+| ------------------- | --------------- | ------------------------------------------------------------------ |
+| `bg`                | Canvas layer    | Static background image                                            |
+| `animation`         | Animation layer | Looping frame-by-frame WebP animation                              |
+| `video-transparent` | Video layer     | Transparent WebM video                                             |
+| `video-chromakey`   | Video layer     | WebM video with chroma-key background removal                      |
+| `matthew`           | Canvas layer    | Aligned character image                                            |
+| `sprite`            | Sprites layer   | Sprite sheet with queued animation sequences                       |
+| `text1`–`text4`     | Text layers     | Styled text — `text2` with noise effect, `text3` with shaky effect |
 
 Image, video, and sprite assets are served from [public/images](public/images).
 
@@ -112,12 +112,12 @@ Image, video, and sprite assets are served from [public/images](public/images).
 A tabbed control panel below the canvas ([advanced/controls.ts](advanced/controls.ts)) exposes:
 
 - **Global (DMD)** tab:
-  - Off-dot color picker
-  - Brightness slider
-  - Dot shape selector with live shape preview, dot size and dot space sliders
-  - Fade in/out buttons with easing and duration selectors
-  - Monochrome mode toggle — when enabled: HSV color sliders, levels selector, and a color
-    palette preview swatch
+    - Off-dot color picker
+    - Brightness slider
+    - Dot shape selector with live shape preview, dot size and dot space sliders
+    - Fade in/out buttons with easing and duration selectors
+    - Monochrome mode toggle — when enabled: HSV color sliders, levels selector, and a color
+      palette preview swatch
 - **Per-layer** tabs: visibility checkbox, opacity slider, fade in/out buttons (disabled when
   already at target opacity), easing selector, and duration slider
 - **Layer-specific** controls: play/pause/stop for animation and video layers, text input and
@@ -135,12 +135,12 @@ independent top-level `LayerGroup`s:
 The DMD is tiled into four quadrants (top-left/top-right/bottom-left/bottom-right), each
 one group with a distinct translucent background color so its bounds are visible:
 
-| Group (quadrant)            | Demonstrates                                                                 |
-|------------------------------|-------------------------------------------------------------------------------|
-| `video-panel` (top-left, red) | Hiding the group cascades `setVisibility(false)` to a child `VideoLayer`, actually pausing playback rather than just hiding it visually. Also has a `ChromaKeyRenderer` on the video child. |
-| `hud` (top-right, green)     | Background color/opacity, a group-level renderer (`ShakyRenderer` — shakes the composited label *and* nested badge together), and one level of nesting via a `badge` subgroup (hidden by default, to show the visibility cascade restoring each child's own prior state). |
-| `sandbox` (bottom-left, yellow) | `addLayer`/`removeLayer`/`getLayer` driven live from buttons (add a randomly placed/colored box, remove the last one added). |
-| `info` (bottom-right, blue)  | A minimal group: just dimensioned/positioned with a background and a single `TextLayer` child. |
+| Group (quadrant)                | Demonstrates                                                                                                                                                                                                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `video-panel` (top-left, red)   | Hiding the group cascades `setVisibility(false)` to a child `VideoLayer`, actually pausing playback rather than just hiding it visually. Also has a `ChromaKeyRenderer` on the video child.                                                                               |
+| `hud` (top-right, green)        | Background color/opacity, a group-level renderer (`ShakyRenderer` — shakes the composited label _and_ nested badge together), and one level of nesting via a `badge` subgroup (hidden by default, to show the visibility cascade restoring each child's own prior state). |
+| `sandbox` (bottom-left, yellow) | `addLayer`/`removeLayer`/`getLayer` driven live from buttons (add a randomly placed/colored box, remove the last one added).                                                                                                                                              |
+| `info` (bottom-right, blue)     | A minimal group: just dimensioned/positioned with a background and a single `TextLayer` child.                                                                                                                                                                            |
 
 The control panel (`Demo/basic/controls.ts`) lays its sections out in a 2×2 grid
 matching the DMD's own quadrant layout, with each section's border tinted to match.
@@ -154,11 +154,11 @@ fade together as a single unit — exactly the problem `LayerGroup` solves. Buil
 [scoreboard/layers.ts](scoreboard/layers.ts) /
 [scoreboard/controls.ts](scoreboard/controls.ts):
 
-| Group    | Content                                    | Demonstrates |
-|----------|---------------------------------------------|--------------|
+| Group    | Content                                      | Demonstrates                                                                                   |
+| -------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `score`  | One outlined `TextLayer` (score digits)      | A single-child group used purely for positioning/visibility/fade of a styled compound element. |
-| `player` | Two `TextLayer`s: "P" label + player number   | A 2-`TextLayer` compound element ("P1") updated and shown/hidden as one unit. |
-| `ball`   | Two `TextLayer`s: "BALL" label + ball number | Same pattern as `player`, for the ball indicator ("BALL 1"). |
+| `player` | Two `TextLayer`s: "P" label + player number  | A 2-`TextLayer` compound element ("P1") updated and shown/hidden as one unit.                  |
+| `ball`   | Two `TextLayer`s: "BALL" label + ball number | Same pattern as `player`, for the ball indicator ("BALL 1").                                   |
 
 The control panel exposes, per group: a visibility checkbox and the relevant content
 buttons (`+100`/`+1000`/`Reset` for the score, `Next player`/`Next ball` for the other two).

@@ -1,5 +1,4 @@
 export abstract class Renderer {
-
     protected _device: GPUDevice
     protected _shaderModule: GPUShaderModule
 

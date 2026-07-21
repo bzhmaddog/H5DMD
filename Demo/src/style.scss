@@ -19,7 +19,9 @@ body {
     overflow-x: hidden;
 }
 
-span, li, label {
+span,
+li,
+label {
     color: white;
 }
 
@@ -60,7 +62,7 @@ span, li, label {
             font-weight: bold;
         }
 
-        &[draggable="true"] {
+        &[draggable='true'] {
             cursor: grab;
         }
 
@@ -243,7 +245,8 @@ input[type='text'] {
     margin: 8px 0;
     width: 100%;
 
-    th, td {
+    th,
+    td {
         color: #ddd;
         text-align: left;
         vertical-align: top;

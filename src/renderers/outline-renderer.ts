@@ -1,6 +1,6 @@
-import {Renderer} from './renderer'
-import {LayerRenderer} from './layer-renderer'
-import {Utils} from '../utils'
+import { Renderer } from './renderer'
+import { LayerRenderer } from './layer-renderer'
+import { Utils } from '../utils'
 
 export interface OutlineRendererParams {
     /** Fill color of the inner text region (RRGGBBAA hex string). Default: `'FFFFFFFF'`. */
@@ -12,7 +12,6 @@ export interface OutlineRendererParams {
 }
 
 class OutlineRenderer extends LayerRenderer<OutlineRendererParams> {
-
     private _innerColor: string
     private _outerColor: string
     private _outlineWidth: number
@@ -28,17 +27,16 @@ class OutlineRenderer extends LayerRenderer<OutlineRendererParams> {
      * @param {OutlineRendererParams} params Optional defaults for colors and outline thickness.
      */
     constructor(width: number, height: number, params?: OutlineRendererParams) {
-        super("OutlineRenderer", width, height)
-        this._innerColor   = params?.innerColor ?? 'FFFFFFFF'
-        this._outerColor   = params?.outerColor ?? '000000FF'
-        this._outlineWidth = params?.width      ?? 1
+        super('OutlineRenderer', width, height)
+        this._innerColor = params?.innerColor ?? 'FFFFFFFF'
+        this._outerColor = params?.outerColor ?? '000000FF'
+        this._outlineWidth = params?.width ?? 1
     }
 
     init(): Promise<void> {
-
         return new Promise((resolve, reject) => {
-
-            Renderer.requestSharedDevice().then( device => {
+            Renderer.requestSharedDevice()
+                .then(device => {
                     this._device = device
 
                     this._shaderModule = device.createShaderModule({
@@ -113,7 +111,7 @@ class OutlineRenderer extends LayerRenderer<OutlineRendererParams> {
 
                                 //outputPixels.rgba[index] = 4278190335u;
                             }
-                        `
+                        `,
                     })
 
                     console.log('OutlineRenderer:init()')
@@ -124,9 +122,9 @@ class OutlineRenderer extends LayerRenderer<OutlineRendererParams> {
                         this.renderFrame = this._doRendering
                         resolve()
                     })
-                }).catch(reject)
-       })
-    
+                })
+                .catch(reject)
+        })
     }
 
     /**
@@ -134,7 +132,6 @@ class OutlineRenderer extends LayerRenderer<OutlineRendererParams> {
      * Done once after init to avoid per-frame allocations (memory leak / GC churn).
      */
     private _createResources() {
-
         this._uboBuffer = this._device.createBuffer({
             size: 3 * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -142,12 +139,12 @@ class OutlineRenderer extends LayerRenderer<OutlineRendererParams> {
 
         this._inputBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
         })
 
         this._tempBuffer = this._device.createBuffer({
             size: this._bufferByteLength,
-            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
         })
 
         this._createOutputBuffers()
@@ -158,24 +155,24 @@ class OutlineRenderer extends LayerRenderer<OutlineRendererParams> {
                     binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "read-only-storage"
-                    }
+                        type: 'read-only-storage',
+                    },
                 },
                 {
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                        type: "storage"
-                    }
+                        type: 'storage',
+                    },
                 },
                 {
                     binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {
-                      type: "uniform",
-                    }
-                }
-            ]
+                        type: 'uniform',
+                    },
+                },
+            ],
         })
 
         this._bindGroup = this._device.createBindGroup({
@@ -184,32 +181,32 @@ class OutlineRenderer extends LayerRenderer<OutlineRendererParams> {
                 {
                     binding: 0,
                     resource: {
-                        buffer: this._inputBuffer
-                    }
+                        buffer: this._inputBuffer,
+                    },
                 },
                 {
                     binding: 1,
                     resource: {
-                        buffer: this._tempBuffer
-                    }
+                        buffer: this._tempBuffer,
+                    },
                 },
                 {
                     binding: 2,
                     resource: {
-                      buffer: this._uboBuffer
-                    }
-                }
-            ]
+                        buffer: this._uboBuffer,
+                    },
+                },
+            ],
         })
 
         this._computePipeline = this._device.createComputePipeline({
             layout: this._device.createPipelineLayout({
-                bindGroupLayouts: [bindGroupLayout]
+                bindGroupLayouts: [bindGroupLayout],
             }),
             compute: {
                 module: this._shaderModule,
-                entryPoint: "main"
-            }
+                entryPoint: 'main',
+            },
         })
     }
 
@@ -217,24 +214,23 @@ class OutlineRenderer extends LayerRenderer<OutlineRendererParams> {
      * Render frame.
      * Reuses the GPU resources created in init() : only per-frame data
      * (pixels + uniforms) is uploaded each call.
-     * @param {ImageData} frameData 
+     * @param {ImageData} frameData
      * @param {OutlineRendererParams} options
      * @returns {Promise<ImageData>}
      */
     private _doRendering(frameData: ImageData, options?: OutlineRendererParams): Promise<ImageData> {
-
         // Upload frame pixels into the persistent input buffer
         this._device.queue.writeBuffer(this._inputBuffer, 0, frameData.data)
 
         // Write values to uniform buffer object — per-call options override constructor defaults
-        const innerColor   = options?.innerColor   ?? this._innerColor
-        const outerColor   = options?.outerColor   ?? this._outerColor
-        const outlineWidth = options?.width        ?? this._outlineWidth
+        const innerColor = options?.innerColor ?? this._innerColor
+        const outerColor = options?.outerColor ?? this._outerColor
+        const outlineWidth = options?.width ?? this._outlineWidth
 
         const uniformData = [
             Utils.hexColorToInt(Utils.rgba2abgr(innerColor)),
             Utils.hexColorToInt(Utils.rgba2abgr(outerColor)),
-            outlineWidth
+            outlineWidth,
         ]
         const uniformTypedArray = new Int32Array(uniformData)
         this._device.queue.writeBuffer(this._uboBuffer, 0, uniformTypedArray.buffer)
@@ -248,8 +244,7 @@ class OutlineRenderer extends LayerRenderer<OutlineRendererParams> {
         passEncoder.end()
 
         return this._submitAndReadback(this._tempBuffer, commandEncoder) || Promise.resolve(frameData)
-	}
-
+    }
 }
 
 export { OutlineRenderer }

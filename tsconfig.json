@@ -1,34 +1,26 @@
 {
-  "compilerOptions": {
-    "importHelpers": true,
-    "declaration": true,
-    "declarationMap": true,
-    "outDir": "./dist",
-    "noImplicitAny": true,
-    "strict": true,
-    // The following strict checks are deferred: enabling them surfaces many
-    // pre-existing issues (uninitialised class fields, layer-listener callback
-    // variance, nullable buffers in the GPU renderers). Tighten these one at a
-    // time later.
-    "strictNullChecks": false,
-    "strictPropertyInitialization": false,
-    "strictFunctionTypes": false,
-    "sourceMap": true,
-    "module": "es2022",
-    "target": "es2022",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
-    "allowJs": false,
-    "esModuleInterop": true,
-    "moduleResolution": "bundler"
-  },
-  "include": [
-    "./src/**/*"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+    "compilerOptions": {
+        "importHelpers": true,
+        "declaration": true,
+        "declarationMap": true,
+        "outDir": "./dist",
+        "noImplicitAny": true,
+        "strict": true,
+        // The following strict checks are deferred: enabling them surfaces many
+        // pre-existing issues (uninitialised class fields, layer-listener callback
+        // variance, nullable buffers in the GPU renderers). Tighten these one at a
+        // time later.
+        "strictNullChecks": false,
+        "strictPropertyInitialization": false,
+        "strictFunctionTypes": false,
+        "sourceMap": true,
+        "module": "es2022",
+        "target": "es2022",
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "allowJs": false,
+        "esModuleInterop": true,
+        "moduleResolution": "bundler"
+    },
+    "include": ["./src/**/*"],
+    "exclude": ["node_modules"]
 }

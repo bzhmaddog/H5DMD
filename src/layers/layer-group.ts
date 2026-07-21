@@ -1,12 +1,21 @@
-import {Options} from "../utils"
-import {Layer, LayerGroupOptions, LayerPosition, AnimationLayerOptions, CanvasLayerOptions, SpritesLayerOptions, TextLayerOptions, VideoLayerOptions} from "../interfaces"
-import {BaseLayer, LayerLifecycleListeners} from "./base-layer"
-import {AnimationLayer} from "./animation-layer"
-import {CanvasLayer} from "./canvas-layer"
-import {SpritesLayer} from "./sprites-layer"
-import {TextLayer} from "./text-layer"
-import {VideoLayer} from "./video-layer"
-import {compositeSortedLayers, createLayerInstance, resolveLayerPosition, type LayerDictionary} from "./layer-factory"
+import { Options } from '../utils'
+import {
+    Layer,
+    LayerGroupOptions,
+    LayerPosition,
+    AnimationLayerOptions,
+    CanvasLayerOptions,
+    SpritesLayerOptions,
+    TextLayerOptions,
+    VideoLayerOptions,
+} from '../interfaces'
+import { BaseLayer, LayerLifecycleListeners } from './base-layer'
+import { AnimationLayer } from './animation-layer'
+import { CanvasLayer } from './canvas-layer'
+import { SpritesLayer } from './sprites-layer'
+import { TextLayer } from './text-layer'
+import { VideoLayer } from './video-layer'
+import { compositeSortedLayers, createLayerInstance, resolveLayerPosition, type LayerDictionary } from './layer-factory'
 
 type LayerAddOptions =
     | Partial<CanvasLayerOptions>
@@ -17,27 +26,35 @@ type LayerAddOptions =
     | Partial<LayerGroupOptions>
     | Options
 
-type LayerOptionsByInstance<T extends BaseLayer> =
-    T extends CanvasLayer ? Partial<CanvasLayerOptions> | Options :
-    T extends VideoLayer ? Partial<VideoLayerOptions> | Options :
-    T extends AnimationLayer ? Partial<AnimationLayerOptions> | Options :
-    T extends SpritesLayer ? Partial<SpritesLayerOptions> | Options :
-    T extends TextLayer ? Partial<TextLayerOptions> | Options :
-    T extends LayerGroup ? Partial<LayerGroupOptions> | Options :
-    LayerAddOptions
+type LayerOptionsByInstance<T extends BaseLayer> = T extends CanvasLayer
+    ? Partial<CanvasLayerOptions> | Options
+    : T extends VideoLayer
+      ? Partial<VideoLayerOptions> | Options
+      : T extends AnimationLayer
+        ? Partial<AnimationLayerOptions> | Options
+        : T extends SpritesLayer
+          ? Partial<SpritesLayerOptions> | Options
+          : T extends TextLayer
+            ? Partial<TextLayerOptions> | Options
+            : T extends LayerGroup
+              ? Partial<LayerGroupOptions> | Options
+              : LayerAddOptions
 
-type LayerListenersByInstance<T extends BaseLayer> =
-    LayerLifecycleListeners<T> &
-    (T extends VideoLayer ? {
-        play?: (layer: VideoLayer) => void | Array<(layer: VideoLayer) => void>
-        pause?: (layer: VideoLayer) => void | Array<(layer: VideoLayer) => void>
-        stop?: (layer: VideoLayer) => void | Array<(layer: VideoLayer) => void>
-    } : unknown) &
-    (T extends AnimationLayer ? {
-        play?: (layer: AnimationLayer) => void | Array<(layer: AnimationLayer) => void>
-        pause?: (layer: AnimationLayer) => void | Array<(layer: AnimationLayer) => void>
-        stop?: (layer: AnimationLayer) => void | Array<(layer: AnimationLayer) => void>
-    } : unknown)
+type LayerListenersByInstance<T extends BaseLayer> = LayerLifecycleListeners<T> &
+    (T extends VideoLayer
+        ? {
+              play?: (layer: VideoLayer) => void | Array<(layer: VideoLayer) => void>
+              pause?: (layer: VideoLayer) => void | Array<(layer: VideoLayer) => void>
+              stop?: (layer: VideoLayer) => void | Array<(layer: VideoLayer) => void>
+          }
+        : unknown) &
+    (T extends AnimationLayer
+        ? {
+              play?: (layer: AnimationLayer) => void | Array<(layer: AnimationLayer) => void>
+              pause?: (layer: AnimationLayer) => void | Array<(layer: AnimationLayer) => void>
+              stop?: (layer: AnimationLayer) => void | Array<(layer: AnimationLayer) => void>
+          }
+        : unknown)
 
 /**
  * A "virtual" layer that cannot draw content itself. It can be dimensioned, positioned,
@@ -46,7 +63,6 @@ type LayerListenersByInstance<T extends BaseLayer> =
  * include nested LayerGroups) in zIndex order.
  */
 class LayerGroup extends BaseLayer {
-
     private _children: LayerDictionary = {}
     private _sortedChildren: Layer[] = []
     private _childZIndex: number = 1
@@ -60,9 +76,15 @@ class LayerGroup extends BaseLayer {
         width: number,
         height: number,
         options?: Partial<LayerGroupOptions> | Options,
-        listeners?: LayerLifecycleListeners<LayerGroup>
+        listeners?: LayerLifecycleListeners<LayerGroup>,
     ) {
-        super(id, width, height, new Options(options as Record<string, unknown>), listeners as unknown as LayerLifecycleListeners<BaseLayer>)
+        super(
+            id,
+            width,
+            height,
+            new Options(options as Record<string, unknown>),
+            listeners as unknown as LayerLifecycleListeners<BaseLayer>,
+        )
         // Pass startRenderingLoop:true - a group can't tell whether its children are static
         // (CanvasLayer/TextLayer, which explicitly call _layerUpdated() on every redraw) or
         // continuously self-updating (VideoLayer/AnimationLayer/SpritesLayer, which refresh
@@ -142,7 +164,9 @@ class LayerGroup extends BaseLayer {
         listeners?: LayerListenersByInstance<T>,
     ): T {
         if ((layerClass as unknown) === LayerGroup) {
-            console.warn(`LayerGroup[${this.id}].addLayer(LayerGroup, '${id}', ...) is deprecated and will be removed in the next major version - use addLayerGroup('${id}', options) instead`)
+            console.warn(
+                `LayerGroup[${this.id}].addLayer(LayerGroup, '${id}', ...) is deprecated and will be removed in the next major version - use addLayerGroup('${id}', options) instead`,
+            )
         }
         return this._addChildLayer(layerClass, id, options, listeners)
     }
@@ -163,19 +187,32 @@ class LayerGroup extends BaseLayer {
         const layerHeight = opts.get('height') || this.height
 
         const pos: LayerPosition = opts.get('position') || {}
-        const {top: layerTop, left: layerLeft} = resolveLayerPosition(id, pos, layerWidth, layerHeight, this.width, this.height, this._sortedChildren, this._children)
+        const { top: layerTop, left: layerLeft } = resolveLayerPosition(
+            id,
+            pos,
+            layerWidth,
+            layerHeight,
+            this.width,
+            this.height,
+            this._sortedChildren,
+            this._children,
+        )
 
         const lifecycle = listeners as unknown as LayerLifecycleListeners<BaseLayer> | undefined
-        const media = listeners as unknown as {
-            play?: ((layer: BaseLayer) => void) | Array<(layer: BaseLayer) => void>
-            pause?: ((layer: BaseLayer) => void) | Array<(layer: BaseLayer) => void>
-            stop?: ((layer: BaseLayer) => void) | Array<(layer: BaseLayer) => void>
-        } | undefined
+        const media = listeners as unknown as
+            | {
+                  play?: ((layer: BaseLayer) => void) | Array<(layer: BaseLayer) => void>
+                  pause?: ((layer: BaseLayer) => void) | Array<(layer: BaseLayer) => void>
+                  stop?: ((layer: BaseLayer) => void) | Array<(layer: BaseLayer) => void>
+              }
+            | undefined
 
         const asArray = <TListener>(value?: TListener | Array<TListener>): Array<TListener> =>
-            value === undefined ? [] : (Array.isArray(value) ? value : [value])
+            value === undefined ? [] : Array.isArray(value) ? value : [value]
 
-        const composeAsync = (value?: ((layer: BaseLayer) => void | Promise<void>) | Array<(layer: BaseLayer) => void | Promise<void>>) => {
+        const composeAsync = (
+            value?: ((layer: BaseLayer) => void | Promise<void>) | Array<(layer: BaseLayer) => void | Promise<void>>,
+        ) => {
             const listenersArray = asArray(value)
             if (listenersArray.length === 0) return undefined
             return async (layer: BaseLayer): Promise<void> => {
@@ -199,11 +236,21 @@ class LayerGroup extends BaseLayer {
             layerWidth,
             layerHeight,
             opts,
-            composeAsync(lifecycle?.loaded as ((layer: BaseLayer) => void | Promise<void>) | Array<(layer: BaseLayer) => void | Promise<void>> | undefined),
-            composeAsync(lifecycle?.updated as ((layer: BaseLayer) => void | Promise<void>) | Array<(layer: BaseLayer) => void | Promise<void>> | undefined),
+            composeAsync(
+                lifecycle?.loaded as
+                    | ((layer: BaseLayer) => void | Promise<void>)
+                    | Array<(layer: BaseLayer) => void | Promise<void>>
+                    | undefined,
+            ),
+            composeAsync(
+                lifecycle?.updated as
+                    | ((layer: BaseLayer) => void | Promise<void>)
+                    | Array<(layer: BaseLayer) => void | Promise<void>>
+                    | undefined,
+            ),
             composeSync(media?.play),
             composeSync(media?.pause),
-            composeSync(media?.stop)
+            composeSync(media?.stop),
         )
         // Register recomposite hooks as separate listeners so no wrapper closures are needed.
         layer.on('loaded', () => this._scheduleRecomposite())
@@ -226,7 +273,7 @@ class LayerGroup extends BaseLayer {
             this._childZIndex++
         }
 
-        this._sortedChildren.push({id, zIndex, top: layerTop, left: layerLeft})
+        this._sortedChildren.push({ id, zIndex, top: layerTop, left: layerLeft })
         this._sortChildren()
 
         return layer as unknown as T
@@ -256,7 +303,9 @@ class LayerGroup extends BaseLayer {
         if (fromIndex === -1) return
         const [moved] = this._sortedChildren.splice(fromIndex, 1)
         this._sortedChildren.splice(toIndex, 0, moved)
-        this._sortedChildren.forEach((l, i) => { l.zIndex = i })
+        this._sortedChildren.forEach((l, i) => {
+            l.zIndex = i
+        })
         this._scheduleRecomposite()
     }
 
@@ -310,4 +359,4 @@ class LayerGroup extends BaseLayer {
     }
 }
 
-export {LayerGroup}
+export { LayerGroup }

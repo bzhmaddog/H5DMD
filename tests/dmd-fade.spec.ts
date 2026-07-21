@@ -5,17 +5,16 @@
  *   - fades step via requestAnimationFrame (not setTimeout).
  *   - fadeLayerIn / fadeLayerOut reject for unknown layers and perform the fade.
  */
-import {afterEach, beforeEach, describe, expect, test, vi} from 'vitest'
-import {setupVitestCanvasMock} from 'vitest-canvas-mock'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 
-import {Dmd} from '../src'
-import {CanvasLayer} from '../src/layers'
-import {ChangeAlphaRenderer, DmdRenderer} from '../src/renderers'
-import {Easing, Options} from '../src/utils'
-import {DotShape} from '../src/enums'
+import { Dmd } from '../src'
+import { CanvasLayer } from '../src/layers'
+import { ChangeAlphaRenderer, DmdRenderer } from '../src/renderers'
+import { Easing, Options } from '../src/utils'
+import { DotShape } from '../src/enums'
 
 describe('Dmd fades', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)
@@ -37,12 +36,19 @@ describe('Dmd fades', () => {
     test('fadeIn eases by (1 - startBrightness), not 1', async () => {
         vi.stubGlobal('requestAnimationFrame', () => 0)
 
-        const dmd = new Dmd(makeCanvas(), { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: false })
+        const dmd = new Dmd(makeCanvas(), {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: false,
+        })
 
         const startBrightness = 0.4
         // Replace the GPU renderer with a lightweight fake exposing brightness.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ;(dmd as any)._renderer = {brightness: startBrightness, setBrightness: vi.fn()}
+        ;(dmd as any)._renderer = { brightness: startBrightness, setBrightness: vi.fn() }
 
         // Make the fade loop run exactly one easing step then finish.
         let n = 0
@@ -57,13 +63,22 @@ describe('Dmd fades', () => {
     })
 
     test('fades schedule with requestAnimationFrame, not setTimeout', () => {
-        const dmd = new Dmd(makeCanvas(), { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: false })
+        const dmd = new Dmd(makeCanvas(), {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: false,
+        })
 
         // Fake renderer so the fade actually steps (brightness stays > 0).
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ;(dmd as any)._renderer = {
             brightness: 0.5,
-            setBrightness(b: number) { this.brightness = b }
+            setBrightness(b: number) {
+                this.brightness = b
+            },
         }
 
         // start = 0, first step delta = 10 (< duration) so the loop schedules a next frame.
@@ -87,12 +102,14 @@ describe('Dmd fades', () => {
 })
 
 describe('Dmd layer fades', () => {
-
     beforeEach(() => {
         setupVitestCanvasMock()
         vi.spyOn(ChangeAlphaRenderer.prototype, 'init').mockResolvedValue(undefined)
         vi.spyOn(DmdRenderer.prototype, 'init').mockResolvedValue(undefined)
-        vi.stubGlobal('requestAnimationFrame', vi.fn(() => 0))
+        vi.stubGlobal(
+            'requestAnimationFrame',
+            vi.fn(() => 0),
+        )
     })
 
     afterEach(() => {
@@ -104,7 +121,14 @@ describe('Dmd layer fades', () => {
         const canvas = document.createElement('canvas')
         canvas.width = 64
         canvas.height = 16
-        return new Dmd(canvas, { dotSize: 2, dotSpace: 1, dotShape: DotShape.Square, backgroundBrightness: 14, brightness: 1, showFPS: false })
+        return new Dmd(canvas, {
+            dotSize: 2,
+            dotSpace: 1,
+            dotShape: DotShape.Square,
+            backgroundBrightness: 14,
+            brightness: 1,
+            showFPS: false,
+        })
     }
 
     test('fadeLayerIn rejects for an unknown layer id', async () => {
@@ -118,7 +142,11 @@ describe('Dmd layer fades', () => {
         layer.setVisibility(false)
 
         let t = 0
-        vi.spyOn(window.performance, 'now').mockImplementation(() => { const v = t; t += 500; return v })
+        vi.spyOn(window.performance, 'now').mockImplementation(() => {
+            const v = t
+            t += 500
+            return v
+        })
 
         await dmd.fadeLayerIn('x', 100)
 
@@ -136,7 +164,11 @@ describe('Dmd layer fades', () => {
         const layer = dmd.addLayer(CanvasLayer, 'x', new Options())
 
         let t = 0
-        vi.spyOn(window.performance, 'now').mockImplementation(() => { const v = t; t += 500; return v })
+        vi.spyOn(window.performance, 'now').mockImplementation(() => {
+            const v = t
+            t += 500
+            return v
+        })
 
         await dmd.fadeLayerOut('x', 100)
 
