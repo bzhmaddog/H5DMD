@@ -1,6 +1,9 @@
 node_modules
 .DS_Store
 
+### CLaude code
+.claude
+
 ### VisualStudioCode ###
 .vscode/*      # Maybe .vscode/**/* instead - see comments
 !.vscode/settings.json
