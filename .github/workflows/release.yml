@@ -38,7 +38,7 @@ jobs:
                     exit 1
                   fi
 
-            - run: npm ci
+            - run: npm ci --ignore-scripts
             - run: npm run lint
             - run: npm test
             - run: npm run build

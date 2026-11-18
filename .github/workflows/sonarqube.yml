@@ -23,7 +23,7 @@ jobs:
                   node-version: 24
                   cache: npm
                   cache-dependency-path: package-lock.json
-            - run: npm ci
+            - run: npm ci --ignore-scripts
             # Produces coverage/lcov.info, picked up via sonar-project.properties
             - name: Test with coverage
               run: npm run test:coverage
