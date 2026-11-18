@@ -118,7 +118,7 @@ export function buildBasicControlPanel(dmd: Dmd): void {
     hudOpacity.step = '0.01'
     hudOpacity.value = String(hud.opacity)
     hudOpacity.addEventListener('input', () => {
-        hud.setOpacity(parseFloat(hudOpacity.value))
+        hud.setOpacity(Number.parseFloat(hudOpacity.value))
         hudOpacityValue.textContent = hud.opacity.toFixed(2)
     })
     row(hudPanel, labelEl('Opacity'), hudOpacity, hudOpacityValue)
@@ -148,7 +148,7 @@ export function buildBasicControlPanel(dmd: Dmd): void {
     bgOpacity.max = '1'
     bgOpacity.step = '0.01'
     bgOpacity.value = String(hud.backgroundOpacity)
-    bgOpacity.addEventListener('input', () => hud.setBackgroundOpacity(parseFloat(bgOpacity.value)))
+    bgOpacity.addEventListener('input', () => hud.setBackgroundOpacity(Number.parseFloat(bgOpacity.value)))
     row(hudPanel, labelEl('Background'), bgPicker, labelEl('Opacity'), bgOpacity)
 
     let shaking = false
@@ -245,7 +245,7 @@ export function buildBasicControlPanel(dmd: Dmd): void {
     infoBgOpacity.max = '1'
     infoBgOpacity.step = '0.01'
     infoBgOpacity.value = String(info.backgroundOpacity)
-    infoBgOpacity.addEventListener('input', () => info.setBackgroundOpacity(parseFloat(infoBgOpacity.value)))
+    infoBgOpacity.addEventListener('input', () => info.setBackgroundOpacity(Number.parseFloat(infoBgOpacity.value)))
     row(infoSection, labelEl('Background opacity'), infoBgOpacity)
 
     // -----------------------------------------------------------------

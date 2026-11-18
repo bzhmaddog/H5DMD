@@ -285,7 +285,7 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
             o.textContent = opt.label
             select.appendChild(o)
         })
-        const getEasing = () => easingOptions[parseInt(select.value)].fn
+        const getEasing = () => easingOptions[Number.parseInt(select.value)].fn
         return { select, getEasing }
     }
 
@@ -301,7 +301,7 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
         slider.addEventListener('input', () => {
             value.textContent = `${slider.value} ms`
         })
-        const getDuration = () => parseInt(slider.value)
+        const getDuration = () => Number.parseInt(slider.value)
         return { slider, value, getDuration }
     }
 
@@ -325,7 +325,7 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
             syncFadeDmdButtons()
         }
         brightnessSlider.addEventListener('input', () => {
-            const b = parseFloat(brightnessSlider.value)
+            const b = Number.parseFloat(brightnessSlider.value)
             dmd.setBrightness(b)
             brightnessValue.textContent = b.toFixed(2)
             syncFadeDmdButtons()
@@ -345,9 +345,9 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
         offDotPicker.addEventListener('input', () => {
             const hex = offDotPicker.value
             dmd.setOffDotColor(
-                parseInt(hex.slice(1, 3), 16) / 255,
-                parseInt(hex.slice(3, 5), 16) / 255,
-                parseInt(hex.slice(5, 7), 16) / 255,
+                Number.parseInt(hex.slice(1, 3), 16) / 255,
+                Number.parseInt(hex.slice(3, 5), 16) / 255,
+                Number.parseInt(hex.slice(5, 7), 16) / 255,
             )
             syncHsvSliders() // redraw swatch with updated off-dot color
         })
@@ -407,7 +407,7 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
         syncDmdSize()
 
         dotSizeSlider.addEventListener('input', () => {
-            dmd.setDotSize(parseInt(dotSizeSlider.value))
+            dmd.setDotSize(Number.parseInt(dotSizeSlider.value))
             // Sync back in case clamped
             dotSizeSlider.value = String(dmd.dotSize)
             dotSizeValue.textContent = String(dmd.dotSize)
@@ -425,7 +425,7 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
         dotSpaceSlider.value = String(dmd.dotSpace)
         dotSpaceValue.textContent = String(dmd.dotSpace)
         dotSpaceSlider.addEventListener('input', () => {
-            dmd.setDotSpace(parseInt(dotSpaceSlider.value))
+            dmd.setDotSpace(Number.parseInt(dotSpaceSlider.value))
             dotSpaceValue.textContent = String(dmd.dotSpace)
             syncDmdSize()
         })
@@ -434,7 +434,7 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
         row(panel, labelEl('DMD Size'), dmdSizeDisplay)
 
         shapeSelect.addEventListener('change', () => {
-            dmd.setDotShape(parseInt(shapeSelect.value) as DotShape)
+            dmd.setDotShape(Number.parseInt(shapeSelect.value) as DotShape)
             drawShapePreview(dmd.dotShape)
             // Reset dot size to the minimum for the new shape
             dmd.setDotSize(1)
@@ -647,8 +647,8 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
                 s = curS
             const floor = Math.ceil(minV(h, s) * 100)
             vSlider.min = String(floor)
-            if (parseFloat(vSlider.value) < floor) vSlider.value = String(floor)
-            const v = parseFloat(vSlider.value) / 100
+            if (Number.parseFloat(vSlider.value) < floor) vSlider.value = String(floor)
+            const v = Number.parseFloat(vSlider.value) / 100
             const { r, g, b } = hsvToRgb(h, s, v)
             // Draw monoLevels brightness bands: level 0 = off-dot, levels 1..n-1 = tint scaled by level/(n-1)
             const n = dmd.monoLevels
@@ -679,7 +679,7 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
             levelsSelect.appendChild(o)
         })
         levelsSelect.addEventListener('change', () => {
-            dmd.setMonoLevels(parseInt(levelsSelect.value))
+            dmd.setMonoLevels(Number.parseInt(levelsSelect.value))
             syncHsvSliders()
         })
 
@@ -690,11 +690,11 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
             levelsRow.style.display = hidden ? 'none' : ''
         })
         hSlider.addEventListener('input', () => {
-            curH = parseFloat(hSlider.value)
+            curH = Number.parseFloat(hSlider.value)
             syncHsvSliders()
         })
         sSlider.addEventListener('input', () => {
-            curS = parseFloat(sSlider.value) / 100
+            curS = Number.parseFloat(sSlider.value) / 100
             syncHsvSliders()
         })
         vSlider.addEventListener('input', () => syncHsvSliders())
@@ -751,7 +751,7 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
         outlineValue.textContent = outlineSlider.value
         outlineSlider.addEventListener('input', () => {
             outlineValue.textContent = outlineSlider.value
-            text.setOutlineWidth(parseInt(outlineSlider.value))
+            text.setOutlineWidth(Number.parseInt(outlineSlider.value))
         })
         row(panel, labelEl('Outline width'), outlineSlider, outlineValue)
 
@@ -776,7 +776,7 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
         fontSizeValue.textContent = `${fontSizeSlider.value}%`
         fontSizeSlider.addEventListener('input', () => {
             fontSizeValue.textContent = `${fontSizeSlider.value}%`
-            text.setFontSize(parseInt(fontSizeSlider.value))
+            text.setFontSize(Number.parseInt(fontSizeSlider.value))
         })
         row(panel, labelEl('Font size'), fontSizeSlider, fontSizeValue)
 
@@ -997,7 +997,7 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
 
                 // Common — opacity
                 opacitySlider.addEventListener('input', () => {
-                    const o = parseFloat(opacitySlider.value)
+                    const o = Number.parseFloat(opacitySlider.value)
                     layer.setOpacity(o)
                     opacityValue.textContent = o.toFixed(2)
                     syncFadeButtons()
@@ -1124,8 +1124,8 @@ export function buildAdvancedControlPanel(dmd: Dmd): void {
                         bgOpacitySlider.value = String(text.backgroundOpacity)
                         bgOpacityValue.textContent = bgOpacitySlider.value
                         bgOpacitySlider.addEventListener('input', () => {
-                            bgOpacityValue.textContent = parseFloat(bgOpacitySlider.value).toFixed(2)
-                            text.setBackgroundOpacity(parseFloat(bgOpacitySlider.value))
+                            bgOpacityValue.textContent = Number.parseFloat(bgOpacitySlider.value).toFixed(2)
+                            text.setBackgroundOpacity(Number.parseFloat(bgOpacitySlider.value))
                         })
                         row(textCard, labelEl('Bg opacity'), bgOpacitySlider, bgOpacityValue)
 

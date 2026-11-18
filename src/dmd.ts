@@ -138,9 +138,9 @@ export class Dmd {
             let r: number, g: number, b: number
             if (typeof color === 'string') {
                 const hex = color.replace('#', '')
-                r = parseInt(hex.slice(0, 2), 16) / 255
-                g = parseInt(hex.slice(2, 4), 16) / 255
-                b = parseInt(hex.slice(4, 6), 16) / 255
+                r = Number.parseInt(hex.slice(0, 2), 16) / 255
+                g = Number.parseInt(hex.slice(2, 4), 16) / 255
+                b = Number.parseInt(hex.slice(4, 6), 16) / 255
             } else {
                 ;({ r, g, b } = color)
             }
@@ -157,9 +157,9 @@ export class Dmd {
             let r: number, g: number, b: number
             if (typeof c === 'string') {
                 const hex = c.replace('#', '')
-                r = parseInt(hex.slice(0, 2), 16) / 255
-                g = parseInt(hex.slice(2, 4), 16) / 255
-                b = parseInt(hex.slice(4, 6), 16) / 255
+                r = Number.parseInt(hex.slice(0, 2), 16) / 255
+                g = Number.parseInt(hex.slice(2, 4), 16) / 255
+                b = Number.parseInt(hex.slice(4, 6), 16) / 255
             } else {
                 ;({ r, g, b } = c)
             }
@@ -253,35 +253,42 @@ export class Dmd {
         )
 
         // Generate Dmd frame
-        this._renderer.renderFrame(frameImageData).then(() => {
-            const now = performance.now()
-            const delta = now - this._lastRenderTime
-            this._lastRenderTime = now
+        this._renderer
+            .renderFrame(frameImageData)
+            .then(() => {
+                const now = performance.now()
+                const delta = now - this._lastRenderTime
+                this._lastRenderTime = now
 
-            // Smoothed FPS : rolling average of frame time over the last frames.
-            this._fpsSamples.push(delta)
-            if (this._fpsSamples.length > 60) {
-                this._fpsSamples.shift()
-            }
-            const meanDelta = this._fpsSamples.reduce((sum, d) => sum + d, 0) / this._fpsSamples.length
-            this._fps = Math.round(1000 / meanDelta)
+                // Smoothed FPS : rolling average of frame time over the last frames.
+                this._fpsSamples.push(delta)
+                if (this._fpsSamples.length > 60) {
+                    this._fpsSamples.shift()
+                }
+                const meanDelta = this._fpsSamples.reduce((sum, d) => sum + d, 0) / this._fpsSamples.length
+                this._fps = Math.round(1000 / meanDelta)
 
-            // Track min/max once the window has enough samples for steady-state.
-            if (this._fpsSamples.length >= 30) {
-                if (this._fps < this._minFPS) {
-                    this._minFPS = this._fps
+                // Track min/max once the window has enough samples for steady-state.
+                if (this._fpsSamples.length >= 30) {
+                    if (this._fps < this._minFPS) {
+                        this._minFPS = this._fps
+                    }
+
+                    if (this._fps > this._maxFPS) {
+                        this._maxFPS = this._fps
+                    }
                 }
 
-                if (this._fps > this._maxFPS) {
-                    this._maxFPS = this._fps
-                }
-            }
+                // Render FPS box if needed
+                this._renderFPS()
 
-            // Render FPS box if needed
-            this._renderFPS()
-
-            this._renderNextFrame()
-        })
+                this._renderNextFrame()
+            })
+            .catch(err => {
+                console.error('Dmd : frame render failed', err)
+                // Keep the loop alive so a single GPU error doesn't freeze the display
+                this._renderNextFrame()
+            })
     }
 
     /**

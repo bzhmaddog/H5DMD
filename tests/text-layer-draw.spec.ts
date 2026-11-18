@@ -101,6 +101,31 @@ describe('TextLayer._drawText branches', () => {
         expect(aaSpy).toHaveBeenCalled()
         expect(outlineSpy).toHaveBeenCalled()
     })
+
+    test.each([
+        ['outline (antialiased)', { antialiasing: true, outlineWidth: 2 }, 'outline'],
+        ['outline + no-antialiasing', { antialiasing: false, outlineWidth: 2 }, 'outline'],
+        ['no-antialiasing', { antialiasing: false }, 'no-antialiasing'],
+    ])('_drawText rejects instead of hanging when the %s renderer fails', async (_, opts, rendererId) => {
+        const layer = layerWith(opts)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const renderer = (layer as any)._availableRenderers[rendererId]
+        vi.spyOn(renderer, 'renderFrame').mockRejectedValue(new Error('GPU lost'))
+        await expect(draw(layer)).rejects.toThrow('GPU lost')
+    })
+
+    test('a failed redraw from a setter is logged, not left unhandled', async () => {
+        const layer = layerWith({ antialiasing: true, outlineWidth: 2 })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const outline = (layer as any)._availableRenderers['outline']
+        vi.spyOn(outline, 'renderFrame').mockRejectedValue(new Error('GPU lost'))
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+        layer.setOutlineColor('#00FF00')
+        await new Promise(r => setTimeout(r, 0))
+
+        expect(errorSpy).toHaveBeenCalledWith('Layer[t] : Text draw failed', expect.any(Error))
+    })
 })
 
 /**

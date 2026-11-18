@@ -25,14 +25,16 @@ document.addEventListener(
             })
 
             // Init Dmd then
-            Promise.all([dmd.init()]).then(() => {
-                // Start rendering dmd
-                dmd.run()
+            Promise.all([dmd.init()])
+                .then(() => {
+                    // Start rendering dmd
+                    dmd.run()
 
-                // Static showcase - every option below is set at construction, so there is no
-                // control panel on this page: what you see is exactly what the code declares.
-                setupTextLayers(dmd)
-            }) // Dmd.init()
+                    // Static showcase - every option below is set at construction, so there is no
+                    // control panel on this page: what you see is exactly what the code declares.
+                    setupTextLayers(dmd)
+                })
+                .catch(err => console.error('Demo init failed', err)) // Dmd.init()
         } else {
             alert('Sorry your browser does not support WEBGPU (or the feature is not enabled)')
         }

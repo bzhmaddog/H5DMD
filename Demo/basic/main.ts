@@ -28,14 +28,16 @@ document.addEventListener(
             })
 
             // Init Dmd then
-            Promise.all([dmd.init()]).then(() => {
-                // Start rendering dmd
-                dmd.run()
+            Promise.all([dmd.init()])
+                .then(() => {
+                    // Start rendering dmd
+                    dmd.run()
 
-                // Add the LayerGroup showcase, then build its control panel
-                setupBasicLayers(dmd, imagesPath)
-                buildBasicControlPanel(dmd)
-            }) // Dmd.init()
+                    // Add the LayerGroup showcase, then build its control panel
+                    setupBasicLayers(dmd, imagesPath)
+                    buildBasicControlPanel(dmd)
+                })
+                .catch(err => console.error('Demo init failed', err)) // Dmd.init()
         } else {
             alert('Sorry your browser does not support WEBGPU (or the feature is not enabled)')
         }

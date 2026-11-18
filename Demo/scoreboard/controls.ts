@@ -71,7 +71,7 @@ export function buildScoreboardControlPanel(dmd: Dmd): void {
     // Start from whatever the layer is actually displaying, rather than a second hardcoded
     // number that can drift out of sync with scoreboard-layers.ts's initial text. Strip any
     // thousand separators first, in case the initial text is ever formatted too.
-    let points = parseInt(scoreValue.text.replace(/[,.]/g, ''), 10) || 0
+    let points = Number.parseInt(scoreValue.text.replace(/[,.]/g, ''), 10) || 0
     // en-US grouping (thousands), but with '.' instead of ',' - commas render oddly in the
     // Dusty font.
     const syncScore = () => scoreValue.setText(points.toLocaleString('en-US').replace(/,/g, '.'))

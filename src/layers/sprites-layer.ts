@@ -105,10 +105,10 @@ class SpritesLayer extends BaseLayer {
         }
 
         if (value.at(-1) === '%') {
-            return Math.floor((parseFloat(value.replace('%', '')) * extent) / 100)
+            return Math.floor((Number.parseFloat(value.replace('%', '')) * extent) / 100)
         }
 
-        return parseInt(value, 10)
+        return Number.parseInt(value, 10)
     }
 
     /**

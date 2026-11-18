@@ -121,7 +121,7 @@ class RemoveAliasingRenderer extends LayerRenderer<RemoveAliasingRendererParams>
 
                     console.log('RemoveAliasingRenderer:init()')
 
-                    this._validateShader(reject).then(valid => {
+                    return this._validateShader(reject).then(valid => {
                         if (!valid) return
                         this._createResources()
                         this.renderFrame = this._doRendering

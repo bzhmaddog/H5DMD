@@ -188,11 +188,15 @@ class DmdRenderer extends Renderer {
 
                     console.log('GPURenderer:init()')
 
-                    this._shaderModule.getCompilationInfo()?.then(i => {
-                        if (i.messages.length > 0) {
-                            console.warn('GPURenderer:compilationInfo()', i.messages)
-                        }
-                    })
+                    // Diagnostics only: don't hold init up waiting for it
+                    void this._shaderModule
+                        .getCompilationInfo()
+                        ?.then(i => {
+                            if (i.messages.length > 0) {
+                                console.warn('GPURenderer:compilationInfo()', i.messages)
+                            }
+                        })
+                        .catch(err => console.warn('GPURenderer:compilationInfo() unavailable', err))
 
                     this._createResources()
 

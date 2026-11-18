@@ -165,7 +165,7 @@ class ShakyEffectRenderer extends LayerRenderer {
                         `,
                     })
 
-                    this._validateShader(reject).then(valid => {
+                    return this._validateShader(reject).then(valid => {
                         if (!valid) return
                         this._createResources()
                         this.renderFrame = this._doRendering
@@ -306,7 +306,7 @@ class ShakyEffectRenderer extends LayerRenderer {
             case 'decay': {
                 // One-shot: normalized progress 0..1 since the last trigger.
                 const since = (performance.now() - this._triggerTime) / 1000
-                if (since >= this._decayDuration || !isFinite(since)) {
+                if (since >= this._decayDuration || !Number.isFinite(since)) {
                     return [0, 0]
                 }
                 // Fast oscillation whose amplitude falls off linearly to zero.
