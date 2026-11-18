@@ -156,7 +156,7 @@ await dmd.fadeOut(1000)
 await dmd.fadeIn(1000)
 ```
 
-For a complete example see [Demo/advanced/main.ts](https://github.com/bzhmaddog/H5DMD/blob/main/Demo/advanced/main.ts).
+For a complete example see [Demo/src/bootstrap.ts](https://github.com/bzhmaddog/H5DMD/blob/main/Demo/src/bootstrap.ts) (creating and starting the `Dmd`) and [Demo/advanced/layers.ts](https://github.com/bzhmaddog/H5DMD/blob/main/Demo/advanced/layers.ts) (adding every layer type).
 
 # Install dependencies
 

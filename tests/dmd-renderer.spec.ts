@@ -15,6 +15,7 @@ import { setupVitestCanvasMock } from 'vitest-canvas-mock'
 import { DmdRenderer } from '../src/renderers'
 import { Renderer } from '../src/renderers/renderer'
 import { DotShape } from '../src/enums'
+import { makeFakeGpu, warnMsg } from './helpers/fake-gpu'
 
 describe('DmdRenderer.init — WebGPU availability', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -60,6 +61,96 @@ describe('DmdRenderer.init — WebGPU availability', () => {
         await Promise.race([init, new Promise(resolve => setTimeout(resolve, 50))])
 
         expect(settled).toBe(true)
+    })
+})
+
+describe('DmdRenderer.init — shader compilation diagnostics', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nav = globalThis.navigator as any
+    const originalGpu = nav.gpu
+
+    beforeEach(() => {
+        setupVitestCanvasMock()
+        vi.stubGlobal('GPUBufferUsage', {
+            STORAGE: 0x80,
+            COPY_SRC: 0x04,
+            COPY_DST: 0x08,
+            MAP_READ: 0x01,
+            UNIFORM: 0x40,
+        })
+        vi.stubGlobal('GPUShaderStage', { COMPUTE: 0x4 })
+        vi.stubGlobal('GPUMapMode', { READ: 0x1 })
+        vi.stubGlobal('GPUTextureUsage', { TEXTURE_BINDING: 0x4, COPY_DST: 0x2, RENDER_ATTACHMENT: 0x10 })
+    })
+
+    afterEach(() => {
+        nav.gpu = originalGpu
+        vi.unstubAllGlobals()
+        vi.restoreAllMocks()
+        Renderer.releaseSharedDevice()
+    })
+
+    const flush = () => new Promise(r => setTimeout(r, 0))
+    const makeRenderer = () =>
+        new DmdRenderer(4, 4, 8, 8, 2, 0, DotShape.Square, 14, 1, document.createElement('canvas'))
+
+    /** The shared fake device, extended with what DmdRenderer needs beyond the layer renderers. */
+    const useDevice = async (patch: (device: Record<string, unknown>) => void = () => {}) => {
+        const device = await makeFakeGpu([warnMsg()])
+            .requestAdapter()
+            .then(a => a.requestDevice())
+        const d = device as unknown as Record<string, unknown>
+        d.features = new Set<string>()
+        d.createTexture = () => ({ createView: () => ({}) })
+        d.createSampler = () => ({})
+        d.createRenderPipeline = () => ({})
+        d.createRenderBundleEncoder = () => ({
+            setPipeline: vi.fn(),
+            setBindGroup: vi.fn(),
+            draw: vi.fn(),
+            finish: () => ({}),
+        })
+        patch(d)
+        nav.gpu = {
+            requestAdapter: () => Promise.resolve({ requestDevice: () => Promise.resolve(device) }),
+            getPreferredCanvasFormat: () => 'bgra8unorm',
+        }
+        // jsdom has no WebGPU canvas context
+        const getContext = HTMLCanvasElement.prototype.getContext
+        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function (
+            this: HTMLCanvasElement,
+            type: string,
+            ...args: unknown[]
+        ) {
+            if (type === 'webgpu') return { configure: vi.fn() } as unknown as RenderingContext
+            return getContext.call(this, type, ...args)
+        } as typeof getContext)
+    }
+
+    test('compilation messages are reported as warnings', async () => {
+        await useDevice()
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+        await makeRenderer().init()
+        await flush()
+
+        expect(warn).toHaveBeenCalledWith('GPURenderer:compilationInfo()', [expect.objectContaining(warnMsg())])
+    })
+
+    test('a failing getCompilationInfo() does not break init', async () => {
+        await useDevice(d => {
+            const create = d.createShaderModule as (desc: unknown) => object
+            d.createShaderModule = (desc: unknown) => ({
+                ...create(desc),
+                getCompilationInfo: () => Promise.reject(new Error('unsupported')),
+            })
+        })
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+        await expect(makeRenderer().init()).resolves.toBeUndefined()
+        await flush()
+
+        expect(warn).toHaveBeenCalledWith('GPURenderer:compilationInfo() unavailable', expect.any(Error))
     })
 })
 

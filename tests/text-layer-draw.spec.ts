@@ -126,6 +126,27 @@ describe('TextLayer._drawText branches', () => {
 
         expect(errorSpy).toHaveBeenCalledWith('Layer[t] : Text draw failed', expect.any(Error))
     })
+
+    test.each([
+        ['setOutlineWidth', 'outlineWidth', 3],
+        ['setOutlineColor', 'outlineColor', '#00FF00'],
+        ['setBackgroundColor', 'backgroundColor', '#112233'],
+        ['setBorderColor', 'borderColor', '#445566'],
+        ['setBorderWidth', 'borderWidth', 2],
+        ['setFontFamily', 'fontFamily', 'monospace'],
+        ['setAdjustDirection', 'adjustDirection', 'shrink'],
+    ])('%s stores the option, redraws and notifies the parent', async (setter, key, value) => {
+        const layer = layerWith()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const internal = layer as any
+        const updated = vi.spyOn(internal, '_layerUpdated')
+
+        internal[setter](value)
+        await new Promise(r => setTimeout(r, 0))
+
+        expect(internal._options.get(key)).toBe(value)
+        expect(updated).toHaveBeenCalled()
+    })
 })
 
 /**

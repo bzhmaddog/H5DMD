@@ -124,7 +124,7 @@ export function setupTextLayers(dmd: Dmd): void {
             height: DMD_HEIGHT,
             position: { left: 0, top: 0 },
         },
-        layer => layer.fillColor(Colors.DarkOrange),
+        { loaded: layer => layer.fillColor(Colors.DarkOrange) },
     )
 
     heading(manual, 'manual-heading', MANUAL_LEFT, MANUAL_WIDTH, 'manual left / top', Colors.Orange)
