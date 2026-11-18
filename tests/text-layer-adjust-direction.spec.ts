@@ -22,7 +22,7 @@ import { Options } from '../src/utils'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const priv = (layer: TextLayer): any => layer as any
 
-const parsePx = (font: string): number => parseFloat(/(\d+(?:\.\d+)?)px/.exec(font)?.[1] ?? 'NaN')
+const parsePx = (font: string): number => Number.parseFloat(/(\d+(?:\.\d+)?)px/.exec(font)?.[1] ?? 'NaN')
 
 /** The px font size actually used for the layer's most recent draw. */
 const usedFontPx = (layer: TextLayer): number => parsePx(priv(layer)._textBuffer.context.font)

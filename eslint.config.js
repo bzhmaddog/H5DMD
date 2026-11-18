@@ -25,6 +25,14 @@ export default [
         },
         rules: {
             ...tsPlugin.configs.recommended.rules,
+            // Mirror SonarCloud S7773: use the Number.* equivalents
+            'no-restricted-globals': [
+                'error',
+                ...['parseInt', 'parseFloat', 'isFinite', 'isNaN'].map(name => ({
+                    name,
+                    message: `Use Number.${name} instead.`,
+                })),
+            ],
         },
     },
     {

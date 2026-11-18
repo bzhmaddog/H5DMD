@@ -84,41 +84,43 @@ abstract class BaseLayer {
         // Use allSettled so a single renderer failure (e.g. the built-in opacity
         // renderer losing a GPU resource race) does not prevent the user-defined
         // renderers from being queued.
-        Promise.allSettled(rendererPromises).then(results => {
-            // Log any individual failures and remove those renderers so they are
-            // not added to the queue in a broken state.
-            results.forEach((result, i) => {
-                if (result.status === 'rejected') {
-                    console.error(`Layer[${id}] : Renderer "${rendererIds[i]}" init failed`, result.reason)
-                    delete this._availableRenderers[rendererIds[i]]
+        void Promise.allSettled(rendererPromises)
+            .then(results => {
+                // Log any individual failures and remove those renderers so they are
+                // not added to the queue in a broken state.
+                results.forEach((result, i) => {
+                    if (result.status === 'rejected') {
+                        console.error(`Layer[${id}] : Renderer "${rendererIds[i]}" init failed`, result.reason)
+                        delete this._availableRenderers[rendererIds[i]]
+                    }
+                })
+
+                console.log(`Layer[${id}] : Renderers init done`)
+
+                // Build default render queue for successfully initialised renderers
+                for (const entry of rendererEntries) {
+                    if (entry.active !== false && this._availableRenderers[entry.id]) {
+                        this._defaultRenderQueue.push({
+                            id: entry.id,
+                            instance: this._availableRenderers[entry.id],
+                            active: true,
+                        })
+                    }
+                }
+
+                this._renderersReady = true
+
+                // If _layerLoaded already fired (the 1ms setTimeout beat init), kick off
+                // the render loop and fire the deferred loaded listener.
+                if (this.isLoaded()) {
+                    if (this.isVisible() && this.haveRenderer()) {
+                        this._renderNextFrame = this._requestAnimationFrame
+                        this._requestAnimationFrame()
+                    }
+                    this._fireLoadedListeners()
                 }
             })
-
-            console.log(`Layer[${id}] : Renderers init done`)
-
-            // Build default render queue for successfully initialised renderers
-            for (const entry of rendererEntries) {
-                if (entry.active !== false && this._availableRenderers[entry.id]) {
-                    this._defaultRenderQueue.push({
-                        id: entry.id,
-                        instance: this._availableRenderers[entry.id],
-                        active: true,
-                    })
-                }
-            }
-
-            this._renderersReady = true
-
-            // If _layerLoaded already fired (the 1ms setTimeout beat init), kick off
-            // the render loop and fire the deferred loaded listener.
-            if (this.isLoaded()) {
-                if (this.isVisible() && this.haveRenderer()) {
-                    this._renderNextFrame = this._requestAnimationFrame
-                    this._requestAnimationFrame()
-                }
-                this._fireLoadedListeners()
-            }
-        })
+            .catch(err => console.error(`Layer[${id}] : Renderers setup failed`, err))
     }
 
     private _addInitialListeners(listeners: LayerLifecycleListeners<BaseLayer>) {
@@ -279,7 +281,7 @@ abstract class BaseLayer {
             this._renderQueue.push({
                 id: 'opacity',
                 instance: this._availableRenderers['opacity'],
-                params: { opacity: parseFloat(this._options.get('opacity')) },
+                params: { opacity: Number.parseFloat(this._options.get('opacity')) },
                 active: true,
             })
         }
@@ -320,41 +322,54 @@ abstract class BaseLayer {
             // no more renderer in queue then draw final image and start queue process again
         } else {
             // Put final frame data into output buffer and start process again (if needed)
-            createImageBitmap(frameImageData).then(bitmap => {
-                // Clear + repaint in ONE synchronous block: the output canvas is read at
-                // arbitrary times by parent compositors (Dmd's loop, a LayerGroup's
-                // recomposite), so it must never be observable cleared-but-not-repainted -
-                // clearing before this async callback left a blank window that showed up
-                // as flicker.
-                this._outputBuffer.clear()
-                // Background behind content
-                const bgColor: string | undefined = this._options.get('backgroundColor')
-                if (bgColor) {
-                    const bgOpacity: number = this._options.get('backgroundOpacity') ?? 1
-                    this._outputBuffer.context.globalAlpha = bgOpacity
-                    this._outputBuffer.context.fillStyle = bgColor
-                    this._outputBuffer.context.fillRect(0, 0, this._outputBuffer.width, this._outputBuffer.height)
-                    this._outputBuffer.context.globalAlpha = 1
-                }
-                // Put final layer data in the output buffer
-                this._outputBuffer.context.drawImage(bitmap, 0, 0)
-                bitmap.close()
-                // Border over content
-                const borderColor: string | undefined = this._options.get('borderColor')
-                const borderWidth: number = this._options.get('borderWidth') ?? 0
-                if (borderColor && borderWidth > 0) {
-                    this._outputBuffer.context.strokeStyle = borderColor
-                    this._outputBuffer.context.lineWidth = borderWidth
-                    this._outputBuffer.context.strokeRect(
-                        borderWidth / 2,
-                        borderWidth / 2,
-                        this._outputBuffer.width - borderWidth,
-                        this._outputBuffer.height - borderWidth,
-                    )
-                }
-                // request next frame rendering
-                this._renderNextFrame()
-            })
+            createImageBitmap(frameImageData)
+                .then(bitmap => {
+                    this._paintOutput(bitmap)
+                    // request next frame rendering
+                    this._renderNextFrame()
+                })
+                .catch(err => {
+                    console.error(`Layer[${this._id}] : Output paint failed`, err)
+                    // Keep the loop alive so a single failed frame doesn't freeze the layer
+                    this._renderNextFrame()
+                })
+        }
+    }
+
+    /**
+     * Paint a finished frame into the output buffer: background, content, then border.
+     *
+     * Clear + repaint happen in ONE synchronous block: the output canvas is read at
+     * arbitrary times by parent compositors (Dmd's loop, a LayerGroup's recomposite), so
+     * it must never be observable cleared-but-not-repainted - clearing before the async
+     * createImageBitmap callback left a blank window that showed up as flicker.
+     */
+    private _paintOutput(bitmap: ImageBitmap) {
+        this._outputBuffer.clear()
+        // Background behind content
+        const bgColor: string | undefined = this._options.get('backgroundColor')
+        if (bgColor) {
+            const bgOpacity: number = this._options.get('backgroundOpacity') ?? 1
+            this._outputBuffer.context.globalAlpha = bgOpacity
+            this._outputBuffer.context.fillStyle = bgColor
+            this._outputBuffer.context.fillRect(0, 0, this._outputBuffer.width, this._outputBuffer.height)
+            this._outputBuffer.context.globalAlpha = 1
+        }
+        // Put final layer data in the output buffer
+        this._outputBuffer.context.drawImage(bitmap, 0, 0)
+        bitmap.close()
+        // Border over content
+        const borderColor: string | undefined = this._options.get('borderColor')
+        const borderWidth: number = this._options.get('borderWidth') ?? 0
+        if (borderColor && borderWidth > 0) {
+            this._outputBuffer.context.strokeStyle = borderColor
+            this._outputBuffer.context.lineWidth = borderWidth
+            this._outputBuffer.context.strokeRect(
+                borderWidth / 2,
+                borderWidth / 2,
+                this._outputBuffer.width - borderWidth,
+                this._outputBuffer.height - borderWidth,
+            )
         }
     }
 
@@ -394,32 +409,9 @@ abstract class BaseLayer {
                 this._outputBuffer.height,
             )
 
-            createImageBitmap(frameImageData).then(bitmap => {
-                // Clear + repaint in one synchronous block - see _processRenderQueue.
-                this._outputBuffer.clear()
-                const bgColor: string | undefined = this._options.get('backgroundColor')
-                if (bgColor) {
-                    const bgOpacity: number = this._options.get('backgroundOpacity') ?? 1
-                    this._outputBuffer.context.globalAlpha = bgOpacity
-                    this._outputBuffer.context.fillStyle = bgColor
-                    this._outputBuffer.context.fillRect(0, 0, this._outputBuffer.width, this._outputBuffer.height)
-                    this._outputBuffer.context.globalAlpha = 1
-                }
-                this._outputBuffer.context.drawImage(bitmap, 0, 0)
-                bitmap.close()
-                const borderColor: string | undefined = this._options.get('borderColor')
-                const borderWidth: number = this._options.get('borderWidth') ?? 0
-                if (borderColor && borderWidth > 0) {
-                    this._outputBuffer.context.strokeStyle = borderColor
-                    this._outputBuffer.context.lineWidth = borderWidth
-                    this._outputBuffer.context.strokeRect(
-                        borderWidth / 2,
-                        borderWidth / 2,
-                        this._outputBuffer.width - borderWidth,
-                        this._outputBuffer.height - borderWidth,
-                    )
-                }
-            })
+            createImageBitmap(frameImageData)
+                .then(bitmap => this._paintOutput(bitmap))
+                .catch(err => console.error(`Layer[${this._id}] : Output paint failed`, err))
         }
 
         // start rendering visible layers which have renderers
@@ -442,7 +434,15 @@ abstract class BaseLayer {
      * ready) or from the Promise.all.then() callback (if _layerLoaded fired first).
      */
     private _fireLoadedListeners() {
-        for (const fn of this._listeners.loaded) fn(this)
+        for (const fn of this._listeners.loaded) this._callListener('loaded', fn)
+    }
+
+    /**
+     * Call a lifecycle listener. Listeners may be async: a rejected promise is logged
+     * instead of surfacing as an unhandled rejection. Synchronous throws still propagate.
+     */
+    private _callListener(event: string, fn: (layer: this) => void | Promise<void>) {
+        Promise.resolve(fn(this)).catch(err => console.error(`Layer[${this._id}] : "${event}" listener failed`, err))
     }
 
     /**
@@ -492,7 +492,7 @@ abstract class BaseLayer {
         }
 
         // Callback parent if available
-        for (const fn of this._listeners.updated) fn(this)
+        for (const fn of this._listeners.updated) this._callListener('updated', fn)
     }
 
     /**

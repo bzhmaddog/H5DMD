@@ -166,13 +166,13 @@ class CanvasLayer extends BaseLayer {
             if (typeof optWidth === 'number') {
                 w = optWidth
             } else if (typeof optWidth === 'string' && optWidth.at(-1) === '%') {
-                w = Math.floor((parseInt(optWidth, 10) * this.width) / 100)
+                w = Math.floor((Number.parseInt(optWidth, 10) * this.width) / 100)
             }
 
             if (typeof optHeight === 'number') {
                 h = optHeight
             } else if (typeof optHeight === 'string' && optHeight.at(-1) === '%') {
-                h = Math.floor((parseInt(optHeight, 10) * this.height) / 100)
+                h = Math.floor((Number.parseInt(optHeight, 10) * this.height) / 100)
             }
 
             // If only one dimension provided and ratio must be preserved, compute the other
@@ -196,13 +196,13 @@ class CanvasLayer extends BaseLayer {
         if (typeof optLeft === 'number') {
             l = mStart + optLeft
         } else if (typeof optLeft === 'string' && optLeft.at(-1) === '%') {
-            l = mStart + Math.round((parseInt(optLeft, 10) * this.width) / 100)
+            l = mStart + Math.round((Number.parseInt(optLeft, 10) * this.width) / 100)
         }
 
         if (typeof optTop === 'number') {
             t = mTop + optTop
         } else if (typeof optTop === 'string' && optTop.at(-1) === '%') {
-            t = mTop + Math.round((parseInt(optTop, 10) * this.height) / 100)
+            t = mTop + Math.round((Number.parseInt(optTop, 10) * this.height) / 100)
         }
 
         // Alignment operates within the inset area
@@ -260,7 +260,7 @@ class CanvasLayer extends BaseLayer {
         if (value === undefined) return 0
         if (typeof value === 'number') return value
         if (typeof value === 'string' && value.at(-1) === '%') {
-            return Math.floor((parseInt(value, 10) * reference) / 100)
+            return Math.floor((Number.parseInt(value, 10) * reference) / 100)
         }
         return 0
     }

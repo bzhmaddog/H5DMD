@@ -45,4 +45,21 @@ describe('BaseLayer frame handling', () => {
 
         expect(closeSpy).toHaveBeenCalledTimes(1)
     })
+
+    test('a failed createImageBitmap is logged and the loop keeps running', async () => {
+        const layer = new CanvasLayer('c', 64, 16)
+        vi.stubGlobal('createImageBitmap', () => Promise.reject(new Error('decode failed')))
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+        const nextFrame = vi.fn()
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const internal = layer as any
+        internal._renderQueue = []
+        internal._renderNextFrame = nextFrame
+        internal._processRenderQueue({} as ImageData)
+        await new Promise(r => setTimeout(r, 0))
+
+        expect(errorSpy).toHaveBeenCalledWith('Layer[c] : Output paint failed', expect.any(Error))
+        expect(nextFrame).toHaveBeenCalledTimes(1)
+    })
 })

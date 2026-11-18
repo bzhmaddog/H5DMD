@@ -127,6 +127,20 @@ describe('CanvasLayer.drawBitmap dimensions', () => {
         expect(call[2]).toBe(8) // 50% of 16
     })
 
+    test('percentage margins are resolved against the layer size', () => {
+        const layer = new CanvasLayer('c', 64, 16)
+        const spy = drawSpy(layer)
+
+        layer.drawBitmap(
+            img(10, 4),
+            new Options({ fit: 'none', width: 10, height: 4, left: 0, top: 0, marginStart: '25%', marginTop: '50%' }),
+        )
+
+        const call = spy.mock.calls[0]
+        expect(call[1]).toBe(16) // 25% of 64
+        expect(call[2]).toBe(8) // 50% of 16
+    })
+
     test('keepAspectRatio derives the missing height from a given width', () => {
         const layer = new CanvasLayer('c', 64, 16)
         const spy = drawSpy(layer)

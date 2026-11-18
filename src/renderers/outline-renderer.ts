@@ -116,7 +116,7 @@ class OutlineRenderer extends LayerRenderer<OutlineRendererParams> {
 
                     console.log('OutlineRenderer:init()')
 
-                    this._validateShader(reject).then(valid => {
+                    return this._validateShader(reject).then(valid => {
                         if (!valid) return
                         this._createResources()
                         this.renderFrame = this._doRendering

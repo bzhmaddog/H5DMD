@@ -90,7 +90,7 @@ class ChromaKeyRenderer extends LayerRenderer {
                         `ChromaKeyRenderer:init([${this._keyR}, ${this._keyG}, ${this._keyB}], ${this._threshold})`,
                     )
 
-                    this._validateShader(reject).then(valid => {
+                    return this._validateShader(reject).then(valid => {
                         if (!valid) return
                         this._createResources()
                         this.renderFrame = this._doRendering

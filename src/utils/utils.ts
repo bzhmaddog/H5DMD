@@ -34,7 +34,7 @@ class Utils {
      * @returns {number}
      */
     static hexColorToInt(str: string, prefix?: string): number {
-        return parseInt(str.replace(/^#/gi, prefix || ''), 16)
+        return Number.parseInt(str.replace(/^#/gi, prefix || ''), 16)
     }
 
     /**

@@ -13,6 +13,6 @@
         "noEmit": true,
         "types": ["vite/client", "@webgpu/types"]
     },
-    "include": ["src", "basic", "advanced", "scoreboard"],
+    "include": ["src", "basic", "text", "advanced", "scoreboard"],
     "exclude": ["node_modules", "../src", "../dist"]
 }

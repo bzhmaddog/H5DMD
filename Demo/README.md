@@ -165,20 +165,25 @@ buttons (`+100`/`+1000`/`Reset` for the score, `Next player`/`Next ball` for the
 
 ## Project structure
 
-Each demo is a folder containing its own HTML shell and TypeScript. The three files in a demo
-folder always play the same roles: `main.ts` creates the `Dmd`, `layers.ts` builds the scene,
-`controls.ts` builds the control panel.
+Each demo is a folder containing its own HTML shell and TypeScript. The files in a demo folder
+always play the same roles (`text/` is static, so it has no `controls.ts`): `main.ts` is the page entry point (it hands its setup to the
+shared `startDemo()` in `src/bootstrap.ts`, which creates and starts the `Dmd`), `layers.ts`
+builds the scene, `controls.ts` builds the control panel.
 
 ```
 Demo/
-├── index.html            # Landing page — links to the three demo folders
+├── index.html            # Landing page — links to the four demo folders
 ├── vite.config.js        # Vite config (base '/H5DMD/', tsc-watch plugin, multi-page build)
 ├── tsconfig.json         # TypeScript (bundler resolution)
 ├── basic/                # served at /basic/ — the LayerGroup showcase
 │   ├── index.html        # HTML shell — canvas and control panel mounts
-│   ├── main.ts           # Creates the Dmd, wires up layers and controls
+│   ├── main.ts           # Entry point: startDemo() with this page's layers and controls
 │   ├── layers.ts         # Builds the video-panel/hud/sandbox/info LayerGroups
 │   └── controls.ts       # The showcase page's focused (untabbed) control panel
+├── text/                 # served at /text/ — static TextLayer alignment reference
+│   ├── index.html
+│   ├── main.ts
+│   └── layers.ts         # Builds the static TextLayer grid
 ├── advanced/             # served at /advanced/ — every layer type, full panel
 │   ├── index.html
 │   ├── main.ts
@@ -190,6 +195,7 @@ Demo/
 │   ├── layers.ts         # Builds the score/player/ball LayerGroups
 │   └── controls.ts       # The scoreboard page's focused control panel
 ├── src/                  # Shared across demos
+│   ├── bootstrap.ts      # startDemo(): WebGPU check, Dmd creation/init, then the page's setup
 │   ├── landing.ts        # Entry point for index.html (just displays the version)
 │   └── style.scss        # All demo styles (compiled by Vite via sass)
 └── public/

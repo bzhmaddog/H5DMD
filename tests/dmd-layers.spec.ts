@@ -317,6 +317,22 @@ describe('Dmd render loop', () => {
         expect(renderSpy).toHaveBeenCalled()
     })
 
+    test('a rejected renderFrame is logged and the loop keeps running', async () => {
+        const dmd = makeDmd()
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const internal = dmd as any
+        vi.spyOn(internal._renderer, 'renderFrame').mockRejectedValue(new Error('GPU lost'))
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+        const nextFrame = vi.fn()
+        internal._renderNextFrame = nextFrame
+
+        internal.renderDMD()
+        await new Promise(r => setTimeout(r, 0))
+
+        expect(errorSpy).toHaveBeenCalledWith('Dmd : frame render failed', expect.any(Error))
+        expect(nextFrame).toHaveBeenCalledTimes(1)
+    })
+
     test('the FPS overlay renders the current/min/max readout', () => {
         const dmd = makeDmd(true)
 
