@@ -1,6 +1,12 @@
 # H5DMD
 
 ![CI](https://github.com/bzhmaddog/h5dmd/actions/workflows/ci.yml/badge.svg)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=bzhmaddog_H5DMD&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=bzhmaddog_H5DMD)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=bzhmaddog_H5DMD&metric=coverage)](https://sonarcloud.io/summary/new_code?id=bzhmaddog_H5DMD)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=bzhmaddog_H5DMD&metric=bugs)](https://sonarcloud.io/summary/new_code?id=bzhmaddog_H5DMD)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=bzhmaddog_H5DMD&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=bzhmaddog_H5DMD)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=bzhmaddog_H5DMD&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=bzhmaddog_H5DMD)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=bzhmaddog_H5DMD&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=bzhmaddog_H5DMD)
 
 A Virtual Dmd (Dot Matrix Display) powered by HTML5 Canvas and WebGPU(optional)
 
