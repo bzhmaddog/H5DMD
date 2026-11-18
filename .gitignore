@@ -5,7 +5,7 @@ node_modules
 .claude
 
 ### VisualStudioCode ###
-.vscode/*      # Maybe .vscode/**/* instead - see comments
+.vscode/**/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
@@ -26,3 +26,7 @@ docs/
 
 ### Test coverage
 coverage/
+
+# Environmenent variables
+.env
+.envrc
